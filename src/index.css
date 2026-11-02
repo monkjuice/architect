@@ -1,0 +1,184 @@
+:root {
+  color-scheme: dark;
+  --bg: #111113;
+  --bg-raised: #17171a;
+  --surface: #1d1d21;
+  --surface-2: #25252a;
+  --border: #2e2e34;
+  --border-strong: #3c3c44;
+  --text: #e8e8eb;
+  --text-muted: #9d9da8;
+  --text-faint: #6c6c77;
+  --accent: #f0a030;
+  --accent-strong: #ffb547;
+  --violet: #9384f8;
+  --error: #f25757;
+  --warning: #f2b233;
+  --info: #62aaf5;
+  --ok: #3ecf8e;
+  --selection: #4da3ff;
+  --radius: 6px;
+  --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace;
+
+  /* the drawing */
+  --canvas-bg: #0c0c0e;
+  --hover: #f0a030;
+  --snap: #ff4fd8;
+  --measure: #39d0ff;
+  --calibration: #3ecf8e;
+  --label-bg: rgba(17, 17, 19, 0.82);
+  --sun: #facc15;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:hover:not(:disabled) {
+  border-color: #55555f;
+  background: #2c2c32;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--selection);
+  outline-offset: 1px;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a1206;
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+button.danger:hover:not(:disabled) {
+  border-color: var(--error);
+  color: #ffb3b3;
+}
+
+button.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+button.ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+button.small {
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+button.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  text-align: left;
+  white-space: normal;
+}
+
+button.link:hover {
+  color: var(--accent-strong);
+  background: none;
+}
+
+input,
+select,
+textarea {
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 4px 6px;
+  min-width: 0;
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+textarea {
+  resize: vertical;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.92em;
+}
+
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+h2 {
+  font-size: 13px;
+}
+
+h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: 14px 0 6px;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.fatal {
+  padding: 32px;
+}
+
+.fatal pre {
+  white-space: pre-wrap;
+  color: #ffb3b3;
+}

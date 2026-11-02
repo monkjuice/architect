@@ -1,0 +1,1405 @@
+/* ---- shell ------------------------------------------------------------------------------------------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.app-main {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 320px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 7px 12px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-mark {
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.project-title {
+  min-width: 0;
+}
+
+.file-name {
+  color: var(--text-faint);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dirty {
+  color: var(--accent);
+  margin-left: 4px;
+}
+
+/* the tabs: every tab works on the same plan; those not built yet are disabled */
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-left: 8px;
+}
+
+.tab {
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  padding: 4px 10px;
+  color: var(--text-muted);
+}
+
+.tab:hover:not(:disabled) {
+  background: transparent;
+  color: var(--text);
+}
+
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.tab:disabled {
+  opacity: 0.35;
+}
+
+/* the second row of the bar: the open tab's own actions */
+.tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 5px 12px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.tab-actions-end {
+  margin-left: auto;
+}
+
+.inline-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inline-field input[type='range'] {
+  width: 160px;
+  accent-color: var(--sun);
+}
+
+.tab-loading {
+  padding: 24px;
+  color: var(--text-muted);
+}
+
+.tools {
+  display: flex;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 4px 12px;
+  color: var(--text-muted);
+}
+
+.tool.active {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+kbd {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.history {
+  margin-left: auto;
+}
+
+.menu {
+  position: relative;
+}
+
+.menu-popup {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.menu-popup button {
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 6px 10px;
+}
+
+.menu-popup hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+  width: 100%;
+}
+
+/* notices float over the canvas: one that came and went in the layout moved the canvas under the cursor */
+.notice {
+  position: absolute;
+  top: 10px;
+  left: 232px;
+  right: 332px;
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid #2c3a52;
+  border-radius: 8px;
+  background: #1a2230;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.notice-error {
+  background: #2c1717;
+  border-color: #5a2a2a;
+}
+
+.notice-body {
+  flex: 1;
+}
+
+.notice ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* ---- shared blocks ----------------------------------------------------------------------------------- */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  overflow-y: auto;
+  background: var(--bg-raised);
+  border-left: 1px solid var(--border);
+}
+
+.sidebar-left {
+  border-left: none;
+  border-right: 1px solid var(--border);
+}
+
+/* ---- library ----------------------------------------------------------------------------------------- */
+
+.library-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.library-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+}
+
+.library-item[draggable='true'] {
+  cursor: grab;
+}
+
+.library-item:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: transparent;
+}
+
+.library-item.active {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+/* door and window icons draw with the plan's opening styles, in the --layer colour */
+.library-icon {
+  --layer: var(--text);
+  width: 32px;
+  height: 24px;
+  flex: none;
+  fill: none;
+  stroke: var(--text);
+  overflow: visible;
+}
+
+.library-item.active .library-icon {
+  --layer: var(--accent-strong);
+  stroke: var(--accent-strong);
+}
+
+.library-icon .icon-wall {
+  stroke-width: 2.5;
+}
+
+.library-icon .opening :is(path, line, polygon, polyline) {
+  stroke-width: 1.1;
+}
+
+.library-icon .opening .opening-glass {
+  stroke-width: 0.9;
+}
+
+.library-hint {
+  margin: 0 4px;
+}
+
+.library-name {
+  flex: 1;
+}
+
+.library-detail {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.opening-buttons {
+  margin-top: 8px;
+}
+
+.box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.box-header h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* a section title that folds it away */
+.box-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+.box-toggle:hover:not(:disabled) {
+  background: none;
+  color: var(--accent-strong);
+}
+
+.box-toggle .chevron {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--text-faint);
+  transition: transform 0.12s;
+}
+
+.box-toggle[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
+}
+
+.box.collapsed .box-header {
+  margin-bottom: 0;
+}
+
+/* ---- sun --------------------------------------------------------------------------------------------- */
+
+.sun-readout {
+  margin: 0;
+}
+
+.site-details {
+  margin-top: 10px;
+}
+
+.site-details summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.box > p {
+  margin: 0 0 8px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.field-value {
+  color: var(--text);
+  margin-left: 4px;
+}
+
+.field-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field-input input {
+  flex: 1;
+  width: 100%;
+}
+
+.field input[type='range'] {
+  padding: 0;
+  border: none;
+  background: none;
+  accent-color: var(--accent);
+}
+
+.unit {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.readout {
+  padding: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.readouts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.check-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.check-field input {
+  accent-color: var(--accent);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+button.active {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.hint {
+  color: var(--text-faint);
+  font-size: 11px;
+  margin: 8px 0 0;
+}
+
+.small {
+  font-size: 12px;
+}
+
+p.small {
+  margin: 0 0 8px;
+}
+
+button.icon {
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 20px;
+  min-width: 22px;
+}
+
+/* ---- base plan --------------------------------------------------------------------------------------- */
+
+.segmented-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.segmented-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.segmented {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 2px;
+}
+
+.segmented button {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 2px 10px;
+}
+
+.segmented button.active {
+  background: var(--surface-2);
+  color: var(--accent-strong);
+}
+
+.box .segmented-field {
+  margin-bottom: 4px;
+}
+
+.hint.warning {
+  color: var(--warning);
+}
+
+/* ---- areas ------------------------------------------------------------------------------------------- */
+
+.area-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.area-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.area-list li:hover {
+  background: var(--surface-2);
+}
+
+.area-list li.selected {
+  border-color: var(--selection);
+  background: var(--surface-2);
+}
+
+.area-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--layer);
+}
+
+.area-list-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.area-list-size {
+  color: var(--text-muted);
+}
+
+.area-list-size.warning {
+  color: var(--warning);
+}
+
+.area-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding: 6px 8px 0;
+  border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.area-total.covered {
+  margin-top: 0;
+  padding-top: 2px;
+  border-top: none;
+}
+
+.rotation-fields {
+  grid-template-columns: 1fr 96px;
+  align-items: end;
+}
+
+.calibration-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calibration-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px 2px 8px;
+  border-radius: 4px;
+  background: var(--bg);
+}
+
+.calibration-list li span:first-child {
+  flex: 1;
+}
+
+.calibration-error.ok {
+  color: var(--ok);
+}
+
+.calibration-error.warn {
+  color: var(--warning);
+}
+
+.calibration-error.bad {
+  color: var(--error);
+}
+
+/* ---- layers ------------------------------------------------------------------------------------------ */
+
+.layer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.layer-row:hover {
+  background: var(--surface-2);
+}
+
+.layer-row.active {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.layer-row input[type='color'] {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.layer-name {
+  flex: 1;
+  background: transparent;
+  border-color: transparent;
+}
+
+.layer-name:hover,
+.layer-name:focus {
+  border-color: var(--border-strong);
+  background: var(--bg);
+}
+
+.layer-count {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.layer-actions {
+  display: flex;
+}
+
+.layer-actions button[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+.view-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+}
+
+.view-list .check-field:has(input:disabled) {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ---- exterior: the 3-D view fills the tab --------------------------------------------------------------- */
+
+.exterior-main {
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--canvas-bg);
+}
+
+.exterior-host {
+  position: absolute;
+  inset: 0;
+}
+
+.exterior-host canvas {
+  display: block;
+}
+
+.exterior-main .notice {
+  left: 12px;
+  right: 12px;
+}
+
+.exterior-message {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 360px;
+  height: fit-content;
+  padding: 18px 20px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.exterior-hint {
+  position: absolute;
+  left: 12px;
+  bottom: 8px;
+  margin: 0;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--label-bg);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+/* ---- canvas ------------------------------------------------------------------------------------------ */
+
+.canvas-wrap {
+  position: relative;
+  overflow: hidden;
+  background: var(--canvas-bg);
+}
+
+.canvas-wrap.dropping {
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  font-family: var(--font);
+}
+
+.canvas :is(rect, circle, line, path, polygon, polyline) {
+  vector-effect: non-scaling-stroke;
+}
+
+.canvas-status {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 4px 2px 10px;
+  border-radius: 6px;
+  background: rgba(17, 17, 19, 0.85);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.canvas-status .coords {
+  min-width: 170px;
+}
+
+.tool-hint {
+  flex: 1;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scale-bar {
+  position: absolute;
+  left: 16px;
+  bottom: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(17, 17, 19, 0.85);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.scale-bar-line {
+  height: 6px;
+  border: 1.5px solid var(--text-muted);
+  border-top: none;
+}
+
+/* clicks go through to the canvas, except on the button: the card used to swallow the first lines drawn */
+.empty-state {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 340px;
+  height: fit-content;
+  padding: 24px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.empty-state button {
+  pointer-events: auto;
+}
+
+.empty-state p {
+  margin: 0 0 12px;
+}
+
+.empty-state p.muted {
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+
+/* the drawing: stroke widths are screen pixels (non-scaling strokes); text sizes come from the zoom */
+
+.grid,
+.overlay,
+.selection-marks,
+.calibration-marks,
+.base-image {
+  pointer-events: none;
+}
+
+.grid-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 1;
+}
+
+.grid-line.major {
+  stroke: rgba(255, 255, 255, 0.11);
+}
+
+.crop-shade {
+  fill: rgba(0, 0, 0, 0.6);
+}
+
+.layer {
+  pointer-events: none;
+}
+
+.layer-lines {
+  fill: none;
+  stroke: var(--layer);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* walls cut by the plan: filled at their thickness, their faces outlined */
+.wall-fill {
+  fill: var(--layer);
+  fill-opacity: 0.45;
+  stroke: none;
+}
+
+.wall-edges {
+  fill: none;
+  stroke: var(--layer);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+/* dashes mean open edges, so locked layers only fade */
+.layer.locked {
+  opacity: 0.6;
+}
+
+.layer-lines.open {
+  stroke-width: 1.75;
+  stroke-dasharray: 7 5;
+  stroke-linecap: butt;
+}
+
+/* edges with no height are thin, as things seen below a plan's cut are drawn */
+.layer-lines.outline {
+  stroke-width: 1.1;
+  opacity: 0.9;
+}
+
+.vertex {
+  fill: var(--layer);
+  stroke: none;
+}
+
+.vertex.open {
+  fill: var(--canvas-bg);
+  stroke: var(--layer);
+  stroke-width: 1.5;
+}
+
+/* lengths and other labels sit on a dark pill (SegmentLabel) */
+.seg-label rect {
+  fill: var(--label-bg);
+  stroke: none;
+}
+
+.seg-label text {
+  stroke: none;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.length-label text {
+  fill: var(--layer);
+}
+
+/* doors and windows: in the layer colour, over the gaps they leave in their walls */
+.openings {
+  pointer-events: none;
+}
+
+.openings.locked {
+  opacity: 0.6;
+}
+
+.opening :is(path, line, polygon, polyline) {
+  fill: none;
+  stroke: var(--layer);
+  stroke-width: 1.5;
+}
+
+.opening .opening-panel {
+  stroke-width: 1.25;
+}
+
+.opening .opening-dashed {
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+/* gates: solid posts, heavy leaves and panels, dashed swings */
+.opening .opening-post {
+  fill: var(--layer);
+}
+
+.opening.gate .opening-leaf {
+  stroke-width: 3;
+}
+
+.opening.gate .opening-panel {
+  stroke-width: 2;
+}
+
+.opening.gate .opening-arc {
+  stroke-dasharray: 4 3;
+}
+
+.opening.cramped .opening-dashed {
+  stroke: var(--warning);
+}
+
+/* casement leaves are lighter than door leaves, and their swing is dashed */
+.opening.window .opening-leaf {
+  stroke-width: 1.25;
+}
+
+.opening.window .opening-arc {
+  stroke-dasharray: 4 3;
+}
+
+.opening .opening-leaf {
+  stroke-width: 2;
+}
+
+.opening .opening-arc {
+  stroke-width: 1;
+  opacity: 0.8;
+}
+
+.opening .opening-frame {
+  fill: var(--label-bg);
+  fill-opacity: 0.35;
+}
+
+.opening .opening-glass {
+  stroke-width: 1;
+}
+
+.opening.hovered :is(path, line, polygon, polyline) {
+  stroke: var(--hover);
+}
+
+/* a light stroke and a glow: the selection blue alone is too close to the default layer blue */
+.opening.selected {
+  filter: drop-shadow(0 0 3px var(--selection));
+}
+
+.opening.selected :is(path, line, polygon, polyline) {
+  stroke: #b9dcff;
+}
+
+.opening.selected .opening-leaf {
+  stroke-width: 2.5;
+}
+
+.opening.misfit :is(path, line, polygon, polyline) {
+  stroke: var(--error);
+}
+
+.opening.preview :is(path, line, polygon, polyline) {
+  stroke: var(--accent);
+}
+
+.opening.preview.problem :is(path, line, polygon, polyline) {
+  stroke: var(--error);
+}
+
+.selected-line {
+  stroke: var(--selection);
+  stroke-width: 8;
+  stroke-opacity: 0.45;
+  stroke-linecap: round;
+}
+
+.selected-end,
+.selected-point {
+  fill: var(--canvas-bg);
+  stroke: var(--selection);
+  stroke-width: 1.5;
+}
+
+.hovered-line {
+  stroke: var(--hover);
+  stroke-width: 7;
+  stroke-opacity: 0.6;
+  stroke-linecap: round;
+}
+
+.hovered-point {
+  fill: none;
+  stroke: var(--hover);
+  stroke-width: 2;
+}
+
+.calibration-line {
+  stroke: var(--calibration);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 3;
+}
+
+.calibration-end {
+  fill: var(--calibration);
+  stroke: none;
+}
+
+.calibration-label text {
+  fill: var(--calibration);
+}
+
+/* overlay */
+
+.overlay-line {
+  stroke-width: 1.5;
+}
+
+.overlay-line.preview {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.overlay-line.preview-open {
+  stroke: var(--accent);
+  stroke-dasharray: 7 5;
+}
+
+.overlay-line.measure {
+  stroke: var(--measure);
+  stroke-dasharray: 4 3;
+}
+
+.overlay-line.calibration {
+  stroke: var(--calibration);
+}
+
+.overlay-line.level {
+  stroke: var(--accent);
+}
+
+.overlay-line.crop {
+  stroke: var(--accent);
+  stroke-dasharray: 5 4;
+}
+
+.overlay-line.guide {
+  stroke: var(--snap);
+  stroke-dasharray: 3 3;
+}
+
+.overlay-point {
+  stroke-width: 1.5;
+}
+
+.overlay-point.anchor {
+  fill: var(--accent);
+  stroke: var(--canvas-bg);
+}
+
+.overlay-point.measure {
+  fill: var(--measure);
+  stroke: none;
+}
+
+.overlay-point.handle {
+  fill: var(--canvas-bg);
+  stroke: var(--accent);
+}
+
+.overlay-label.measure text {
+  fill: var(--measure);
+}
+
+.overlay-label.calibration text {
+  fill: var(--calibration);
+}
+
+.overlay-label.accent text {
+  fill: var(--accent-strong);
+}
+
+.overlay-region {
+  fill: rgba(240, 160, 48, 0.14);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+.tag.warning text {
+  fill: var(--warning);
+}
+
+/* areas: a tint over the region, a name-and-size pill at its middle */
+.area-fills {
+  pointer-events: none;
+}
+
+.area-fill {
+  fill: var(--layer);
+  fill-opacity: 0.1;
+  stroke: none;
+}
+
+.area-fill.hovered {
+  fill-opacity: 0.18;
+}
+
+/* a tint only: an outline would hide the dashes of open edges */
+.area-fill.selected {
+  fill: var(--selection);
+  fill-opacity: 0.24;
+}
+
+.area-labels {
+  pointer-events: none;
+}
+
+.area-label rect {
+  fill: var(--label-bg);
+  stroke: var(--layer);
+  stroke-width: 1;
+}
+
+.area-label.selected rect {
+  stroke: var(--selection);
+  stroke-width: 2;
+}
+
+.area-label.unenclosed rect {
+  stroke: var(--warning);
+  stroke-dasharray: 3 2;
+}
+
+.area-label text {
+  stroke: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.area-name {
+  fill: var(--text);
+  font-weight: 600;
+}
+
+.area-size {
+  fill: var(--layer);
+  font-weight: 600;
+}
+
+.area-label.unenclosed .area-size {
+  fill: var(--warning);
+}
+
+/* the sun: a dotted yellow path, the day's arc brighter, the sun a dotted disc */
+.sun-dial {
+  pointer-events: none;
+}
+
+.sun-path {
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 6;
+  opacity: 0.5;
+}
+
+.sun-day {
+  fill: none;
+  stroke: var(--sun);
+  stroke-width: 2.5;
+  stroke-dasharray: 2 5;
+  stroke-linecap: round;
+}
+
+.sun-tick {
+  stroke: var(--sun);
+  stroke-width: 2;
+}
+
+.sun-north {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.sun-north-label {
+  fill: var(--text);
+  font-weight: 700;
+}
+
+.sun-ray {
+  stroke: var(--sun);
+  stroke-width: 1;
+  stroke-dasharray: 1 6;
+}
+
+.sun-disc {
+  fill: rgba(250, 204, 21, 0.35);
+  stroke: var(--sun);
+  stroke-width: 2.5;
+  stroke-dasharray: 2 3;
+}
+
+.sun-disc.below {
+  fill: none;
+  stroke: var(--text-faint);
+}
+
+.sun-tag rect {
+  fill: var(--label-bg);
+  stroke: none;
+}
+
+.sun-tag text {
+  fill: var(--sun);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sun-shadows {
+  fill: #05060a;
+  stroke: none;
+  pointer-events: none;
+}
+
+.measure-area {
+  fill: rgba(57, 208, 255, 0.12);
+  stroke: none;
+}
+
+.marquee {
+  fill: rgba(77, 163, 255, 0.08);
+  stroke: var(--selection);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.snap {
+  fill: none;
+  stroke: var(--snap);
+  stroke-width: 1.5;
+}
+
+.snap-guide {
+  stroke: var(--snap);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.tag rect {
+  fill: rgba(17, 17, 19, 0.92);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.tag text {
+  fill: var(--text);
+  stroke: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.tag.accent text {
+  fill: var(--accent-strong);
+}
+
+.tag.measure text {
+  fill: var(--measure);
+}
+
+.tag.calibration text {
+  fill: var(--calibration);
+}
+
+/* ---- dialog ------------------------------------------------------------------------------------------ */
+
+.prompt-dialog {
+  width: 360px;
+  padding: 16px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+.prompt-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.prompt-dialog h2 {
+  margin-bottom: 6px;
+}
+
+.prompt-dialog p {
+  margin: 0 0 12px;
+}
+
+.dialog-buttons {
+  justify-content: flex-end;
+  margin-top: 14px;
+}

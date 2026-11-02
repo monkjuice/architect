@@ -1,0 +1,313 @@
+import { moveAreas, moveSegments, segmentsAt, setSegmentKind, setSegmentLength, updateArea, updateOpening, updateWalls, type OpeningPatch } from '../../model/edit'
+import { fitOffset, hasHinge, hasSide, overlappingOpening, parkingRoom, placeOpening, slides, STYLES } from '../../model/openings'
+import { dist, screenAngleDeg } from '../../model/geometry'
+import { measureSegments } from '../../model/pick'
+import { findLayer, segmentKind, type OpeningKind, type OpeningStyle, type Ref, type SegmentKind } from '../../model/plan'
+import { EXTERIOR_WALL, INTERIOR_WALL, wallHeight } from '../../model/walls'
+import { deleteSelection } from '../../state/actions'
+import { facesOutside, getPlacedAreas, getThickness } from '../../state/derived'
+import { getStore, useEditor } from '../../state/store'
+import { Box, NumberField, Segmented, SelectField, TextField } from '../fields'
+
+const KIND_OPTIONS = [
+  ['wall', 'Wall'],
+  ['open', 'Open edge'],
+  ['outline', 'Outline'],
+] as const
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+/**
+ * What is selected: a line's length and angle, the totals and enclosed area of several lines, an area's name
+ * and size. Lines switch between wall, open edge and outline here, walls get their thickness and height, and
+ * lines and areas move to another layer.
+ */
+export function SelectionPanel() {
+  const store = getStore()
+  const plan = useEditor((s) => s.plan)
+  const selection = useEditor((s) => s.selection)
+
+  if (!selection.length) {
+    return (
+      <Box id="selection" title="Selection">
+        <p className="muted">Nothing selected. With Select (V), click a line, a point or an area, or drag a box around them.</p>
+      </Box>
+    )
+  }
+
+  const segments = selection.filter((r) => r.kind === 'segment')
+  const vertices = selection.filter((r) => r.kind === 'vertex')
+  const areas = selection.filter((r) => r.kind === 'area')
+  const openings = selection.filter((r) => r.kind === 'opening')
+  const movable = [...segments, ...areas]
+  const layerIds = [...new Set(movable.map((r) => r.layer))]
+  const oneLayer = layerIds.length === 1 ? findLayer(plan, layerIds[0]) : undefined
+  const segmentLayers = [...new Set(segments.map((r) => r.layer))]
+  const openingKinds = openings.map((r) => findLayer(plan, r.layer)?.openings[r.id]?.kind)
+  const ofKind = (kind: OpeningKind) => openingKinds.filter((k) => k === kind).length
+  const title = [
+    segments.length && plural(segments.length, 'line'),
+    vertices.length && plural(vertices.length, 'point'),
+    areas.length && plural(areas.length, 'area'),
+    ...(['door', 'window', 'gate'] as const).map((k) => ofKind(k) && plural(ofKind(k), k)),
+  ]
+    .filter(Boolean)
+    .join(', ')
+
+  const kinds = new Set(segments.map((r) => segmentKind(findLayer(plan, r.layer)!.segments[r.id])))
+  const kind = kinds.size === 1 ? [...kinds][0] : undefined
+
+  const moveTo = (target: string) => {
+    let next = store.getState().plan
+    const moved: Ref[] = []
+    for (const layerId of layerIds) {
+      const lines = moveSegments(next, layerId, segments.filter((r) => r.layer === layerId).map((r) => r.id), target)
+      const named = moveAreas(lines.plan, layerId, areas.filter((r) => r.layer === layerId).map((r) => r.id), target)
+      next = named.plan
+      moved.push(...lines.ids.map((id) => ({ layer: target, kind: 'segment' as const, id })), ...named.ids.map((id) => ({ layer: target, kind: 'area' as const, id })))
+    }
+    store.edit(() => next)
+    store.select(moved)
+    store.setActiveLayer(target)
+  }
+
+  return (
+    <Box
+      id="selection"
+      title={`Selection · ${title}`}
+      actions={
+        <button className="ghost small danger" onClick={deleteSelection} title="Delete (Del)">
+          Delete
+        </button>
+      }
+    >
+      {areas.length === 1 && selection.length === 1 && <AreaDetails layerId={areas[0].layer} id={areas[0].id} />}
+      {openings.length === 1 && selection.length === 1 && <OpeningDetails layerId={openings[0].layer} id={openings[0].id} />}
+      {segments.length > 0 && (
+        <Segmented<SegmentKind> label="Type" value={kind} options={KIND_OPTIONS} onChange={(k) => store.edit((p) => setSegmentKind(p, segments, k))} />
+      )}
+      {kind === 'wall' && <WallFields refs={segments} />}
+      {segments.length === 1 && selection.length === 1 && <SegmentDetails layerId={segments[0].layer} id={segments[0].id} />}
+      {segments.length > 1 && segmentLayers.length === 1 && <Totals layerId={segmentLayers[0]} ids={segments.map((r) => r.id)} />}
+      {segments.length > 1 && segmentLayers.length > 1 && <p className="muted">Lines on {segmentLayers.length} layers.</p>}
+      {vertices.length === 1 && selection.length === 1 && <VertexDetails refs={vertices} />}
+      {movable.length > 0 && (
+        <div className="fields">
+          <SelectField
+            label="Layer"
+            value={oneLayer?.id ?? ''}
+            options={[...(oneLayer ? [] : [['', 'Several'] as const]), ...plan.layers.map((l) => [l.id, l.name] as const)]}
+            onChange={(id) => id && moveTo(id)}
+          />
+        </div>
+      )}
+    </Box>
+  )
+}
+
+function AreaDetails({ layerId, id }: { layerId: string; id: string }) {
+  const store = getStore()
+  const layer = useEditor((s) => findLayer(s.plan, layerId))
+  const placed = layer && getPlacedAreas(layer).find((a) => a.id === id)
+  if (!placed) return null
+  const r = placed.region
+  return (
+    <>
+      <div className="fields">
+        <TextField label="Name" value={placed.area.name} onCommit={(name) => store.edit((p) => updateArea(p, layerId, id, { name }))} />
+        <div className="field">
+          <label>Floor, inside the walls</label>
+          <span className="readout">{r ? `${r.floor.toFixed(2)} m²` : '—'}</span>
+        </div>
+      </div>
+      {r ? (
+        <p className="hint">
+          {r.area.toFixed(2)} m² to the wall centrelines · boundary {(r.walls + r.open + r.outline).toFixed(2)} m
+          {r.open > 0 && ` · ${r.open.toFixed(2)} m of it open`}
+          {r.outline > 0 && ` · ${r.outline.toFixed(2)} m outline`}
+          {r.holes.length > 0 && ` · ${plural(r.holes.length, 'island')} subtracted`}
+        </p>
+      ) : (
+        <p className="hint warning">Not enclosed: its lines no longer close around it. Close the outline, or drag the label into a closed room.</p>
+      )}
+    </>
+  )
+}
+
+/**
+ * A door or window: its width and the free wall either side, named by where they are on screen (left/right
+ * for a wall running across, top/bottom for one running down), and for a door which way it opens.
+ */
+function OpeningDetails({ layerId, id }: { layerId: string; id: string }) {
+  const store = getStore()
+  const layer = useEditor((s) => findLayer(s.plan, layerId))
+  const o = layer?.openings[id]
+  const placed = layer && o && placeOpening(layer, o)
+  if (!layer || !o || !placed) return null
+  const across = Math.abs(placed.dir.x) >= Math.abs(placed.dir.y)
+  const [first, second] = across ? ['left', 'right'] : ['top', 'bottom']
+  // a, the end offsets are measured from, is the first one on screen when the segment runs right or down
+  const aFirst = across ? placed.dir.x > 0 : placed.dir.y > 0
+  const w = Math.min(o.width, placed.length)
+  const gapA = placed.offset - w / 2
+  const gapB = placed.length - placed.offset - w / 2
+  const change = (patch: OpeningPatch) => {
+    const width = patch.width ?? o.width
+    const offset = fitOffset(placed.length, width, patch.offset ?? o.offset)
+    if (overlappingOpening(layer, o.segment, offset, width, id)) {
+      store.notify({ kind: 'error', text: 'That would overlap another opening in this wall.' })
+      return
+    }
+    store.edit((p) => updateOpening(p, layerId, id, { ...patch, offset }))
+  }
+  const gapField = (end: 'a' | 'b') => (
+    <NumberField
+      key={end}
+      label={`Wall to the ${(end === 'a') === aFirst ? first : second}`}
+      value={end === 'a' ? gapA : gapB}
+      min={0}
+      onCommit={(gap) => change({ offset: end === 'a' ? gap + w / 2 : placed.length - gap - w / 2 })}
+    />
+  )
+  return (
+    <>
+      <div className="fields">
+        <SelectField<OpeningStyle>
+          label="Style"
+          value={o.style}
+          options={STYLES.filter((s) => s.kind === o.kind).map((s) => [s.style, s.title] as const)}
+          onChange={(style) => store.edit((p) => updateOpening(p, layerId, id, { style }))}
+        />
+        <div className="field">
+          <label>Wall</label>
+          <span className="readout">{placed.length.toFixed(2)} m</span>
+        </div>
+        <NumberField label="Width" value={o.width} min={0.3} onCommit={(width) => change({ width })} />
+        <div />
+        {aFirst ? [gapField('a'), gapField('b')] : [gapField('b'), gapField('a')]}
+      </div>
+      {(hasSide(o) || hasHinge(o)) && (
+        <div className="button-row opening-buttons">
+          {hasSide(o) && (
+            <button onClick={() => store.edit((p) => updateOpening(p, layerId, id, { swing: o.swing === 'left' ? 'right' : 'left' }))} title="Open or slide to the other side of the wall">
+              Flip side
+            </button>
+          )}
+          {hasHinge(o) && (
+            <button
+              onClick={() => store.edit((p) => updateOpening(p, layerId, id, { hinge: o.hinge === 'a' ? 'b' : 'a' }))}
+              title={slides(o) ? 'Slide it open the other way' : 'Hang it from the other jamb'}
+            >
+              {slides(o) ? 'Flip direction' : 'Flip hinge'}
+            </button>
+          )}
+        </div>
+      )}
+      {!placed.fits && <p className="hint warning">The wall is shorter than this {o.kind}.</p>}
+      {slides(o) && <ParkingHint room={parkingRoom(layer, id)} width={o.width} />}
+      <p className="hint">Drag it along its wall, or onto another wall of the layer.</p>
+    </>
+  )
+}
+
+/** A sliding gate needs as much clear wall as its width on the side it slides to. */
+function ParkingHint({ room, width }: { room: number; width: number }) {
+  return room < width - 1e-6 ? (
+    <p className="hint warning">
+      Not enough wall to slide open: it needs {width.toFixed(2)} m, {room.toFixed(2)} m is free on that side.
+    </p>
+  ) : (
+    <p className="hint">Slides open along {width.toFixed(2)} m of wall, which is free.</p>
+  )
+}
+
+function SegmentDetails({ layerId, id }: { layerId: string; id: string }) {
+  const store = getStore()
+  const layer = useEditor((s) => findLayer(s.plan, layerId))
+  const seg = layer?.segments[id]
+  if (!layer || !seg) return null
+  const a = layer.vertices[seg.a]
+  const b = layer.vertices[seg.b]
+  return (
+    <div className="fields">
+      <NumberField label="Length" value={dist(a, b)} min={0.001} onCommit={(length) => store.edit((plan) => setSegmentLength(plan, layerId, id, length))} />
+      <div className="field">
+        <label>Angle</label>
+        <span className="readout">{screenAngleDeg(a, b).toFixed(1)}°</span>
+      </div>
+      <p className="hint field-wide">A new length moves the end with fewer other lines on it.</p>
+    </div>
+  )
+}
+
+/**
+ * The thickness and height of the selected walls: what they share, or an empty field when they differ, where a
+ * number sets them all. A wall without a thickness of its own is automatic, and says why it is as thick as it is.
+ */
+function WallFields({ refs }: { refs: Ref[] }) {
+  const store = getStore()
+  const plan = useEditor((s) => s.plan)
+  const walls = refs.flatMap((r) => {
+    const layer = findLayer(plan, r.layer)
+    const seg = layer?.segments[r.id]
+    return layer && seg ? [{ seg, thickness: getThickness(layer).get(r.id) ?? 0, outside: facesOutside(layer, r.id) }] : []
+  })
+  if (!walls.length) return null
+  const shared = (values: number[]) => (values.every((v) => Math.abs(v - values[0]) < 1e-9) ? values[0] : null)
+  const own = walls.filter((w) => w.seg.thickness !== undefined).length
+  const auto = (outside: boolean) => (outside ? `${EXTERIOR_WALL.toFixed(2)} m, it faces outside` : `${INTERIOR_WALL.toFixed(2)} m, between two rooms`)
+  let why: string
+  if (walls.length === 1) why = own ? `Set by hand; automatic would be ${auto(walls[0].outside)}.` : `Automatic: ${auto(walls[0].outside)}.`
+  else if (own) why = `${own} of ${walls.length} set by hand.`
+  else why = `Automatic: ${EXTERIOR_WALL.toFixed(2)} m facing outside, ${INTERIOR_WALL.toFixed(2)} m between rooms.`
+  return (
+    <>
+      <div className="fields">
+        <NumberField label="Thickness" value={shared(walls.map((w) => w.thickness))} min={0.02} onCommit={(thickness) => store.edit((p) => updateWalls(p, refs, { thickness }))} />
+        <NumberField label="Height" value={shared(walls.map((w) => wallHeight(w.seg)))} min={0.1} onCommit={(height) => store.edit((p) => updateWalls(p, refs, { height }))} />
+      </div>
+      <p className="hint">{why}</p>
+      {own > 0 && (
+        <div className="button-row">
+          <button onClick={() => store.edit((p) => updateWalls(p, refs, { thickness: null }))} title="Thickness by whether the wall faces outside">
+            Automatic thickness
+          </button>
+        </div>
+      )}
+    </>
+  )
+}
+
+function Totals({ layerId, ids }: { layerId: string; ids: string[] }) {
+  const layer = useEditor((s) => findLayer(s.plan, layerId))
+  if (!layer) return null
+  const { length, open, area } = measureSegments(layer, ids)
+  return (
+    <div className="readouts">
+      <span>
+        Total length <b>{length.toFixed(2)} m</b>
+        {open > 0 && ` · ${open.toFixed(2)} m not wall`}
+      </span>
+      {area !== undefined && (
+        <span>
+          Closed outline · area <b>{area.toFixed(2)} m²</b>
+        </span>
+      )}
+    </div>
+  )
+}
+
+function VertexDetails({ refs }: { refs: Ref[] }) {
+  const layer = useEditor((s) => findLayer(s.plan, refs[0].layer))
+  const v = layer?.vertices[refs[0].id]
+  if (!layer || !v) return null
+  const lines = segmentsAt(layer, refs[0].id).length
+  return (
+    <div className="readouts">
+      <span>
+        x <b>{v.x.toFixed(2)}</b> y <b>{v.y.toFixed(2)}</b> m
+      </span>
+      <span>{plural(lines, 'line')} meet here</span>
+    </div>
+  )
+}

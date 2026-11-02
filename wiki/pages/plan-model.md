@@ -1,0 +1,94 @@
+---
+title: Plan model and file format
+type: component
+summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds and optional wall thickness and height, named areas and styled doors/windows/gates hosted by segments, embedded base image), with parsing, migrations and serialization in planFile.ts."
+tags: [model, file-format, schema, site, walls]
+sources: []
+updated: 2026-11-02
+---
+
+# Plan model and file format
+
+## Key files
+
+- `src/model/plan.ts`: the zod schemas (`PlanSchema`, `LayerSchema`, `SegmentSchema`, `AreaSchema`,
+  `OpeningSchema`, `BaseImageSchema`, …), the types inferred from them, `createPlan`, `createLayer`, `segmentKind`,
+  `SEGMENT_KINDS`, `Ref` (a selectable segment, vertex, area or opening), `refExists` (used by the store to prune the
+  selection) and `checkIntegrity`.
+- `src/model/planFile.ts`: `parsePlanText` / `parsePlan`, `MIGRATIONS` and `serializePlan`.
+- `src/model/edit.ts`: the immutable edits ([Code conventions](code-conventions.md)).
+
+## Shape
+
+- Top level: `format: "architect/plan"`, `schemaVersion: 1`, `name`, `site`, an optional `image` and `layers` (at
+  least one). All objects are strict, so unknown keys are rejected.
+- `site` (`SiteSchema`): `north` (degrees clockwise from plan-up to true north), `latitude`, `longitude` (north and
+  east positive) and `utcOffset` in hours; `DEFAULT_SITE` is Buenos Aires with north 0. `updateSite` in `edit.ts`
+  returns the same plan when nothing changes ([Sun and shadows](sun.md)).
+- World units are meters, with +x to the right and +y down (as in SVG).
+- Each layer is a small graph: `id`, `name`, `color` (`#rrggbb`), `visible`, `locked`, `vertices` (id → `{x, y}`)
+  and `segments` (id → `{a, b}` vertex ids). Lines that share a vertex are connected, and connections exist only
+  within a layer ([Snapping and connections](snapping-and-connections.md)).
+- A segment may carry `kind: "open"` (an open edge) or `kind: "outline"` (a ground-level edge such as a pool).
+  Without the key it is a wall ([Open edges and outlines are segment kinds](segment-kind-not-layer.md)).
+- A segment may also carry a positive `thickness` and `height` in meters, used only while it is a wall. Vertices
+  are wall centrelines. Absent thickness is automatic (0.30 m facing outside, 0.15 m inside), absent height
+  2.70 m; the automatic value is never stored ([Walls](walls.md)).
+- `areas` (id → `{name, at}`): named points whose outline is computed from the layer's lines, never stored
+  ([Areas](areas.md)).
+- `openings` (id → door, window or gate): a zod `discriminatedUnion` on `kind` (`DoorSchema`, `WindowSchema`,
+  `GateSchema`). Each has a `style` from `DOOR_STYLES` / `WINDOW_STYLES` / `GATE_STYLES` and the common fields
+  `segment`, a centre `offset` from the segment's `a` end, `width`, `hinge` (for a sliding gate: the end it slides
+  towards) and `swing` ([Doors, windows and gates](doors-and-windows.md),
+  [Door, window and gate styles](opening-styles.md), [hosted by a segment](openings-hosted-by-segment.md)).
+- Ids: `v1`, `v2`…, `s1`, `s2`…, `a1`, `a2`… and `o1`, `o2`… within each layer (`nextId` in `edit.ts`), and `L1`,
+  `L2`… for layers (`addLayer`). A new plan has one layer, `L1` "Walls".
+- `image`: `src` must be a `data:image/` URL, because the photo is embedded so that the file is self-contained. It
+  also holds the natural `width`/`height`, the placement (`cx`, `cy`, `rotation` in radians, `scale` in m/px), an
+  optional `crop` in image pixels, `opacity`, `visible`, `locked` and `calibration` (known lengths, with ends in image
+  pixels). See [Base image placement and calibration](base-image-calibration.md).
+- Not in the plan: the open tab, active layer, tool, line kind to draw, opening style to place, view, selection and
+  prompt (editor state), and the sun's season, time, cloudiness and shadows, the View section's toggles and the
+  Exterior's roof toggle (per-browser prefs). See [Editor store and state](editor-store.md). The 3-D Exterior is
+  derived from the plan and added no fields ([Exterior kept basic](exterior-kept-basic.md)).
+
+## Loading
+
+`parsePlan` checks, in this order:
+
+1. `format`.
+2. An integer `schemaVersion` of at least 1 that is not newer than the app's.
+3. Each `MIGRATIONS[v]` step from v to v+1.
+4. `PlanSchema.safeParse`.
+5. `checkIntegrity`: duplicate layer ids, segments that point at missing vertices, segments whose two ends are
+   the same vertex, and openings on missing segments.
+
+Errors name the exact field, with the ids of list items (`layers[0] (L1).vertices.v3.x: …`). The UI shows up to 12 of
+them.
+
+## Saving
+
+`serializePlan` runs the plan through `PlanSchema.parse` again. This puts keys in schema order, and an invalid plan
+throws, which `savePlan` reports and does not save. Vertex coordinates and opening offsets are rounded to 0.1 mm
+(1e-4 m) only here; edits keep full precision, and so do the image transform values. The output is 2-space JSON with a trailing newline.
+The autosaved draft stores the same text.
+
+## Changing the format
+
+1. Bump `SCHEMA_VERSION`.
+2. Add the N → N+1 step to `MIGRATIONS`.
+3. Add a test that loads a version-N file.
+
+`MIGRATIONS` is empty at version 1.
+
+Additive changes that older files satisfy do not need a bump. Segment kinds (an optional key) and areas
+(`z.record(…).default({})`) were added on 2026-11-02 at version 1: files saved before them parse with `areas: {}`,
+and `planFile.test.ts` covers loading such a file. Saving such a file again writes `"areas": {}`. Openings
+(`.default({})`) were added the same way in the third session. Opening styles came in the fourth session: `style`
+defaults to `'single'` for doors and `'fixed'` for windows, which is how older openings looked, and `hinge`/`swing`
+gained defaults on both kinds (`openings.test.ts` loads a pre-style file). Gates (a third union member, `style`
+defaulting to `'single'`) came in the fifth session, also at version 1. `site` (`.default` of `DEFAULT_SITE`) came
+in the sixth session at version 1; `sun.test.ts` loads a file without it. The `outline` segment kind (a second
+value in the optional `kind` enum) came in the seventh session, also at version 1. Wall `thickness` and `height`
+(optional segment keys) came after it, still at version 1: older files load with every wall automatic and 2.70 m
+tall.
