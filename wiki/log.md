@@ -200,3 +200,11 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/development-and-testing.md (170 tests, furniture 11, island tests, 26-check furniture flow, 0acdce9; summary)
 - updated: overview.md (what it does, Library groups)
 - updated: index.md
+
+## [2026-11-04] update | Sofas
+- updated: pages/furniture.md (SofaSchema styles, SOFA sizes, sofaOutline L and sofa-only mirror with its reason, symbol, library-sofa, Flip, 3-D parts; summary)
+- updated: pages/plan-model.md (sofa kind, optional mirror)
+- updated: pages/code-conventions.md (library-sofa Box id)
+- updated: pages/development-and-testing.md (171 tests, furniture 12, sofa tests, 28-check furniture flow, 3657510, recurring "no tests" gotcha restated; summary)
+- updated: overview.md (summary, what it does, Library groups)
+- updated: index.md

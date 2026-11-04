@@ -48,9 +48,10 @@ updated: 2026-11-04
 - `roofs` (id → `RoofSchema`: `outline`, `type`, `pitch`, `height`, `overhang`, `edge`, `parapet`): outlines drawn
   on the Roof tab, independent of the lines, so they do not follow moved walls
   ([Roofs: model and geometry](roofs.md)).
-- `furniture` (id → `FurnitureSchema`, a union on `kind`: counter, sink, bathtub, shower, toilet, bidet, bed,
+- `furniture` (id → `FurnitureSchema`, a union on `kind`: counter, sink, bathtub, shower, toilet, bidet, bed, sofa,
   table, chair, with sinks a nested union on `style`): standing pieces have `at`, `angle`, `width`, `depth` (bathtubs
-  and showers also `shower`; a counter may have `style: 'island'`, absent = against a wall); a kitchen sink has `counter` and
+  and showers also `shower`; a counter may have `style: 'island'`, absent = against a wall; a sofa an optional
+  `mirror`, which puts a sectional's return on the left); a kitchen sink has `counter` and
   `offset` instead of a position ([Furniture and fixtures](furniture.md),
   [Furniture stands free](furniture-free-standing.md)).
 - Ids: `v1`, `v2`…, `s1`, `s2`…, `a1`, `a2`…, `o1`, `o2`…, `r1`, `r2`… and `f1`, `f2`… within each layer (`nextId` in `edit.ts`), and `L1`,

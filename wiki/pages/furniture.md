@@ -1,7 +1,7 @@
 ---
 title: Furniture and fixtures
 type: component
-summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), square and round tables, chairs; src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters and tables, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
+summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips), square and round tables, chairs; src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters and tables, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
 tags: [model, furniture, ui, canvas, 3d]
 sources: []
 updated: 2026-11-04
@@ -13,7 +13,7 @@ Added on 2026-11-04 for the user's request: counters, sinks (the kitchen one "ca
 bathtubs ("allow me to move the shower head"), beds, tables and chairs. Why pieces stand free and only the kitchen
 sink is hosted: [Furniture stands free; a kitchen sink is hosted by its counter](furniture-free-standing.md).
 The same day (`3014137`) the user asked for a toilet and a bidet, then a simple shower and a corner bathtub, and
-then (`0acdce9`) a kitchen island.
+then (`0acdce9`) a kitchen island and (`3657510`) sofas.
 
 ## Model
 
@@ -34,6 +34,12 @@ then (`0acdce9`) a kitchen island.
     Its worktop overhangs the front by `ISLAND_OVERHANG` (0.25 m) for stools, so `sinkAcross` centres a kitchen sink
     over the cabinets (−overhang/2 from the middle, plus the 3 cm) in both `placeFurniture` and `furnitureTarget`;
     the plan symbol adds a `soft` line where the cabinets end.
+  - **Sofas** (`SofaSchema`, `SOFA_STYLES`): armchair, loveseat, three-seater, sectional, all 0.85 m high, snap
+    `wall`. `SOFA` holds the back, arm, seat and chaise (return) sizes shared by the plan symbol and 3-D;
+    `sofaCushions` gives 1, 2 or 3 seats. `sofaOutline` is a rectangle, or for a sectional an L whose return reaches
+    the full depth at its right end. The optional `mirror` (sofa-only) puts the return at the left end by flipping x
+    in the local frame: a quarter turn cannot move an L's return to the other end, and a general mirror on all
+    furniture was not wanted. A sectional's return has a soft line instead of an arm.
   - `furnitureTarget`: `wall` pieces back up to the nearest wall face (not open edges or outlines) within
     `depth + FURNITURE_REACH_M` (0.4 m),
     facing into the room and kept from hanging past the wall's ends; a chair faces a nearby table (round: radially;
@@ -61,14 +67,15 @@ then (`0acdce9`) a kitchen island.
   click calls `placeFurnitureAt`, which refuses a target with a problem by a notice.
 - **Library**: `FURNITURE_GROUPS` in `LibraryPanel.tsx` lists the `kinds` of each box, whose id comes from the
   first kind: `library-counter`, `library-sink`, `library-bathtub`, `library-shower`, `library-toilet` (Toilet and
-  Bidet), `library-bed`, `library-table`, `library-chair`, with counts and sizes; `FurnitureIcon` scales the symbol into the 32×24 icon. Dragging carries
+  Bidet), `library-bed`, `library-sofa`, `library-table`, `library-chair`, with counts and sizes; `FurnitureIcon` scales the symbol into the 32×24 icon. Dragging carries
   `FURNITURE_DRAG_TYPE` (`"kind:style"`) to `dropFurniture`.
 - **Select tool**: a selected tub's or shower's shower mark is grabbed before any other hit; a lone piece is re-targeted by
   `furnitureTarget` on every move (it snaps as when put down; a kitchen sink slides along or onto counters; a refused
   spot keeps it put and shows the problem); in a multi-selection pieces move by the drag's delta; box select and
   Ctrl+A include furniture; `R` turns the selected pieces ([Canvas and tools](canvas-and-tools.md)).
 - **Selection panel** (`FurnitureDetails`): Style among the kind's styles with the same `snap` (a new style takes
-  its catalogue size; a kitchen sink has none), width and depth (or diameter), *Turned*, hints, *Turn*. The field
+  its catalogue size; a kitchen sink has none), width and depth (or diameter), *Turned*, *Flip* for a sectional
+  (toggles `mirror`), hints, *Turn*. The field
   shows only when the piece has a style (a counter's is optional); a counter and an island differ in `snap`, so it
   never switches one into the other.
 
@@ -79,8 +86,9 @@ then (`0acdce9`) a kitchen island.
 toe kick is recessed all round and its cabinets stop at the overhang, under a worktop over the whole footprint), basins and
 tubs with real holes (a corner tub: quarter-disc rim and basin, smooth), a shower riser (shared `riser` helper) from
 the rim or tray to 1.95 m, a shower's 0.05 m tray and 2.0 m glass screen with a metal edge post, a toilet (pedestal,
-bowl ring at 0.30–0.40 m, cistern to 0.78 m), a bidet with its tap, beds, tables and chairs, in the new `ceramic`,
-`wood` and `fabric` materials.
+bowl ring at 0.30–0.40 m, cistern to 0.78 m), a bidet with its tap, beds, sofas (wood plinth to 0.10 m, then fabric:
+seat over the outline to 0.45, back to 0.85, arms to 0.62, none on a sectional's return; `mirror` via a min/max box
+helper), tables and chairs, in the new `ceramic`, `wood` and `fabric` materials.
 
 ## Limits (2026-11-04)
 

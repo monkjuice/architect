@@ -46,7 +46,7 @@ A panel section is a `Box` (`src/ui/fields.tsx`). Give it a stable `id`: its tit
 in `prefs.collapsed` and set as `data-box` on the `<section>` (ids so far: `view`, `base-plan`, `layers`,
 `selection`, `areas`, `sun`, `library-lines`, `library-door`, `library-window`, `library-gate`, `library-fireplace`,
 `library-colonnade`, `library-counter`, `library-sink`, `library-bathtub`, `library-shower`, `library-toilet`,
-`library-bed`, `library-table`, `library-chair`, `roofs`; a furniture box's id is its first kind). A folded `Box` does
+`library-bed`, `library-sofa`, `library-table`, `library-chair`, `roofs`; a furniture box's id is its first kind). A folded `Box` does
 not render its children, so their local state (a half-typed field) is dropped. Tests should find sections by
 `[data-box="<id>"]`, not by position: adding `view` first shifted every index
 ([Playwright flow-check pitfalls](playwright-flow-checks.md)).
