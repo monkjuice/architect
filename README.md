@@ -56,7 +56,7 @@ actions. Every tab works on the same plan, with one undo history and one file:
 The **library** (left panel) holds what can be drawn or placed: line types (wall, open edge, outline) with the length
 of each drawn so far, door, window, gate and fireplace styles with how many there are and the width the next one
 gets, colonnades with how many open edges have one and the most their columns stand apart, and furniture
-(counters, sinks, bathtubs, showers, toilets and bidets, beds, tables, chairs) with how many there are and their size.
+(counters, sinks, bathtubs, showers, toilets and bidets, beds, sofas, tables, chairs) with how many there are and their size.
 
 ### Walls, open edges, outlines and areas
 
@@ -178,6 +178,7 @@ Furniture and fixtures go where you click (pick one in the library, or drag it o
 | **Shower** | 0.90 × 0.90 m tray behind a glass screen, its head at the back | backs up to a wall |
 | **Toilets** | *Toilet* 0.40 × 0.70 m, its cistern to the wall; *Bidet* 0.38 × 0.55 m | back up to a wall |
 | **Beds** | *Single* 0.95 × 2.00, *Double* 1.45 × 2.00, *Queen* 1.65 × 2.10, *King* 1.85 × 2.10 m (mattress and frame) | head to a wall |
+| **Sofas** | *Armchair* 0.90 × 0.90 m, *Loveseat* 1.60 × 0.90 m, *Three-seater* 2.20 × 0.95 m, *Sectional* 2.80 × 1.70 m (an L whose return, at its right end, *Flip* moves to its left), 0.85 m high | back up to a wall |
 | **Tables** | *Square* 0.90 × 0.90 m, *Circle* Ø 1.10 m, 0.75 m high | stand where they are put |
 | **Chairs** | 0.45 × 0.50 m | turn to face a table they are put by |
 
@@ -323,7 +324,8 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   outline in meters, `edge` the outline side a shed slopes down to or a gable's ridge runs along), and
   `furniture` (id → `{kind, style, at, angle, width, depth}`: `kind` is `counter` (style `island` for a kitchen island, none against a wall), `sink` (`outdoor`, `kitchen`,
   `bathroom`), `bathtub` (`alcove`, `clawfoot`, `drop-in`, `corner`, with `shower`, the shower head's place
-  round the rim from 0 to 4), `shower` (with `shower` too), `toilet`, `bidet`, `bed` (`single`, `double`, `queen`, `king`), `table` (`square`, `circle`) or `chair`; `at` is its
+  round the rim from 0 to 4), `shower` (with `shower` too), `toilet`, `bidet`, `bed` (`single`, `double`, `queen`, `king`), `sofa`
+  (`armchair`, `loveseat`, `three-seater`, `sectional`, with `mirror` for a sectional's return on its left), `table` (`square`, `circle`) or `chair`; `at` is its
   centre and `angle` its turn in degrees, clockwise; a kitchen sink has `counter` and `offset` (its centre's
   distance from the counter's left end) instead of `at` and `angle`). Files saved before areas, openings,
   styles, wall thicknesses, roofs or furniture existed open unchanged (older openings read as single doors and fixed windows, older walls as automatic).

@@ -21,7 +21,7 @@ import { z } from 'zod'
  * A fireplace is hosted the same way, against one side of a wall, but leaves no gap; its chimney goes up through
  * the roof. An open edge can carry a colonnade: columns shared out along it under a beam.
  *
- * Furniture and fixtures (counters, sinks, bathtubs, showers, toilets, bidets, beds, tables, chairs) stand where they are put, turned to
+ * Furniture and fixtures (counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs) stand where they are put, turned to
  * an angle; a kitchen sink sits in a counter and goes where its counter goes (see furniture.ts).
  *
  * Roofs are outlines drawn over a layer's plan (the Roof tab), each with a type and slope (see roofs.ts). They do
@@ -109,6 +109,7 @@ export const OpeningSchema = z.discriminatedUnion('kind', [DoorSchema, WindowSch
 export const SINK_STYLES = ['outdoor', 'kitchen', 'bathroom'] as const
 export const BATHTUB_STYLES = ['alcove', 'clawfoot', 'drop-in', 'corner'] as const
 export const BED_STYLES = ['single', 'double', 'queen', 'king'] as const
+export const SOFA_STYLES = ['armchair', 'loveseat', 'three-seater', 'sectional'] as const
 export const TABLE_STYLES = ['square', 'circle'] as const
 
 const Standing = {
@@ -158,6 +159,9 @@ export const BidetSchema = z.strictObject({ kind: z.literal('bidet'), ...Standin
 
 export const BedSchema = z.strictObject({ kind: z.literal('bed'), style: z.enum(BED_STYLES), ...Standing })
 
+/** A sofa; a sectional's return (its chaise) is at its right end, seen from the front, unless it is `mirror`ed. */
+export const SofaSchema = z.strictObject({ kind: z.literal('sofa'), style: z.enum(SOFA_STYLES), ...Standing, mirror: z.boolean().optional() })
+
 export const TableSchema = z.strictObject({ kind: z.literal('table'), style: z.enum(TABLE_STYLES), ...Standing })
 
 export const ChairSchema = z.strictObject({ kind: z.literal('chair'), ...Standing })
@@ -170,6 +174,7 @@ export const FurnitureSchema = z.discriminatedUnion('kind', [
   ToiletSchema,
   BidetSchema,
   BedSchema,
+  SofaSchema,
   TableSchema,
   ChairSchema,
 ])

@@ -123,6 +123,33 @@ describe('furniture', () => {
     expect(parsed.ok && parsed.plan.layers[0].furniture.f1).not.toHaveProperty('style')
   })
 
+  it('backs a sofa up to the wall, and puts a sectional’s return at either end', () => {
+    let plan = put(room(), 'sofa', 'three-seater', { x: 3, y: 0.6 })
+    const sofa = plan.layers[0].furniture.f1 as Extract<Furniture, { kind: 'sofa' }>
+    expect(sofa.angle).toBeCloseTo(0, 6)
+    near(sofa.at, { x: 3, y: 0.15 + 0.95 / 2 })
+    // three seat cushions: two lines between them, besides the back and two arms
+    const lines = furnitureSymbol(sofa, placeFurniture(plan.layers[0], sofa)!).filter((x) => 'pts' in x && !x.closed)
+    expect(lines).toHaveLength(5)
+    const solids = houseSolids(plan).filter((x) => x.ref.id === 'f1')
+    expect(Math.max(...solids.map((x) => x.top))).toBeCloseTo(0.85)
+    expect(solids.some((x) => x.material === 'fabric')).toBe(true)
+    // a sectional: an L, its return reaching the full depth at its right end, or its left when mirrored
+    plan = put(room(), 'sofa', 'sectional', { x: 3, y: 0.6 })
+    const l = plan.layers[0].furniture.f1 as Extract<Furniture, { kind: 'sofa' }>
+    const pl = placeFurniture(plan.layers[0], l)!
+    const deepest = (f: Furniture) => {
+      const outline = furnitureSymbol(f, pl).find((x) => 'pts' in x && x.role === 'outline')!
+      const pts = 'pts' in outline ? outline.pts : []
+      const far = Math.max(...pts.map((q) => q.y))
+      return pts.filter((q) => Math.abs(q.y - far) < 1e-9).map((q) => q.x)
+    }
+    expect(Math.min(...deepest(l))).toBeGreaterThan(3)
+    expect(Math.max(...deepest({ ...l, mirror: true }))).toBeLessThan(3)
+    const parsed = parsePlan(JSON.parse(serializePlan(addFurniture(room(), 'L1', { ...l, mirror: true })!.plan)))
+    expect(parsed.ok && parsed.plan.layers[0].furniture.f1).toMatchObject({ kind: 'sofa', style: 'sectional', mirror: true })
+  })
+
   it('turns a chair to face the table it is put by', () => {
     let plan = put(room(), 'table', 'circle', { x: 3, y: 2 }, { snap: false })
     plan = put(plan, 'chair', undefined, { x: 3, y: 2.9 })

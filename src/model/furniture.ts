@@ -4,7 +4,7 @@ import { isEditable, segmentKind, type Furniture, type FurnitureKind, type Layer
 /**
  * Furniture and fixtures: counters, sinks, bathtubs, showers, toilets, bidets, beds, tables and chairs. Each stands
  * at a point turned to an angle, its back up the sheet at 0, and is `width` across its front and `depth` from back
- * to front. Things that stand against a wall (all but tables and chairs) snap with their back to the nearest
+ * to front. Things that stand against a wall (all but tables, chairs and islands) snap with their back to the nearest
  * wall face when they are put down; a kitchen sink only goes in a counter and is kept there, relative to it;
  * a chair snaps to face a table it is put next to.
  */
@@ -40,6 +40,10 @@ export const FURNITURE: readonly FurnitureInfo[] = [
   { kind: 'bed', style: 'double', title: 'Double', width: 1.45, depth: 2.0, height: 1.0, snap: 'wall' },
   { kind: 'bed', style: 'queen', title: 'Queen', width: 1.65, depth: 2.1, height: 1.0, snap: 'wall' },
   { kind: 'bed', style: 'king', title: 'King', width: 1.85, depth: 2.1, height: 1.0, snap: 'wall' },
+  { kind: 'sofa', style: 'armchair', title: 'Armchair', width: 0.9, depth: 0.9, height: 0.85, snap: 'wall' },
+  { kind: 'sofa', style: 'loveseat', title: 'Loveseat', width: 1.6, depth: 0.9, height: 0.85, snap: 'wall' },
+  { kind: 'sofa', style: 'three-seater', title: 'Three-seater', width: 2.2, depth: 0.95, height: 0.85, snap: 'wall' },
+  { kind: 'sofa', style: 'sectional', title: 'Sectional', width: 2.8, depth: 1.7, height: 0.85, snap: 'wall' },
   { kind: 'table', style: 'square', title: 'Square', width: 0.9, depth: 0.9, height: 0.75, snap: 'none' },
   { kind: 'table', style: 'circle', title: 'Circle', width: 1.1, depth: 1.1, height: 0.75, snap: 'none' },
   { kind: 'chair', title: 'Chair', width: 0.45, depth: 0.5, height: 0.9, snap: 'table' },
@@ -263,6 +267,39 @@ export function furnitureFor(kind: FurnitureKind, style: string | undefined, t: 
 /** How far inside the rim's outer edge the shower head stands, in m. */
 const SHOWER_INSET = 0.04
 
+/** A sofa's parts on the plan, in its own frame (see local): what is shared by the plan symbol and the 3-D. */
+export const SOFA = {
+  /** The back's depth, an arm's width, the seat's depth from the back, and a sectional's return width. */
+  back: 0.2,
+  arm: 0.18,
+  seat: 0.95,
+  chaise: 0.95,
+}
+
+/** How many seat cushions a sofa has along its main seat. */
+export const sofaCushions = (style: string): number => (style === 'armchair' ? 1 : style === 'loveseat' ? 2 : 3)
+
+/**
+ * A sofa's footprint, local and before turning: a rectangle, or for a sectional an L, its return reaching the
+ * full depth at its right end (left when mirrored).
+ */
+export function sofaOutline(pl: Placement, style: string, mirror = false): Vec[] {
+  const [hw, hd] = [pl.width / 2, pl.depth / 2]
+  const m = mirror ? -1 : 1
+  if (style !== 'sectional') return [local(pl, -hw, -hd), local(pl, hw, -hd), local(pl, hw, hd), local(pl, -hw, hd)]
+  const seatFront = Math.min(-hd + SOFA.seat, hd)
+  const inner = hw - SOFA.chaise
+  const pts: [number, number][] = [
+    [-hw, -hd],
+    [hw, -hd],
+    [hw, hd],
+    [inner, hd],
+    [inner, seatFront],
+    [-hw, seatFront],
+  ]
+  return pts.map(([x, y]) => local(pl, m * x, y))
+}
+
 /** Whether a piece has a shower head that can be moved round its rim. */
 export const hasShower = (f: Furniture): f is Extract<Furniture, { shower: number }> => f.kind === 'bathtub' || f.kind === 'shower'
 
@@ -387,6 +424,28 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
         { pts: [local(pl, -hw, -hd + 0.62), local(pl, hw, -hd + 0.62)], closed: false, role: 'detail' },
         { pts: [local(pl, -hw, -hd + 0.62), local(pl, -hw + 0.3, -hd + 0.82)], closed: false, role: 'soft' },
       ]
+    }
+    case 'sofa': {
+      // the outline, the back, the arms, and the cushions of the seat (a sectional's return has no arm)
+      const m = f.mirror ? -1 : 1
+      const l = (x: number, y: number) => local(pl, m * x, y)
+      const back = -hd + SOFA.back
+      const front = f.style === 'sectional' ? Math.min(-hd + SOFA.seat, hd) : hd
+      const right = f.style === 'sectional' ? hw - SOFA.chaise : hw - SOFA.arm
+      const left = -hw + SOFA.arm
+      const parts: SymbolPart[] = [
+        { pts: sofaOutline(pl, f.style, f.mirror), closed: true, role: 'outline' },
+        { pts: [l(-hw, back), l(hw, back)], closed: false, role: 'detail' },
+        { pts: [l(left, back), l(left, front)], closed: false, role: 'detail' },
+      ]
+      if (f.style === 'sectional') parts.push({ pts: [l(right, back), l(right, front)], closed: false, role: 'soft' })
+      else parts.push({ pts: [l(right, back), l(right, front)], closed: false, role: 'detail' })
+      const n = sofaCushions(f.style)
+      for (let i = 1; i < n; i++) {
+        const x = left + ((right - left) * i) / n
+        parts.push({ pts: [l(x, back), l(x, front)], closed: false, role: 'soft' })
+      }
+      return parts
     }
     case 'table':
       return f.style === 'circle' ? [{ pts: ellipse(pl, -hw, -hd, hw, hd, 48), closed: true, role: 'outline' }] : [outline]

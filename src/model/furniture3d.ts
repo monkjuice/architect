@@ -1,6 +1,6 @@
 import { prismFaces, ring, smoothSides, type Face } from './faces'
 import type { Vec } from './geometry'
-import { ellipse, ISLAND_OVERHANG, local, quarterDisc, rounded, showerPoint, type Placement } from './furniture'
+import { ellipse, ISLAND_OVERHANG, local, quarterDisc, rounded, showerPoint, SOFA, sofaOutline, type Placement } from './furniture'
 import type { Furniture } from './plan'
 import type { SolidMaterial } from './solids'
 
@@ -148,6 +148,19 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
         pillow(0.04, hw - 0.08)
       } else pillow(-hw + 0.1, hw - 0.1)
       put(box(-hw + 0.01, -hd + 0.62, hw - 0.01, hd - 0.01), 0.55, 0.6, 'fabric')
+      break
+    }
+    case 'sofa': {
+      // a plinth, the seat, the back along it and the arms, all upholstered (a sectional's return has no arm)
+      const m = f.mirror ? -1 : 1
+      const mb = (x0: number, y0: number, x1: number, y1: number) => box(Math.min(m * x0, m * x1), y0, Math.max(m * x0, m * x1), y1)
+      const seat = 0.45
+      const outline = sofaOutline(pl, f.style, f.mirror)
+      put(outline, 0, 0.1, 'wood')
+      put(outline, 0.1, seat, 'fabric')
+      put(mb(-hw, -hd, hw, -hd + SOFA.back), seat, 0.85, 'fabric')
+      put(mb(-hw, -hd + SOFA.back, -hw + SOFA.arm, f.style === 'sectional' ? -hd + SOFA.seat : hd), seat, 0.62, 'fabric')
+      if (f.style !== 'sectional') put(mb(hw - SOFA.arm, -hd + SOFA.back, hw, hd), seat, 0.62, 'fabric')
       break
     }
     case 'table':

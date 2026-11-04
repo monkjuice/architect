@@ -270,6 +270,14 @@ function FurnitureDetails({ layerId, id }: { layerId: string; id: string }) {
         <NumberField label={round ? 'Diameter' : 'Width'} value={f.width} min={0.1} onCommit={(width) => set({ ...f, width, ...(round ? { depth: width } : {}) })} />
         {!round && <NumberField label="Depth" value={f.depth} min={0.1} onCommit={(depth) => set({ ...f, depth })} />}
         {'angle' in f && <NumberField label="Turned" unit="°" digits={0} value={f.angle} onCommit={(angle) => set({ ...f, angle: ((angle % 360) + 360) % 360 })} />}
+        {f.kind === 'sofa' && f.style === 'sectional' && (
+          <div className="field">
+            <label>&nbsp;</label>
+            <button onClick={() => set({ ...f, mirror: !f.mirror })} title="Put the return at the other end">
+              Flip
+            </button>
+          </div>
+        )}
         {'counter' in f && (
           <p className="hint field-wide">In its counter: drag it along it, or onto another counter. It moves and turns with its counter.</p>
         )}
