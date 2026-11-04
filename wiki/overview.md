@@ -1,7 +1,7 @@
 ---
 title: Overview
 type: overview
-summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman or metal colonnades, ground-level outlines, named areas with floor and covered totals, doors, windows, gates and fireplaces with chimneys) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable and hip roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
+summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman or metal colonnades, ground-level outlines, named areas with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, beds, tables, chairs) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable and hip roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
 tags: [overview]
 sources: []
 updated: 2026-11-04
@@ -17,7 +17,9 @@ on layers over it, each a wall, an open edge (porch front, colonnade) or an outl
 deck), name the areas they enclose (rooms, the porch, the pool), put doors and windows of several styles in the
 walls, gates in the fences and fireplaces against walls (their chimneys go up through the roof,
 [Fireplaces](pages/fireplaces.md)), stand Roman or metal columns along open edges
-([Colonnades](pages/colonnades.md)), and measure lengths and areas. Walls are drawn at their thickness (automatic by
+([Colonnades](pages/colonnades.md)), furnish the rooms (counters with kitchen sinks, bathroom and outdoor sinks,
+bathtubs with a movable shower head, beds, tables, chairs; [Furniture and fixtures](pages/furniture.md)), and
+measure lengths and areas. Walls are drawn at their thickness (automatic by
 whether they face outside, or set by hand) and have heights; areas show floor area inside the walls, with a
 covered total ([Walls](pages/walls.md)).
 The sun can be shown over the plan for a season and time of day, with the walls' shadows
@@ -43,11 +45,12 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   ([Snapping and connections](pages/snapping-and-connections.md)), the regions lines enclose (`regions.ts`,
   [Regions](pages/regions.md)), wall thickness, joins and footprints (`walls.ts`, [Walls](pages/walls.md)), doors, windows, gates and fireplaces on their walls (`openings.ts`,
   [Doors, windows and gates](pages/doors-and-windows.md)), columns along open edges (`colonnades.ts`,
-  [Colonnades](pages/colonnades.md)), hit tests and loop areas (`pick.ts`), the base image math
+  [Colonnades](pages/colonnades.md)), furniture, its snapping and plan symbols (`furniture.ts`, with
+  `furniture3d.ts` for 3-D, [Furniture and fixtures](pages/furniture.md)), hit tests and loop areas (`pick.ts`), the base image math
   ([Base image placement and calibration](pages/base-image-calibration.md)), the solar math (`sun.ts`, kept
   independent of the plan's geometry for reuse, [Sun and shadows](pages/sun.md)), roof geometry (`roofs.ts`,
   [Roofs: model and geometry](pages/roofs.md)), the house as 3-D solids made of faces with explicit normals
-  (`solids.ts`, [House solids](pages/house-solids.md)) and the elevations projected from them (`elevations.ts`,
+  (`solids.ts`, with the face builders in `faces.ts`, [House solids](pages/house-solids.md)) and the elevations projected from them (`elevations.ts`,
   [Elevations tab](pages/elevations.md)).
 - `src/state/`: the `EditorStore` with undo and gestures, user-level actions, derived data cached per object
   (`derived.ts`, [Areas](pages/areas.md)), files and the autosaved draft, and prefs
@@ -62,7 +65,8 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   and stays folded per browser ([Code conventions](pages/code-conventions.md)). The Library lists line types (Wall, Open edge, Outline),
   then a Doors group (single, double, sliding), a Windows group (fixed, sliding, double hung, awning, casement), a
   Gates group (single, double, sliding) ([Door, window and gate styles](pages/opening-styles.md)), a Fireplaces group
-  (masonry) and Colonnades (Roman, metal). Click an item to arm its tool, or drag it onto a wall, fence or open edge.
+  (masonry), Colonnades (Roman, metal), then Counters, Sinks, Bathtubs, Beds, Tables and Chairs. Click an item to
+  arm its tool, or drag it onto a wall, fence or open edge (furniture: anywhere on the plan).
 - `src/main.tsx` restores the draft before the first render. `src/App.tsx` switches tabs (lazy-loading the
   Exterior, so three.js is its own chunk) and runs the autosave, the Ctrl shortcuts and image paste (Floor only).
 
@@ -79,6 +83,8 @@ whose slopes are planes, not one roof per area
 ([Roofs are drawn outlines; slopes are planes](pages/roofs-drawn-outlines.md)). A colonnade is a setting on an
 open edge and a fireplace an opening kind that cuts no gap, not new objects
 ([Colonnades are an open-edge setting; fireplaces are an opening kind](pages/colonnade-setting-fireplace-opening.md)).
+Furniture stands free and snaps only when put down, while a kitchen sink is kept relative to its counter
+([Furniture stands free; a kitchen sink is hosted by its counter](pages/furniture-free-standing.md)).
 
 ## Tech stack
 
@@ -106,7 +112,7 @@ Run `npm install`, then `npm run dev` (http://localhost:5173). The checks are `n
 5. For roofs and 3-D: `src/model/roofs.ts`, `src/model/solids.ts`, `src/model/elevations.ts`, then
    `src/render/engine.ts`.
 
-## Open items (as of 2026-11-04, after colonnades and fireplaces)
+## Open items (as of 2026-11-04, after furniture)
 
 Roofs and elevations ([Roof tab](pages/roof-tab.md), [Elevations tab](pages/elevations.md)):
 
@@ -136,6 +142,9 @@ Other candidates:
 
 Colonnades and fireplaces (2026-11-04): one fireplace style (masonry); fireplaces only against walls and columns only
 along open edges (nothing freestanding); the chimney does not avoid ridges.
+
+Furniture (2026-11-04): pieces do not follow walls that move, cannot be moved to another layer, and come only from
+the catalogue (straight counters, no other pieces) ([Furniture and fixtures](pages/furniture.md)).
 
 Also open: re-anchoring areas when walls move past their point ([Areas](pages/areas.md)), other objects and
 complex shapes, plan exports (SVG, DXF, PNG; only the Exterior saves a PNG of its view and the Elevations an SVG

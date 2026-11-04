@@ -1,8 +1,8 @@
 ---
 title: "House solids: the plan in 3-D"
 type: component
-summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), and masonry fireplaces with chimneys through the roof; cached per plan by getSolids."
-tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace]
+summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces with chimneys through the roof, and furniture (furniture3d.ts); cached per plan by getSolids."
+tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture]
 sources: []
 updated: 2026-11-04
 ---
@@ -10,23 +10,26 @@ updated: 2026-11-04
 # House solids: the plan in 3-D
 
 Added in the eighth session (2026-11-02) for the [Exterior tab](exterior-tab.md), and rewritten the same day as
-faces for the roofs and the [Elevations tab](elevations.md). Colonnades and fireplaces came on 2026-11-04. Pure model
-code, tested in `src/model/solids.test.ts` (15 tests).
+faces for the roofs and the [Elevations tab](elevations.md). Colonnades, fireplaces and furniture came on 2026-11-04.
+Pure model code, tested in `src/model/solids.test.ts` (15 tests; furniture solids in `furniture.test.ts`).
 
 ## Output
 
 `houseSolids(plan, source)` returns `Solid[]`: `{kind, faces, bottom, top, material, ref}`. A `Face` has `pts`
 (`Vec3`: plan x, y with +y down, z up), `holes` and an explicit unit `normal` pointing out of the solid. Consumers
 use the normals, never the winding: the three.js renderer winds triangles to them and the elevations cull by them.
-Builders: `prismFaces` (an outline with holes between two heights), `profileFaces` (a shape in a vertical plane
-along a line, given a thickness), `roofSolidFaces` (each roof face on top and underneath, plus its eaves edge),
-`ring` and `frustumFaces` (round solids as polygons) and `columnFaces`. `smoothSides` sets `Face.smooth` on a round
-solid's side facets, so the elevations draw them as one surface ([Elevations tab](elevations.md)).
+The types `Face`/`Vec3` and the generic builders live in `src/model/faces.ts` (moved out of `solids.ts`, which
+re-exports the types, so `furniture3d.ts` can use them while `solids.ts` imports `furniture3d.ts`, with no import
+cycle): `prismFaces` (an outline with holes between two heights), `profileFaces` (a shape in a vertical plane along a
+line, given a thickness), `ring`, `frustumFaces` and `band`. `smoothSides` sets `Face.smooth` on a round solid's
+side facets, so the elevations draw them as one surface ([Elevations tab](elevations.md)). `roofSolidFaces` (each
+roof face on top and underneath, plus its eaves edge) and `columnFaces` stay in `solids.ts`.
 
 Kinds: `wall`, `lintel`, `sill`, `infill`, `beam`, `column`, `frame`, `glass`, `leaf`, `floor`, `roof`, `parapet`,
-`fireplace`, `chimney`. Materials are a fixed palette ([Exterior kept basic](exterior-kept-basic.md)): `facade`
+`fireplace`, `chimney`, `furniture`. Materials are a fixed palette ([Exterior kept basic](exterior-kept-basic.md)): `facade`
 (exterior walls and structure), `interior`, `roof` (pitched, terracotta), `slab` (flat, grey), `frame`, `glass`,
-`door`, `gate`, `floor` (covered), `paving` (open), and since 2026-11-04 `stone`, `metal`, `brick` and `soot`. Their
+`door`, `gate`, `floor` (covered), `paving` (open), since 2026-11-04 `stone`, `metal`, `brick` and `soot`, and for
+furniture `ceramic`, `wood` and `fabric`. Their
 colours are set twice, in `src/render/house.ts` and `src/ui/ElevationsTab.tsx`.
 
 ## Rules
@@ -60,6 +63,9 @@ colours are set twice, in `src/render/house.ts` and `src/ui/ElevationsTab.tsx`.
   over its flue: brick and stone up to the `MANTEL` (1.10 m), then the chimney to `CHIMNEY_ABOVE` (1 m) over that
   roof (thickness and a flat roof's parapet included), or 1 m over its wall, under a stone cap. Their walls are not
   cut.
+- Furniture last: `furnitureParts(f, placeFurniture(layer, f))` from `src/model/furniture3d.ts`, one `furniture`
+  solid per part, ref to the piece; a kitchen sink without its counter is skipped
+  ([Furniture and fixtures](furniture.md)).
 
 ## Gotcha: coplanar faces flicker
 

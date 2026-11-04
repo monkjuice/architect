@@ -1,10 +1,10 @@
 ---
 title: Playwright flow-check pitfalls
 type: gotcha
-summary: "Python Playwright against the SVG canvas: <text> has no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft hides its photo and keeps changing, folded sections render nothing, panel sections must be found by data-box not position, WebGL needs SwiftShader flags and reads back blank (measure screenshots), Ctrl+Z is ignored while a checkbox has focus, a long-running dev server serves stale HMR module copies, a stopped background vite can keep its port, layer names are inputs, and tool buttons' text has a newline before the key."
+summary: "Python Playwright against the SVG canvas: <text> has no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft hides its photo and keeps changing, folded sections render nothing, panel sections must be found by data-box not position, WebGL needs SwiftShader flags and reads back blank (measure screenshots), Ctrl+Z is ignored while a checkbox has focus, a long-running dev server serves stale HMR module copies, a stopped background vite can keep its port, layer names are inputs, tool buttons' text has a newline before the key, flows on the user's live plan need a pinned fixture, and bash heredocs mangle escapes in inline Python."
 tags: [gotcha, testing, playwright, python, webgl, vite]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Playwright flow-check pitfalls
@@ -71,3 +71,14 @@ Found later in the eighth session, with the roof flow ([Roof tab](roof-tab.md)):
   `input.layer-name`.
 - **A tool button's inner text has a newline before its key** (the `<kbd>`), e.g. "Roof\nR": match the start of the
   text, not the whole of it.
+
+Found on 2026-11-04, with the furniture flow ([Furniture and fixtures](furniture.md)):
+
+- **Flows on the user's live plan need a pinned fixture.** The user keeps editing their saved plan (roofs,
+  fireplaces, colonnades, layers, wall heights), so four older flows that injected it failed on stale expectations
+  ([Development and testing](development-and-testing.md)). Inject a frozen copy built by a script that strips or
+  re-adds what each flow assumes, and assert values read from that copy, not the plan's figures of the day.
+- **Bash heredocs mangle escapes in inline Python**: `'\\n'` became a real newline and broke the scripts. Write such
+  scripts to files and run the files, as for the
+  [Bash hook](bash-hook-key-paths.md).
+- Playwright's `drag_to` does perform the library's HTML5 drag-and-drop onto the SVG canvas.

@@ -23,6 +23,8 @@ the rooms around them ([Areas](areas.md)).
 - Gates (fifth session) are a third kind of the same record, hosted by any segment, usually an open-edge fence.
 - Fireplaces (2026-11-04) are a fourth kind, hosted by walls only and cutting no gap, chosen to reuse this upkeep
   ([Colonnades are an open-edge setting; fireplaces are an opening kind](colonnade-setting-fireplace-opening.md)).
+- Furniture (2026-11-04) is deliberately not hosted this way: beds and tables stand anywhere
+  ([Furniture stands free; a kitchen sink is hosted by its counter](furniture-free-standing.md)).
 
 ## Alternative rejected
 

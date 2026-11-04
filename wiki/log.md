@@ -169,3 +169,17 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/development-and-testing.md (159 tests by file, 5e2f614 committed and this batch not, 19-check flow, two older checks updated; summary)
 - updated: overview.md (summary, what it does, colonnades.ts, Library groups, decision link, open items)
 - updated: index.md
+
+## [2026-11-04] update | Furniture: counters, sinks, bathtubs, beds, tables, chairs
+- created: pages/furniture.md (layer.furniture schema, furniture.ts catalogue/placement/targets/shower head/symbols, edits and pruning, tool, library boxes, select drags, FurnitureDetails, furniture3d.ts, limits)
+- created: pages/furniture-free-standing.md (decision: free-standing pieces; kitchen sink hosted by counter id + offset; wall hosting and absolute sink position rejected)
+- updated: pages/plan-model.md (FurnitureSchema, Ref kind, f<n> ids, kitchen-sink integrity check, at/offset rounding, additive at schemaVersion 1; summary, tags)
+- updated: pages/editor-store.md (furniturePick, furniture ToolId, not in the draft, settle prunes furniture, selectAll, placeFurnitureAt/dropFurniture/FURNITURE_DRAG_TYPE; summary, tags)
+- updated: pages/canvas-and-tools.md (third drag type, Furniture.tsx, ghost in Overlay, furniture tool, hit order with the shower mark, R on Floor vs Roof, library-icon non-scaling rule, roof-mode fade; summary, tags)
+- updated: pages/house-solids.md (faces.ts split and why, furniture kind and ceramic/wood/fabric, furniture built last; summary, tags)
+- updated: pages/code-conventions.md (faces.ts against an import cycle, furniture Box ids, furniture edits touch only their map, pruneFurniture, f<n> ids, rounding)
+- updated: pages/development-and-testing.md (166 tests, furniture.test.ts, 19-check furniture flow, four older flows broken by the user's edits and passing on a cleaned fixture, outline flow's two old-pool checks, commit status; summary)
+- updated: pages/playwright-flow-checks.md (pinned fixture for the live plan, heredoc escapes, drag_to for library drops; summary)
+- updated: pages/openings-hosted-by-segment.md (furniture deliberately not hosted)
+- updated: overview.md (summary, what it does, furniture.ts/furniture3d.ts/faces.ts, Library groups, decision link, open items)
+- updated: index.md

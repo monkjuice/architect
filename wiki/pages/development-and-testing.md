@@ -1,7 +1,7 @@
 ---
 title: Development and testing
 type: guide
-summary: "npm scripts, the GitHub repository, the 159 Vitest model tests and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow and a 19-check colonnade and fireplace flow on the user's plan, the last three with software WebGL), plus reading live derived values from the dev server."
+summary: "npm scripts, the GitHub repository, the 166 Vitest model tests and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 19-check furniture flow on the user's plan, the exterior, roof and colonnade ones with software WebGL; older ones now need a pinned copy of that plan), plus reading live derived values from the dev server."
 tags: [guide, testing, vitest, playwright, webgl, git]
 sources: []
 updated: 2026-11-04
@@ -23,14 +23,18 @@ You need Node 20.19+ or 22.12+. Run `npm install` first.
 | `npm run preview` | Serves the build |
 
 The code is in git, pushed to https://github.com/monkjuice/architect (branch `main`) on 2026-11-02 with one initial
-commit. The roof plan and elevations work was committed as `5e2f614`; the colonnades and fireplaces (2026-11-04)
-were not yet committed when they were recorded.
+commit. The roof plan and elevations work was committed as `5e2f614`, and the colonnades, fireplaces and furniture
+together as `8b0cc2d` (2026-11-04), all on `main`; the user wants each finished batch committed there, and pushes
+only on request.
 
 ## Model tests
 
-On 2026-11-04, after colonnades and fireplaces, there were 159 Vitest tests in `src/model/*.test.ts`: `openings` 30,
-`edit` 27, `solids` 15, `regions` 13, `walls` 13, `roofs` 10, `baseImage` 9, `sun` 9, `geometry` 8, `pick` 6,
-`planFile` 6, `snap` 5, `colonnades` 4 and `elevations` 4 (counted from the `it(` calls). The new ones cover
+On 2026-11-04, after furniture, there were 166 Vitest tests in `src/model/*.test.ts`: `openings` 30,
+`edit` 27, `solids` 15, `regions` 13, `walls` 13, `roofs` 10, `baseImage` 9, `sun` 9, `geometry` 8, `furniture` 7,
+`pick` 6, `planFile` 6, `snap` 5, `colonnades` 4 and `elevations` 4 (counted from the `it(` calls). `furniture.test.ts`
+covers placement and angle, backing up to a wall face, the kitchen sink only in a counter (and kept there as the
+counter moves or goes), a chair facing a table, the shower head round the rim, picking the smaller piece first, and
+3-D parts plus the file round trip ([Furniture and fixtures](furniture.md)). The colonnade and fireplace tests cover
 column spots, ends a wall holds and a colonnade surviving a split, a kind switch and the file
 ([Colonnades](colonnades.md)); fireplaces (no wall gap, a side but no hinge, walls only, picked on the surround,
 the file; [Fireplaces](fireplaces.md)); colonnade beams with and without a roof and a fireplace's chimney; and
@@ -171,6 +175,21 @@ after *Roof the house* (flat); in the Exterior 9 stone columns and the chimney 1
 0.06 m cap; elevation screenshots; no console errors. The tabs, roof and eight older flows passed after two checks
 followed the UI: the areas flow now finds two active segmented buttons for an open edge (Type, and Columns: None),
 and the styles flow counts 12 opening icons.
+
+The furniture flow (19 checks, 2026-11-04, user's plan): the library groups; a counter snapped to a
+wall in Cocina; a kitchen sink refused off a counter, then put in it; an alcove tub in Baño and its shower head
+dragged from 3.5 to 0.5; a queen bed and `R`; a round table and a chair facing it; dragging the counter carries its
+sink; deleting it takes the sink, and undo; a square table dropped from the library with Playwright's `drag_to`
+(HTML5 library drags work that way); 31 `furniture` solids in 3-D; no console errors.
+
+On the same day four older flows that inject the user's saved plan failed on stale expectations, because the user
+had kept editing it (a shed roof, their own fireplace and a 4 m colonnade, Estudio on its own layer, the Pileta area
+removed, every Casa Principal wall and the roof at 3.5 m): roof ("no roofs yet"), objects (the colonnade and fireplace
+flow: their counts), walls (layers with walls, the 2.70 m default) and outline (the old pool's 67.52 m² and 35.8 m perimeter).
+The roof, objects and walls flows passed (26, 19, 21) on a cleaned copy built by a scratchpad script
+(`make_fixture.py`: no roofs, furniture, fireplaces, colonnades or wall heights, Estudio dropped, a Pileta area
+re-added). The outline flow still fails two checks that hard-code the old pool (now 4.59 × 10.03 m, 46.03 m², 29.3 m
+perimeter). Pin a fixture for such flows ([Playwright flow-check pitfalls](playwright-flow-checks.md)).
 
 **Inspecting live derived values:** in a Playwright `page.evaluate` on the Vite dev server,
 `await import('/src/state/derived.ts')` and `await import('/src/state/store.ts')` return the app's own module

@@ -26,7 +26,8 @@ sink is hosted: [Furniture stands free; a kitchen sink is hosted by its counter]
   - `placement(at, angle, width, depth)` is a piece's frame (`u` across the front, `v` back to front), with
     `local`/`toLocal`/`corners`. **Always get a piece's position from `placeFurniture(layer, f)`**: it lays a kitchen
     sink out from its counter (offset clamped inside it, 3 cm forward) and returns null when the counter is gone.
-  - `furnitureTarget`: `wall` pieces back up to the nearest wall face within `depth + FURNITURE_REACH_M` (0.4 m),
+  - `furnitureTarget`: `wall` pieces back up to the nearest wall face (not open edges or outlines) within
+    `depth + FURNITURE_REACH_M` (0.4 m),
     facing into the room and kept from hanging past the wall's ends; a chair faces a nearby table (round: radially;
     square: the side the cursor is most past), tucked 10 cm under it; tables are free. A kitchen sink goes in a
     counter within reach or gets a `problem` (no counter; counter shorter than the sink), with or without snap/Alt.

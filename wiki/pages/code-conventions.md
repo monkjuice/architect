@@ -31,7 +31,9 @@ repo), adapted to this codebase ([Stack adapted from the Forge H1 planner](forge
   import it from a tool, which was fixed.
 - Model modules must not import in a cycle. `regions.ts` imports `walls.ts`, which imports `openings.ts`, so
   `openings.ts` keeps its own small point-in-polygon test instead of importing `regions.ts`
-  ([Fireplaces](fireplaces.md)).
+  ([Fireplaces](fireplaces.md)). Likewise the face types and builders moved from `solids.ts` to `faces.ts`, because
+  `solids.ts` imports `furniture3d.ts`, which needs them; `furniture3d.ts` takes only a type from `solids.ts`
+  ([House solids](house-solids.md)).
 - What is saved goes in `Plan`. Editor state (active layer, tool, line kind, view, selection, prompt) goes in the
   store ([Editor store and state](editor-store.md)). View settings a user plays with and expects to find again in
   this browser (grid, opening widths, folded sections, the sun's season, time and clouds) go in prefs; facts about
@@ -43,7 +45,8 @@ repo), adapted to this codebase ([Stack adapted from the Forge H1 planner](forge
 A panel section is a `Box` (`src/ui/fields.tsx`). Give it a stable `id`: its title then folds it, the id is stored
 in `prefs.collapsed` and set as `data-box` on the `<section>` (ids so far: `view`, `base-plan`, `layers`,
 `selection`, `areas`, `sun`, `library-lines`, `library-door`, `library-window`, `library-gate`, `library-fireplace`,
-`library-colonnade`, `roofs`). A folded `Box` does
+`library-colonnade`, `library-counter`, `library-sink`, `library-bathtub`, `library-bed`, `library-table`,
+`library-chair`, `roofs`). A folded `Box` does
 not render its children, so their local state (a half-typed field) is dropped. Tests should find sections by
 `[data-box="<id>"]`, not by position: adding `view` first shifted every index
 ([Playwright flow-check pitfalls](playwright-flow-checks.md)).
@@ -59,11 +62,11 @@ not render its children, so their local state (a half-typed field) is dropped. T
   object changed.
 - Derived data (regions, wall thicknesses, wall shapes, placed areas) is cached in WeakMaps keyed on plan objects
   in `src/state/derived.ts`, not stored in the plan. An edit that does not change a layer's lines must keep its `vertices` and `segments` maps:
-  the area edits replace only the `areas` map, the opening edits only the `openings` map and the roof edits only
-  the `roofs` map, so regions are not recomputed ([Areas](areas.md), [Doors and windows](doors-and-windows.md),
-  [Roofs](roofs.md)).
+  the area edits replace only the `areas` map, the opening edits only the `openings` map, the roof edits only
+  the `roofs` map and the furniture edits only the `furniture` map, so regions are not recomputed ([Areas](areas.md),
+  [Doors and windows](doors-and-windows.md), [Roofs](roofs.md), [Furniture](furniture.md)).
 - Edits that change segments must keep the layer's openings consistent (`splitSegment`, `followOpenings`,
-  `pruneOpenings`, `moveSegments`).
+  `pruneOpenings`, `moveSegments`). Edits that delete furniture must drop orphaned kitchen sinks (`pruneFurniture`).
 - Edits that can be refused return an error string instead of throwing (`removeLayer`). File parsing returns
   `{ ok: false, errors }`.
 
@@ -98,8 +101,8 @@ nothing when the code is clean.
 
 ## Numbers and ids
 
-- Units are meters. Vertex coordinates, opening offsets and roof outlines are rounded to 0.1 mm only when saving
-  ([Plan model and file format](plan-model.md)).
-- Ids are `v<n>`, `s<n>`, `a<n>`, `o<n>`, `r<n>` (per layer) and `L<n>`, using the next free number.
+- Units are meters. Vertex coordinates, opening offsets, roof outlines, furniture positions and kitchen-sink offsets
+  are rounded to 0.1 mm only when saving ([Plan model and file format](plan-model.md)).
+- Ids are `v<n>`, `s<n>`, `a<n>`, `o<n>`, `r<n>`, `f<n>` (per layer) and `L<n>`, using the next free number.
 - A wall has no `kind` key: `addSegment` and `setSegmentKind` write `kind` only for the other kinds (open edges and
   outlines).
