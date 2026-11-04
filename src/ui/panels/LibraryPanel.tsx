@@ -18,13 +18,16 @@ const GROUPS: { kind: OpeningKind; title: string; key?: string }[] = [
   { kind: 'fireplace', title: 'Fireplaces' },
 ]
 
-const FURNITURE_GROUPS: { kind: FurnitureKind; title: string }[] = [
-  { kind: 'counter', title: 'Counters' },
-  { kind: 'sink', title: 'Sinks' },
-  { kind: 'bathtub', title: 'Bathtubs' },
-  { kind: 'bed', title: 'Beds' },
-  { kind: 'table', title: 'Tables' },
-  { kind: 'chair', title: 'Chairs' },
+/** The furniture boxes of the library and the kinds each lists; the first kind names the box's id. */
+const FURNITURE_GROUPS: { kinds: FurnitureKind[]; title: string }[] = [
+  { kinds: ['counter'], title: 'Counters' },
+  { kinds: ['sink'], title: 'Sinks' },
+  { kinds: ['bathtub'], title: 'Bathtubs' },
+  { kinds: ['shower'], title: 'Showers' },
+  { kinds: ['toilet', 'bidet'], title: 'Toilets' },
+  { kinds: ['bed'], title: 'Beds' },
+  { kinds: ['table'], title: 'Tables' },
+  { kinds: ['chair'], title: 'Chairs' },
 ]
 
 /**
@@ -140,9 +143,9 @@ export function LibraryPanel() {
         </div>
       </Box>
       {FURNITURE_GROUPS.map((group) => (
-        <Box key={group.kind} id={`library-${group.kind}`} title={group.title}>
+        <Box key={group.kinds[0]} id={`library-${group.kinds[0]}`} title={group.title}>
           <div className="library-list">
-            {FURNITURE.filter((i) => i.kind === group.kind).map((i) => {
+            {FURNITURE.filter((i) => group.kinds.includes(i.kind)).map((i) => {
               const key = furnitureKey(i.kind, i.style)
               return (
                 <LibraryItem

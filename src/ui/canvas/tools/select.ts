@@ -1,5 +1,17 @@
 import { connectVertex, moveFurniture, segmentsAt, setAreaAnchors, setVertices, turnFurniture, updateFurniture, updateOpening } from '../../../model/edit'
-import { FURNITURE_REACH_M, furnitureAt, furnitureInBox, furnitureTarget, infoOf, placeFurniture, showerAt, showerPoint, type FurnitureTarget } from '../../../model/furniture'
+import {
+  FURNITURE_REACH_M,
+  furnitureAt,
+  furnitureInBox,
+  furnitureTarget,
+  hasShower,
+  infoOf,
+  isCorner,
+  placeFurniture,
+  showerAt,
+  showerPoint,
+  type FurnitureTarget,
+} from '../../../model/furniture'
 import { openingAt, openingTarget, type OpeningTarget } from '../../../model/openings'
 import { add, constrainAngle, dist, len, sub, type Box, type Vec } from '../../../model/geometry'
 import { areasInBox, hitTest, segmentsInBox, selectedVertices } from '../../../model/pick'
@@ -50,7 +62,7 @@ type Drag =
       target?: FurnitureTarget
     }
   | {
-      /** A bathtub's shower head, moved round its rim. */
+      /** A bathtub's or a shower's head, moved round its rim. */
       kind: 'shower'
       layer: string
       id: string
@@ -88,14 +100,14 @@ export function createSelectTool(ctx: ToolContext): Tool {
   let drag: Drag | null = null
   let hover: Ref | null = null
 
-  /** A selected bathtub whose shower head is under the cursor. */
+  /** A selected bathtub or shower whose shower head is under the cursor. */
   const showerHandle = (e: PointerInfo): { layer: string; id: string } | null => {
     const { plan, selection } = store.getState()
     for (const r of selection) {
       const layer = r.kind === 'furniture' ? findLayer(plan, r.layer) : undefined
       const f = isEditable(layer) ? layer.furniture[r.id] : undefined
-      const pl = f?.kind === 'bathtub' ? placeFurniture(layer!, f) : null
-      if (f?.kind === 'bathtub' && pl && dist(showerPoint(pl, f.shower), e.p) <= Math.max(HIT_VERTEX_PX * e.px, 0.08)) return { layer: r.layer, id: r.id }
+      const pl = f && hasShower(f) ? placeFurniture(layer!, f) : null
+      if (f && hasShower(f) && pl && dist(showerPoint(pl, f.shower, isCorner(f)), e.p) <= Math.max(HIT_VERTEX_PX * e.px, 0.08)) return { layer: r.layer, id: r.id }
     }
     return null
   }
@@ -213,8 +225,8 @@ export function createSelectTool(ctx: ToolContext): Tool {
         store.preview((base) => {
           const l = findLayer(base, layer)!
           const f = l.furniture[id]
-          const pl = f?.kind === 'bathtub' ? placeFurniture(l, f) : null
-          return f?.kind === 'bathtub' && pl ? updateFurniture(base, layer, id, { ...f, shower: showerAt(pl, e.p) }) : base
+          const pl = f && hasShower(f) ? placeFurniture(l, f) : null
+          return f && hasShower(f) && pl ? updateFurniture(base, layer, id, { ...f, shower: showerAt(pl, e.p, isCorner(f)) }) : base
         })
         return
       }

@@ -7,6 +7,7 @@ import {
   furnitureInfo,
   furnitureSymbol,
   furnitureTarget,
+  isCorner,
   placeFurniture,
   placement,
   showerAt,
@@ -125,6 +126,50 @@ describe('furniture', () => {
     const plan = put(room(), 'bathtub', 'alcove', { x: 3, y: 0.5 })
     const symbol = furnitureSymbol(plan.layers[0].furniture.f1, placeFurniture(plan.layers[0], plan.layers[0].furniture.f1)!)
     expect(symbol.some((p) => 'c' in p && p.role === 'heavy')).toBe(true)
+  })
+
+  it('backs a toilet and a bidet up to the wall, and builds them', () => {
+    let plan = put(room(), 'toilet', undefined, { x: 2, y: 0.5 })
+    plan = put(plan, 'bidet', undefined, { x: 2.8, y: 0.5 })
+    const [toilet, bidet] = Object.values(plan.layers[0].furniture) as Extract<Furniture, { kind: 'toilet' | 'bidet' }>[]
+    expect([toilet.kind, bidet.kind]).toEqual(['toilet', 'bidet'])
+    expect(toilet.angle).toBeCloseTo(0, 6)
+    near(toilet.at, { x: 2, y: 0.15 + 0.35 })
+    near(bidet.at, { x: 2.8, y: 0.15 + 0.275 })
+    const solids = houseSolids(plan).filter((x) => x.kind === 'furniture')
+    // the cistern's top, and the bidet's rim
+    expect(Math.max(...solids.filter((x) => x.ref.id === 'f1').map((x) => x.top))).toBeCloseTo(0.78)
+    expect(Math.max(...solids.filter((x) => x.ref.id === 'f2').map((x) => x.top))).toBeGreaterThan(0.4)
+  })
+
+  it('builds a shower: a tray, a glass screen, and its head at the back, movable round the tray', () => {
+    const plan = put(room(), 'shower', undefined, { x: 5.4, y: 0.6 })
+    const shower = plan.layers[0].furniture.f1 as Extract<Furniture, { kind: 'shower' }>
+    expect(shower.shower).toBe(0.5)
+    const pl = placeFurniture(plan.layers[0], shower)!
+    expect(showerAt(pl, showerPoint(pl, 2.4))).toBeCloseTo(2.4, 3)
+    const solids = houseSolids(plan).filter((x) => x.kind === 'furniture')
+    expect(solids.some((x) => x.material === 'glass' && Math.abs(x.top - 2) < 1e-9)).toBe(true)
+    // the head, at 1.95 m and 3 cm thick
+    expect(solids.some((x) => x.material === 'metal' && Math.abs(x.top - 1.98) < 1e-9)).toBe(true)
+  })
+
+  it('makes a corner bathtub a quarter of a disc, its shower head moving round its curved front', () => {
+    const plan = put(room(), 'bathtub', 'corner', { x: 1, y: 1 })
+    const tub = plan.layers[0].furniture.f1
+    expect(isCorner(tub)).toBe(true)
+    const pl = placeFurniture(plan.layers[0], tub)!
+    const corner = corners(pl)[0]
+    // on the curved front, 1.40 m round the back left corner (less the inset)
+    for (const s of [1.2, 2, 2.8]) {
+      const q = showerPoint(pl, s, true)
+      expect(Math.hypot(q.x - corner.x, q.y - corner.y)).toBeCloseTo(1.4 - 0.04, 6)
+      expect(showerAt(pl, q, true)).toBeCloseTo(s, 2)
+    }
+    const outline = furnitureSymbol(tub, pl).find((x) => 'pts' in x && x.role === 'outline')!
+    expect('pts' in outline && outline.pts.length).toBeGreaterThan(10)
+    const solids = houseSolids(plan).filter((x) => x.kind === 'furniture')
+    expect(Math.max(...solids.filter((x) => x.material === 'ceramic').map((x) => x.top))).toBeCloseTo(0.55)
   })
 
   it('is picked by its footprint, the smaller piece first', () => {

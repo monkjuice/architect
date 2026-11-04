@@ -21,7 +21,7 @@ import { z } from 'zod'
  * A fireplace is hosted the same way, against one side of a wall, but leaves no gap; its chimney goes up through
  * the roof. An open edge can carry a colonnade: columns shared out along it under a beam.
  *
- * Furniture and fixtures (counters, sinks, bathtubs, beds, tables, chairs) stand where they are put, turned to
+ * Furniture and fixtures (counters, sinks, bathtubs, showers, toilets, bidets, beds, tables, chairs) stand where they are put, turned to
  * an angle; a kitchen sink sits in a counter and goes where its counter goes (see furniture.ts).
  *
  * Roofs are outlines drawn over a layer's plan (the Roof tab), each with a type and slope (see roofs.ts). They do
@@ -107,7 +107,7 @@ export const FireplaceSchema = z.strictObject({ kind: z.literal('fireplace'), st
 export const OpeningSchema = z.discriminatedUnion('kind', [DoorSchema, WindowSchema, GateSchema, FireplaceSchema])
 
 export const SINK_STYLES = ['outdoor', 'kitchen', 'bathroom'] as const
-export const BATHTUB_STYLES = ['alcove', 'clawfoot', 'drop-in'] as const
+export const BATHTUB_STYLES = ['alcove', 'clawfoot', 'drop-in', 'corner'] as const
 export const BED_STYLES = ['single', 'double', 'queen', 'king'] as const
 export const TABLE_STYLES = ['square', 'circle'] as const
 
@@ -141,9 +141,19 @@ export const BathtubSchema = z.strictObject({
   kind: z.literal('bathtub'),
   style: z.enum(BATHTUB_STYLES),
   ...Standing,
-  /** Where the shower head is round the rim: 0–1 along the back from its left end, 1–2 down the right, 2–3 the front, 3–4 up the left. */
+  /**
+   * Where the shower head is round the rim: 0–1 along the back from its left end, 1–2 down the right, 2–3 the
+   * front, 3–4 up the left (a corner tub's right and front are its curved front, 1–3).
+   */
   shower: z.number().min(0).max(4),
 })
+
+/** A shower tray behind a glass screen; its head is round its edge the way a bathtub's is. */
+export const ShowerSchema = z.strictObject({ kind: z.literal('shower'), ...Standing, shower: z.number().min(0).max(4) })
+
+export const ToiletSchema = z.strictObject({ kind: z.literal('toilet'), ...Standing })
+
+export const BidetSchema = z.strictObject({ kind: z.literal('bidet'), ...Standing })
 
 export const BedSchema = z.strictObject({ kind: z.literal('bed'), style: z.enum(BED_STYLES), ...Standing })
 
@@ -151,7 +161,17 @@ export const TableSchema = z.strictObject({ kind: z.literal('table'), style: z.e
 
 export const ChairSchema = z.strictObject({ kind: z.literal('chair'), ...Standing })
 
-export const FurnitureSchema = z.discriminatedUnion('kind', [CounterSchema, SinkSchema, BathtubSchema, BedSchema, TableSchema, ChairSchema])
+export const FurnitureSchema = z.discriminatedUnion('kind', [
+  CounterSchema,
+  SinkSchema,
+  BathtubSchema,
+  ShowerSchema,
+  ToiletSchema,
+  BidetSchema,
+  BedSchema,
+  TableSchema,
+  ChairSchema,
+])
 
 export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip'] as const
 

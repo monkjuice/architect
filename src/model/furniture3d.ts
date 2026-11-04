@@ -1,13 +1,13 @@
 import { prismFaces, ring, smoothSides, type Face } from './faces'
 import type { Vec } from './geometry'
-import { ellipse, local, rounded, showerPoint, type Placement } from './furniture'
+import { ellipse, local, quarterDisc, rounded, showerPoint, type Placement } from './furniture'
 import type { Furniture } from './plan'
 import type { SolidMaterial } from './solids'
 
 /**
  * Furniture in 3-D, as simple blocks of the right size and height: a counter's cabinets, toe kick and worktop;
- * basins sunk into their tops with a tap; bathtubs with a real basin and a shower riser at the shower head; beds
- * with frame, headboard, mattress, pillows and cover; tables and chairs.
+ * basins sunk into their tops with a tap; bathtubs and showers with a shower riser at the shower head; toilets and
+ * bidets; beds with frame, headboard, mattress, pillows and cover; tables and chairs.
  */
 
 export interface FurniturePart {
@@ -30,6 +30,12 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
   }
   /** A round post centred at local (x, y). */
   const post = (x: number, y: number, r: number, bottom: number, top: number, material: SolidMaterial) => put(ring(local(pl, x, y), r, 12), bottom, top, material, [], true)
+  /** A shower riser from `bottom` up to its head at `s` round the rim. */
+  const riser = (s: number, bottom: number, corner = false) => {
+    const at = showerPoint(pl, s, corner)
+    put(ring(at, 0.012, 10), bottom, SHOWER_HEAD, 'metal', [], true)
+    put(ring(at, 0.09, 16), SHOWER_HEAD, SHOWER_HEAD + 0.03, 'metal', [], true)
+  }
   /** A tap at the back of a basin whose top is at `top`: a post and a spout reaching forward. */
   const tap = (top: number) => {
     post(0, -hd + 0.05, 0.018, top, top + 0.24, 'metal')
@@ -67,6 +73,14 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
       break
     case 'bathtub': {
       let rim = 0.55
+      if (f.style === 'corner') {
+        const r = Math.min(pl.width, pl.depth)
+        const inner = quarterDisc(pl, r - 0.2, 0.08)
+        put(quarterDisc(pl, r), 0, rim, 'ceramic', [inner], true)
+        put(inner, 0, 0.15, 'ceramic', [], true)
+        riser(f.shower, rim, true)
+        break
+      }
       if (f.style === 'clawfoot') {
         rim = 0.62
         const inner = ellipse(pl, -hw + 0.07, -hd + 0.07, hw - 0.07, hd - 0.07)
@@ -89,10 +103,31 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
         put(box(-hw, -hd, hw, hd), 0, rim, 'ceramic', [inner])
         put(inner, 0, 0.15, 'ceramic')
       }
-      // the shower: a riser from the rim up to its head
-      const s = showerPoint(pl, f.shower)
-      put(ring(s, 0.012, 10), rim, SHOWER_HEAD, 'metal', [], true)
-      put(ring(s, 0.09, 16), SHOWER_HEAD, SHOWER_HEAD + 0.03, 'metal', [], true)
+      riser(f.shower, rim)
+      break
+    }
+    case 'shower':
+      // a low tray, its head on a riser, and a glass screen along two thirds of its front
+      put(box(-hw, -hd, hw, hd), 0, 0.05, 'ceramic')
+      riser(f.shower, 0.05)
+      put(box(-hw, hd - 0.01, hw * 0.3, hd), 0.05, 2.0, 'glass')
+      put(box(-hw, hd - 0.03, -hw + 0.02, hd), 0.05, 2.0, 'metal')
+      break
+    case 'toilet': {
+      // a pedestal, the bowl on it with its seat, and the cistern behind
+      const bowl = ellipse(pl, -hw + 0.02, -hd + 0.14, hw - 0.02, hd)
+      put(rounded(pl, -0.12, -hd + 0.18, 0.12, hd - 0.18, 0.08), 0, 0.3, 'ceramic', [], true)
+      put(bowl, 0.3, 0.4, 'ceramic', [ellipse(pl, -hw + 0.08, -hd + 0.26, hw - 0.08, hd - 0.06)], true)
+      put(box(-hw + 0.04, -hd, hw - 0.04, -hd + 0.18), 0, 0.4, 'ceramic')
+      put(box(-hw, -hd, hw, -hd + 0.18), 0.4, 0.78, 'ceramic')
+      break
+    }
+    case 'bidet': {
+      const inner = ellipse(pl, -hw + 0.06, -hd + 0.12, hw - 0.06, hd - 0.05)
+      put(rounded(pl, -0.12, -hd + 0.12, 0.12, hd - 0.12, 0.08), 0, 0.3, 'ceramic', [], true)
+      put(ellipse(pl, -hw, -hd + 0.03, hw, hd), 0.3, 0.4, 'ceramic', [inner], true)
+      put(inner, 0.3, 0.32, 'ceramic', [], true)
+      tap(0.4)
       break
     }
     case 'bed': {

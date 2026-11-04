@@ -2,9 +2,9 @@ import { add, clamp, closestOnSegment, dist, dot, mul, sub, type Box, type Vec }
 import { isEditable, segmentKind, type Furniture, type FurnitureKind, type Layer, type Plan } from './plan'
 
 /**
- * Furniture and fixtures: counters, sinks, bathtubs, beds, tables and chairs. Each stands at a point turned to an
- * angle, its back up the sheet at 0, and is `width` across its front and `depth` from back to front. Things that
- * stand against a wall (counters, bathroom and outdoor sinks, bathtubs, beds) snap with their back to the nearest
+ * Furniture and fixtures: counters, sinks, bathtubs, showers, toilets, bidets, beds, tables and chairs. Each stands
+ * at a point turned to an angle, its back up the sheet at 0, and is `width` across its front and `depth` from back
+ * to front. Things that stand against a wall (all but tables and chairs) snap with their back to the nearest
  * wall face when they are put down; a kitchen sink only goes in a counter and is kept there, relative to it;
  * a chair snaps to face a table it is put next to.
  */
@@ -31,6 +31,10 @@ export const FURNITURE: readonly FurnitureInfo[] = [
   { kind: 'bathtub', style: 'alcove', title: 'Alcove', width: 1.7, depth: 0.75, height: 0.55, snap: 'wall' },
   { kind: 'bathtub', style: 'clawfoot', title: 'Clawfoot', width: 1.65, depth: 0.78, height: 0.62, snap: 'wall' },
   { kind: 'bathtub', style: 'drop-in', title: 'Drop in', width: 1.85, depth: 0.95, height: 0.55, snap: 'wall' },
+  { kind: 'bathtub', style: 'corner', title: 'Corner', width: 1.4, depth: 1.4, height: 0.55, snap: 'wall' },
+  { kind: 'shower', title: 'Shower', width: 0.9, depth: 0.9, height: 2.0, snap: 'wall' },
+  { kind: 'toilet', title: 'Toilet', width: 0.4, depth: 0.7, height: 0.78, snap: 'wall' },
+  { kind: 'bidet', title: 'Bidet', width: 0.38, depth: 0.55, height: 0.4, snap: 'wall' },
   { kind: 'bed', style: 'single', title: 'Single', width: 0.95, depth: 2.0, height: 1.0, snap: 'wall' },
   { kind: 'bed', style: 'double', title: 'Double', width: 1.45, depth: 2.0, height: 1.0, snap: 'wall' },
   { kind: 'bed', style: 'queen', title: 'Queen', width: 1.65, depth: 2.1, height: 1.0, snap: 'wall' },
@@ -237,8 +241,10 @@ export function furnitureTarget(plan: Plan, p: Vec, opts: FurnitureOptions): Fur
 export function furnitureFor(kind: FurnitureKind, style: string | undefined, t: FurnitureTarget, width: number, depth: number): Furniture {
   if (kind === 'sink' && style === 'kitchen') return { kind, style, counter: t.counter!, offset: t.offset!, width, depth }
   const standing = { at: t.at, angle: t.angle, width, depth }
-  if (kind === 'bathtub') return { kind, style: style as 'alcove', ...standing, shower: 3.5 }
-  if (kind === 'counter' || kind === 'chair') return { kind, ...standing }
+  // a shower head starts at a tub's left end (a corner tub's, along its left wall by the corner), a shower's back
+  if (kind === 'bathtub') return { kind, style: style as 'alcove', ...standing, shower: style === 'corner' ? 3.85 : 3.5 }
+  if (kind === 'shower') return { kind, ...standing, shower: 0.5 }
+  if (kind === 'counter' || kind === 'chair' || kind === 'toilet' || kind === 'bidet') return { kind, ...standing }
   return { kind, style, ...standing } as Furniture
 }
 
@@ -247,11 +253,25 @@ export function furnitureFor(kind: FurnitureKind, style: string | undefined, t: 
 /** How far inside the rim's outer edge the shower head stands, in m. */
 const SHOWER_INSET = 0.04
 
-/** The shower head's point on the plan, `s` round the rim (0–1 the back from the left, 1–2 the right, 2–3 the front, 3–4 the left). */
-export function showerPoint(pl: Placement, s: number): Vec {
+/** Whether a piece has a shower head that can be moved round its rim. */
+export const hasShower = (f: Furniture): f is Extract<Furniture, { shower: number }> => f.kind === 'bathtub' || f.kind === 'shower'
+
+/** A corner bathtub: a quarter of a disc, its corner at the back left (in the room's corner), its front curved. */
+export const isCorner = (f: Furniture): boolean => f.kind === 'bathtub' && f.style === 'corner'
+
+/**
+ * The shower head's point on the plan, `s` round the rim (0–1 the back from the left, 1–2 the right, 2–3 the
+ * front, 3–4 the left); round a corner tub's curved front from 1 to 3.
+ */
+export function showerPoint(pl: Placement, s: number, corner = false): Vec {
   const [hw, hd] = [pl.width / 2 - SHOWER_INSET, pl.depth / 2 - SHOWER_INSET]
   const k = Math.floor(clamp(s, 0, 3.9999))
   const t = clamp(s, 0, 4) - k
+  if (corner && k >= 1 && k <= 2) {
+    const a = (((k - 1 + t) / 2) * Math.PI) / 2
+    const r = Math.min(pl.width, pl.depth) - SHOWER_INSET
+    return local(pl, -pl.width / 2 + r * Math.cos(a), -pl.depth / 2 + r * Math.sin(a))
+  }
   const [x, y] = [
     [-hw + 2 * hw * t, -hd],
     [hw, -hd + 2 * hd * t],
@@ -262,15 +282,24 @@ export function showerPoint(pl: Placement, s: number): Vec {
 }
 
 /** The rim position nearest a plan point. */
-export function showerAt(pl: Placement, p: Vec): number {
+export function showerAt(pl: Placement, p: Vec, corner = false): number {
   let best = { s: 0, d: Infinity }
+  // the rim in short straight steps, so a curved front is followed too
+  const steps = 24
   for (let k = 0; k < 4; k++) {
-    const a = showerPoint(pl, k)
-    const b = showerPoint(pl, k + 0.9999)
-    const c = closestOnSegment(p, a, b)
-    if (c.dist < best.d) best = { s: Math.min(k + c.t, 3.9999), d: c.dist }
+    for (let i = 0; i < steps; i++) {
+      const [s0, s1] = [k + i / steps, k + Math.min((i + 1) / steps, 0.9999)]
+      const c = closestOnSegment(p, showerPoint(pl, s0, corner), showerPoint(pl, s1, corner))
+      if (c.dist < best.d) best = { s: Math.min(s0 + c.t * (s1 - s0), 3.9999), d: c.dist }
+    }
   }
   return Math.round(best.s * 1000) / 1000
+}
+
+/** A quarter disc of radius `r` round the back left corner, local, inset `by` from its straight sides. */
+export function quarterDisc(pl: Placement, r: number, by = 0, n = 16): Vec[] {
+  const [x0, y0] = [-pl.width / 2 + by, -pl.depth / 2 + by]
+  return [local(pl, x0, y0), ...Array.from({ length: n + 1 }, (_, i) => local(pl, x0 + r * Math.cos((i / n) * (Math.PI / 2)), y0 + r * Math.sin((i / n) * (Math.PI / 2))))]
 }
 
 // ---- in plan ------------------------------------------------------------------------------------------------
@@ -324,8 +353,12 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
       return parts
     }
     case 'bathtub': {
-      const shower = showerPoint(pl, f.shower)
+      const shower = showerPoint(pl, f.shower, f.style === 'corner')
       const head: SymbolPart[] = [{ c: shower, r: 0.06, role: 'heavy' }]
+      if (f.style === 'corner') {
+        const r = Math.min(pl.width, pl.depth)
+        return [{ pts: quarterDisc(pl, r), closed: true, role: 'outline' }, { pts: quarterDisc(pl, r - 0.2, 0.08), closed: true, role: 'detail' }, drain(-hw + 0.3, -hd + 0.3), ...head]
+      }
       if (f.style === 'clawfoot') {
         return [{ pts: ellipse(pl, -hw, -hd, hw, hd), closed: true, role: 'outline' }, { pts: ellipse(pl, -hw + 0.07, -hd + 0.07, hw - 0.07, hd - 0.07), closed: true, role: 'detail' }, drain(-hw + 0.3, 0), ...head]
       }
@@ -345,6 +378,31 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
     }
     case 'table':
       return f.style === 'circle' ? [{ pts: ellipse(pl, -hw, -hd, hw, hd, 48), closed: true, role: 'outline' }] : [outline]
+    case 'shower':
+      // a tray with its drain, the head on its edge, and the glass screen along its front
+      return [
+        outline,
+        { pts: box(-hw + 0.05, -hd + 0.05, hw - 0.05, hd - 0.05), closed: true, role: 'soft' },
+        { pts: [local(pl, -hw + 0.05, -hd + 0.05), local(pl, hw - 0.05, hd - 0.05)], closed: false, role: 'soft' },
+        { pts: [local(pl, hw - 0.05, -hd + 0.05), local(pl, -hw + 0.05, hd - 0.05)], closed: false, role: 'soft' },
+        drain(0, 0),
+        { pts: [local(pl, -hw, hd), local(pl, hw * 0.3, hd)], closed: false, role: 'detail' },
+        { c: showerPoint(pl, f.shower), r: 0.06, role: 'heavy' },
+      ]
+    case 'toilet':
+      // the cistern against the wall and the bowl in front of it
+      return [
+        { pts: box(-hw, -hd, hw, -hd + 0.18), closed: true, role: 'outline' },
+        { pts: ellipse(pl, -hw + 0.02, -hd + 0.14, hw - 0.02, hd), closed: true, role: 'outline' },
+        { pts: ellipse(pl, -hw + 0.08, -hd + 0.26, hw - 0.08, hd - 0.06), closed: true, role: 'detail' },
+      ]
+    case 'bidet':
+      return [
+        { pts: ellipse(pl, -hw, -hd + 0.03, hw, hd), closed: true, role: 'outline' },
+        { pts: ellipse(pl, -hw + 0.06, -hd + 0.12, hw - 0.06, hd - 0.05), closed: true, role: 'detail' },
+        drain(0, 0.05),
+        { c: local(pl, 0, -hd + 0.08), r: 0.02, role: 'soft' },
+      ]
     case 'chair':
       return [
         { pts: box(-hw + 0.02, -hd + 0.08, hw - 0.02, hd), closed: true, role: 'outline' },

@@ -273,7 +273,9 @@ function FurnitureDetails({ layerId, id }: { layerId: string; id: string }) {
         {'counter' in f && (
           <p className="hint field-wide">In its counter: drag it along it, or onto another counter. It moves and turns with its counter.</p>
         )}
-        {f.kind === 'bathtub' && <p className="hint field-wide">Drag the shower head (the round mark on its rim) to move it round the tub.</p>}
+        {(f.kind === 'bathtub' || f.kind === 'shower') && (
+          <p className="hint field-wide">Drag the shower head (the round mark on its rim) to move it round the {f.kind === 'shower' ? 'tray' : 'tub'}.</p>
+        )}
       </div>
       {'angle' in f && (
         <div className="button-row">

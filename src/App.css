@@ -1206,8 +1206,8 @@ button.icon {
   stroke-width: 2.5;
 }
 
-/* a bathtub's shower head: a filled mark, which is also its handle */
-.furniture.bathtub circle.furniture-heavy {
+/* a bathtub's or a shower's head: a filled mark, which is also its handle */
+.furniture:is(.bathtub, .shower) circle.furniture-heavy {
   fill: var(--layer);
   stroke-width: 1.5;
 }
@@ -1220,7 +1220,7 @@ button.icon {
   stroke: var(--selection);
 }
 
-.furniture.selected.bathtub circle.furniture-heavy {
+.furniture.selected:is(.bathtub, .shower) circle.furniture-heavy {
   fill: var(--selection);
 }
 

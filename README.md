@@ -56,7 +56,7 @@ actions. Every tab works on the same plan, with one undo history and one file:
 The **library** (left panel) holds what can be drawn or placed: line types (wall, open edge, outline) with the length
 of each drawn so far, door, window, gate and fireplace styles with how many there are and the width the next one
 gets, colonnades with how many open edges have one and the most their columns stand apart, and furniture
-(counters, sinks, bathtubs, beds, tables, chairs) with how many there are and their size.
+(counters, sinks, bathtubs, showers, toilets and bidets, beds, tables, chairs) with how many there are and their size.
 
 ### Walls, open edges, outlines and areas
 
@@ -173,7 +173,9 @@ Furniture and fixtures go where you click (pick one in the library, or drag it o
 |---|---|---|
 | **Counter** | 2.40 × 0.60 m, 0.90 m high: cabinets, a toe kick and a stone worktop | backs up to a wall |
 | **Sinks** | *Outdoor* 0.70 × 0.50 m, a stone basin on a pedestal; *Bathroom* 0.60 × 0.45 m, a vanity with its basin; *Kitchen* 0.80 × 0.45 m | outdoor and bathroom back up to a wall; a kitchen sink only goes in a counter |
-| **Bathtubs** | *Alcove* 1.70 × 0.75 m; *Clawfoot* 1.65 × 0.78 m, on feet; *Drop in* 1.85 × 0.95 m, in a deck | back up to a wall |
+| **Bathtubs** | *Alcove* 1.70 × 0.75 m; *Clawfoot* 1.65 × 0.78 m, on feet; *Drop in* 1.85 × 0.95 m, in a deck; *Corner* 1.40 m along each wall, a quarter round with a curved front | back up to a wall |
+| **Shower** | 0.90 × 0.90 m tray behind a glass screen, its head at the back | backs up to a wall |
+| **Toilets** | *Toilet* 0.40 × 0.70 m, its cistern to the wall; *Bidet* 0.38 × 0.55 m | back up to a wall |
 | **Beds** | *Single* 0.95 × 2.00, *Double* 1.45 × 2.00, *Queen* 1.65 × 2.10, *King* 1.85 × 2.10 m (mattress and frame) | head to a wall |
 | **Tables** | *Square* 0.90 × 0.90 m, *Circle* Ø 1.10 m, 0.75 m high | stand where they are put |
 | **Chairs** | 0.45 × 0.50 m | turn to face a table they are put by |
@@ -181,9 +183,10 @@ Furniture and fixtures go where you click (pick one in the library, or drag it o
 Near a wall, a piece that goes against one turns its back to the wall and stands flush with its face (`Alt`
 keeps it from snapping); `R` turns it a quarter turn, while placing or with it selected. A **kitchen sink** sits in
 a counter: it is refused anywhere else, slides along its counter when dragged (or onto another counter), moves and
-turns with its counter, and goes when its counter is deleted. A **bathtub** shows its shower head as a round mark
-on its rim (at its left end at first): select the tub and drag the mark round the rim to move it; in 3-D a riser
-goes up from there to the head at 1.95 m.
+turns with its counter, and goes when its counter is deleted. A **bathtub** or a **shower** shows its shower head as a
+round mark on its rim (a tub's at its left end at first, a shower's at its back): select it and drag the mark
+round the rim (a corner tub's round its curved front too) to move it; in 3-D a riser goes up from there to the
+head at 1.95 m.
 
 Select a piece to drag it (it snaps as when it was put down) or to change its style (a bed's or a table's size
 comes with it), width and depth (a round table's diameter) and turn in the Selection panel. Furniture is drawn on
@@ -318,8 +321,8 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   parapet}`: `type` is `flat`, `shed`, `gable` or `hip`, `pitch` in degrees, `height` the underside at the
   outline in meters, `edge` the outline side a shed slopes down to or a gable's ridge runs along), and
   `furniture` (id → `{kind, style, at, angle, width, depth}`: `kind` is `counter`, `sink` (`outdoor`, `kitchen`,
-  `bathroom`), `bathtub` (`alcove`, `clawfoot`, `drop-in`, with `shower`, the shower head's place round the rim
-  from 0 to 4), `bed` (`single`, `double`, `queen`, `king`), `table` (`square`, `circle`) or `chair`; `at` is its
+  `bathroom`), `bathtub` (`alcove`, `clawfoot`, `drop-in`, `corner`, with `shower`, the shower head's place
+  round the rim from 0 to 4), `shower` (with `shower` too), `toilet`, `bidet`, `bed` (`single`, `double`, `queen`, `king`), `table` (`square`, `circle`) or `chair`; `at` is its
   centre and `angle` its turn in degrees, clockwise; a kitchen sink has `counter` and `offset` (its centre's
   distance from the counter's left end) instead of `at` and `angle`). Files saved before areas, openings,
   styles, wall thicknesses, roofs or furniture existed open unchanged (older openings read as single doors and fixed windows, older walls as automatic).
