@@ -18,6 +18,9 @@ import { z } from 'zod'
  *
  * Doors, windows and gates are openings hosted by a segment: they sit at a distance along it, so they follow it when
  * it moves, and they leave a gap in the line. They do not open regions: a room stays closed through its doors.
+ *
+ * Roofs are outlines drawn over a layer's plan (the Roof tab), each with a type and slope (see roofs.ts). They do
+ * not follow the walls: they are drawn to cover them.
  */
 
 /** Identifies the file format; checked before anything else when a file is loaded. */
@@ -87,6 +90,24 @@ export const GateSchema = z.strictObject({ kind: z.literal('gate'), style: z.enu
 
 export const OpeningSchema = z.discriminatedUnion('kind', [DoorSchema, WindowSchema, GateSchema])
 
+export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip'] as const
+
+export const RoofSchema = z.strictObject({
+  /** What the roof covers, usually the walls' outside faces; the eaves stand `overhang` beyond it. */
+  outline: z.array(VecSchema).min(3),
+  /** A flat slab, one slope (shed), two slopes meeting at a ridge (gable) or a slope from every side (hip). */
+  type: z.enum(ROOF_TYPES),
+  /** Slope in degrees; a flat roof has none. */
+  pitch: z.number().min(0).max(70),
+  /** Height of the roof's underside where it crosses the outline at its eaves, in m (usually the top of the walls). */
+  height: Positive,
+  overhang: z.number().min(0).max(3),
+  /** The outline edge (by index) a shed roof slopes down to, or a gable roof's ridge runs along. */
+  edge: z.number().int().min(0),
+  /** A flat roof's parapet above the slab, in m; 0 for none. */
+  parapet: z.number().min(0).max(2),
+})
+
 export const LayerSchema = z.strictObject({
   id: z.string().min(1),
   name: z.string(),
@@ -99,6 +120,8 @@ export const LayerSchema = z.strictObject({
   areas: z.record(z.string(), AreaSchema).default({}),
   /** Doors and windows in this layer's segments. Files from before openings lack it. */
   openings: z.record(z.string(), OpeningSchema).default({}),
+  /** Roofs over this layer's walls. Files from before roofs lack it. */
+  roofs: z.record(z.string(), RoofSchema).default({}),
 })
 
 /** A known length on the image: two points in image pixels and the real distance between them in meters. */
@@ -156,6 +179,8 @@ export type DoorStyle = (typeof DOOR_STYLES)[number]
 export type WindowStyle = (typeof WINDOW_STYLES)[number]
 export type GateStyle = (typeof GATE_STYLES)[number]
 export type OpeningStyle = DoorStyle | WindowStyle | GateStyle
+export type Roof = z.infer<typeof RoofSchema>
+export type RoofType = (typeof ROOF_TYPES)[number]
 export type Layer = z.infer<typeof LayerSchema>
 export type Calibration = z.infer<typeof CalibrationSchema>
 export type Crop = z.infer<typeof CropSchema>
@@ -167,7 +192,7 @@ export type Site = z.infer<typeof SiteSchema>
 export const LAYER_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f59e0b', '#14b8a6', '#ec4899']
 
 export function createLayer(id: string, name: string, color = LAYER_COLORS[0]): Layer {
-  return { id, name, color, visible: true, locked: false, vertices: {}, segments: {}, areas: {}, openings: {} }
+  return { id, name, color, visible: true, locked: false, vertices: {}, segments: {}, areas: {}, openings: {}, roofs: {} }
 }
 
 export function createPlan(): Plan {
@@ -182,10 +207,10 @@ export function createPlan(): Plan {
 
 export const segmentKind = (s: Segment): SegmentKind => s.kind ?? 'wall'
 
-/** One selectable item of a layer: a segment, a vertex, an area or an opening (door or window). */
+/** One selectable item of a layer: a segment, a vertex, an area, an opening (door or window) or a roof. */
 export interface Ref {
   layer: string
-  kind: 'segment' | 'vertex' | 'area' | 'opening'
+  kind: 'segment' | 'vertex' | 'area' | 'opening' | 'roof'
   id: string
 }
 
@@ -193,7 +218,7 @@ export interface Ref {
 export function refExists(plan: Plan, r: Ref): boolean {
   const layer = findLayer(plan, r.layer)
   if (!layer) return false
-  const items = { segment: layer.segments, vertex: layer.vertices, area: layer.areas, opening: layer.openings }[r.kind]
+  const items = { segment: layer.segments, vertex: layer.vertices, area: layer.areas, opening: layer.openings, roof: layer.roofs }[r.kind]
   return !!items[r.id]
 }
 

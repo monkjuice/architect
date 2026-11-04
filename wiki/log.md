@@ -132,3 +132,21 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/bash-hook-key-paths.md (retitled; path-followed-by-colon blocks; summary)
 - updated: overview.md (summary, tabs, solids.ts, src/render, three dependency, build check, open items: Roof tab and Elevations next, materials deferred)
 - updated: index.md
+
+## [2026-11-02] update | Roof plan with drawn roofs, solids as faces, Elevations tab
+- created: pages/roofs.md (RoofSchema in layer.roofs, r<n> ids, roof edits; roofs.ts planes as distance functions, faces by half-plane clipping and normalized, undersideAlong, nextEdge, newRoof defaults, unionOutlines)
+- created: pages/roof-tab.md (RoofTab row 2, Canvas roof mode, Roofs.tsx, roof and roofSelect tools, RoofPanel, openTab/addRoofOutline/roofTheHouse, limits)
+- created: pages/elevations.md (user's view-only choice, mainDirection, compass-named views, culling on normals, nearest-point sort and why, levels, layer toggles, standalone Save SVG)
+- created: pages/roofs-drawn-outlines.md (decision: drawn outlines over per-area roofs, four types, planes; straight skeleton deferred; automatic roof removed)
+- updated: pages/house-solids.md (faces with explicit normals, no automatic roof or roof lip, infill and parapet kinds, slab material, beams under drawn roofs with the 1 cm eaves rule, isCovered; 12 tests; summary, tags)
+- updated: pages/exterior-tab.md (face triangulation wound to normals instead of ExtrudeGeometry and why, Roof toggle hides roofs and parapets; summary, tags)
+- updated: pages/tabs-over-one-plan.md (Roof and Elevations built, openTab replaces setTab, Canvas on Floor and Roof; summary)
+- updated: pages/exterior-kept-basic.md (automatic flat roof superseded by drawn roofs; Roof and Elevations built; summary)
+- updated: pages/plan-model.md (roofs, Ref kind roof, r<n> ids, outline rounding, additive at schemaVersion 1, roofType not saved; summary, tags)
+- updated: pages/editor-store.md (roofType, roof ToolIds, openTab and roof actions, setTab removed, getSolids for elevations; summary, tags)
+- updated: pages/canvas-and-tools.md (mode roof, ROOF_SHORTCUTS, roof tools; summary, tags)
+- updated: pages/code-conventions.md (explicit face normals, Box id roofs, r<n> ids, roof edits touch only roofs, allowConstantExport covers literals only; summary)
+- updated: pages/development-and-testing.md (GitHub repo, 147 tests by file, Vitest "no tests" during Vite re-optimisation, exterior flow roofs first, 26-check roof flow; summary, tags)
+- updated: pages/playwright-flow-checks.md (stale HMR module copies, vite child keeping port 5180, layer-name inputs, newline before tool keys; summary, tags)
+- updated: overview.md (summary, tabs, roofs.ts/elevations.ts, RoofTab/ElevationsTab, roof decision, GitHub, reading order, open items for roofs and elevations)
+- updated: index.md

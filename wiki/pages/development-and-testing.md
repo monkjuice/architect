@@ -1,8 +1,8 @@
 ---
 title: Development and testing
 type: guide
-summary: "npm scripts, the 131 Vitest model tests and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow and a 28-check exterior flow on the user's plan, the last with software WebGL), plus reading live derived values from the dev server."
-tags: [guide, testing, vitest, playwright, webgl]
+summary: "npm scripts, the GitHub repository, the 147 Vitest model tests and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow and a 26-check roof and elevations flow on the user's plan, the last two with software WebGL), plus reading live derived values from the dev server."
+tags: [guide, testing, vitest, playwright, webgl, git]
 sources: []
 updated: 2026-11-02
 ---
@@ -22,14 +22,21 @@ You need Node 20.19+ or 22.12+. Run `npm install` first.
 | `npm run build` | `tsc -b && vite build` into `dist/` |
 | `npm run preview` | Serves the build |
 
+The code is in git, pushed to https://github.com/monkjuice/architect (branch `main`) on 2026-11-02 with one initial
+commit; the roof plan and elevations work came after that commit and was not yet committed when it was recorded.
+
 ## Model tests
 
-On 2026-11-02, after the Exterior tab, there were 131 Vitest tests in `src/model/*.test.ts`: `edit` 27,
-`openings` 26, `regions` 13, `walls` 13, `baseImage` 9, `solids` 9, `sun` 9, `geometry` 8, `pick` 6, `planFile` 6
-and `snap` 5 (counted from the `it(` calls). `solids.test.ts` covers the rules in [House solids](house-solids.md):
-a roofed room, unnamed outlines, door and window cuts, gates, a gallery's beam and columns, an open pool, facade vs
-interior walls and hidden layers. Before finishing a change, run `npm test`, `npm run typecheck`, `npm run lint`
-and `npm run build`. `walls.test.ts` covers automatic thickness (gallery, open-plan kitchen, own
+On 2026-11-02, after the Roof and Elevations tabs, there were 147 Vitest tests in `src/model/*.test.ts`: `edit` 27,
+`openings` 26, `regions` 13, `walls` 13, `solids` 12, `roofs` 10, `baseImage` 9, `sun` 9, `geometry` 8, `pick` 6,
+`planFile` 6, `snap` 5 and `elevations` 3 (counted from the `it(` calls). `solids.test.ts` covers the rules in
+[House solids](house-solids.md): no roof until one is drawn, closed faces facing out, a flat roof's parapet, gable
+infills, door and window cuts, gates, a gallery's beam and columns, a beam sloping under a shed, an open pool,
+facade vs interior walls and hidden layers. `roofs.test.ts` covers `normalized`, offsets, the union of rooms, each
+roof type, the overhang, `undersideAlong`, `nextEdge` and `newRoof` ([Roofs](roofs.md)); `elevations.test.ts` the
+views' directions and names, face order and an empty plan ([Elevations tab](elevations.md)). Before finishing a
+change, run `npm test`, `npm run typecheck`, `npm run lint` and `npm run build`. One `npm test` run failed every
+file with "no tests" while a running dev server was re-optimising Vite's dependency cache; rerunning passed. `walls.test.ts` covers automatic thickness (gallery, open-plan kitchen, own
 thickness), floor areas (own thicknesses, stubs, open edges, islands) and `layerWalls` joins (mitre, T, step,
 bevel, cut by openings) ([Walls](walls.md)). `sun.test.ts` is described in [Sun and shadows](sun.md). They run in the `node` environment
 (`vite.config.ts`). Only the model is unit-tested; the repo has no UI or browser tests
@@ -139,14 +146,23 @@ exterior and 25 interior walls, and the covered area was 257.02 m² (220.03 indo
 The exterior flow (28 checks, eighth session) runs on the user's saved plan: the tabs (disabled ones included), the
 View toggles, the Exterior's camera presets, the Roof toggle, night darker than noon, *Save image*, and round trips
 between tabs ([Exterior tab](exterior-tab.md)). Headless Chromium needs
-`--use-angle=swiftshader --enable-unsafe-swiftshader` for WebGL. On that plan the solids were floor 17, roof 15,
-wall 84, lintel 27, frame 99, leaf 18, glass 16, sill 14, beam 4, column 2 (Quincho still "not enclosed", so no roof).
-All eight earlier flows passed again once their positional `.sidebar:not(.sidebar-left) .box` `.nth(2)`/`.nth(3)`
-selectors became `[data-box="selection"]` / `[data-box="areas"]`: the new View section had shifted the indices.
+`--use-angle=swiftshader --enable-unsafe-swiftshader` for WebGL. With the automatic roof of that time the solids
+were floor 17, roof 15, wall 84, lintel 27, frame 99, leaf 18, glass 16, sill 14, beam 4, column 2. Since roofs are
+drawn, the flow presses *Roof the house* first. All eight earlier flows passed again once their positional
+`.sidebar:not(.sidebar-left) .box` `.nth(2)`/`.nth(3)` selectors became `[data-box="selection"]` /
+`[data-box="areas"]`: the new View section had shifted the indices.
+
+The roof flow (26 checks, eighth session) runs on the user's plan ([Roof tab](roof-tab.md),
+[Elevations tab](elevations.md)): the Roof tab's tools; *Roof the house* gives one 18-corner gable over Casa
+Principal; a pitch edit; *Turn the ridge*; hip warns on that non-convex outline; flat shows a parapet; undo; a shed
+drawn on the Quincho layer; a corner drag and its undo; switching tabs resets tools and selection; the Exterior has
+roof and infill solids; four elevations with their compass names; the layer toggle; *Save SVG* standalone. All
+eight older flows passed with it (138 checks).
 
 **Inspecting live derived values:** in a Playwright `page.evaluate` on the Vite dev server,
 `await import('/src/state/derived.ts')` and `await import('/src/state/store.ts')` return the app's own module
-instances, so thicknesses, floors or `coveredArea` can be read on the real plan.
+instances, so thicknesses, floors or `coveredArea` can be read on the real plan, as long as the dev server was
+restarted after the last edits (stale HMR copies: [Playwright flow-check pitfalls](playwright-flow-checks.md)).
 
 Pitfalls when writing such a script: [Playwright flow-check pitfalls](playwright-flow-checks.md) and
 [Bash hook blocks `*.key` patterns and path colons](bash-hook-key-paths.md).

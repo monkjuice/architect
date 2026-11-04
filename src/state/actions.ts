@@ -1,13 +1,16 @@
 import { createBaseImage, imageToWorld, visibleCorners } from '../model/baseImage'
-import { addOpening, deleteItems } from '../model/edit'
-import { boundsOf, type Box, type Vec } from '../model/geometry'
+import { addOpening, addRoof, deleteItems } from '../model/edit'
+import { boundsOf, polygonArea, type Box, type Vec } from '../model/geometry'
 import { openingFor, openingTarget, type OpeningTarget } from '../model/openings'
 import { createPlan, findLayer, isEditable, type BaseImage, type Opening, type OpeningKind, type OpeningStyle, type Plan } from '../model/plan'
 import { parsePlanText, serializePlan } from '../model/planFile'
+import { newRoof, offsetPolygon, unionOutlines } from '../model/roofs'
+import { isCovered } from '../model/solids'
+import { EXTERIOR_WALL, WALL_HEIGHT, wallHeight } from '../model/walls'
 import { pickFile, pickPlanFile, readImageFile, savePlanFile } from './files'
-import { drawnHalfWidth } from './derived'
+import { drawnHalfWidth, getPlacedAreas } from './derived'
 import { getPrefs, openingWidth } from './prefs'
-import { getStore, type ToolId } from './store'
+import { getStore, type EditorState, type Tab, type ToolId } from './store'
 
 export const DEFAULT_FILE_NAME = 'house-plan.json'
 
@@ -22,6 +25,79 @@ export function chooseTool(tool: ToolId) {
     if (image.locked) return store.notify({ kind: 'error', text: 'The base plan is locked: unlock it in the Base plan panel first.' })
   }
   store.setTool(tool)
+}
+
+/** The tools of the Roof tab; the others belong to the floor plan. */
+export const ROOF_TOOLS: readonly ToolId[] = ['roof-select', 'roof']
+
+/**
+ * Opens a tab. The floor plan and the roof plan have tools of their own and select their own things, so moving
+ * between them picks the right tool and keeps only what that tab can select.
+ */
+export function openTab(tab: Tab) {
+  const store = getStore()
+  const { tool, selection } = store.getState()
+  const patch: Partial<EditorState> = { tab }
+  if (tab === 'roof' && !ROOF_TOOLS.includes(tool)) patch.tool = 'roof-select'
+  if (tab === 'floor' && ROOF_TOOLS.includes(tool)) patch.tool = 'select'
+  if (tab === 'roof' || tab === 'floor') {
+    const keep = selection.filter((r) => (r.kind === 'roof') === (tab === 'roof'))
+    if (keep.length !== selection.length) patch.selection = keep
+  }
+  store.update(patch)
+}
+
+/** The active layer, when it can be drawn on; otherwise says why not. */
+function drawableLayer() {
+  const store = getStore()
+  const { plan, activeLayer } = store.getState()
+  const layer = findLayer(plan, activeLayer)
+  if (isEditable(layer)) return layer
+  store.notify({ kind: 'error', text: 'The active layer is hidden or locked: pick another one in the Layers section.' })
+  return undefined
+}
+
+/** A roof of the type picked in the toolbar over an outline drawn on the active layer, selected. */
+export function addRoofOutline(outline: Vec[]) {
+  const store = getStore()
+  const layer = drawableLayer()
+  if (!layer) return
+  if (polygonArea(outline) < 0.05) return store.notify({ kind: 'error', text: 'That outline encloses next to nothing: click at least three corners around what the roof covers.' })
+  const result = addRoof(store.getState().plan, layer.id, newRoof(outline, store.getState().roofType))
+  if (!result) return
+  store.edit(() => result.plan)
+  store.select([{ layer: layer.id, kind: 'roof', id: result.id }])
+}
+
+/**
+ * Roofs over the active layer's covered areas (rooms, and galleries bounded by walls and open edges), one per
+ * group of areas that touch, out to the walls' outside faces and as high as the tallest of their walls.
+ */
+export function roofTheHouse() {
+  const store = getStore()
+  const layer = drawableLayer()
+  if (!layer) return
+  const covered = [...new Set(getPlacedAreas(layer).flatMap((a) => (a.region && isCovered(a.region) ? [a.region] : [])))]
+  if (!covered.length) {
+    return store.notify({ kind: 'error', text: `${layer.name} has no covered areas: name its rooms and galleries with Area (A) on the Floor tab first.` })
+  }
+  const walls = covered.flatMap((r) => r.wallIds.map((id) => wallHeight(layer.segments[id])))
+  const height = walls.length ? Math.max(...walls) : WALL_HEIGHT
+  const { roofType } = store.getState()
+  let plan = store.getState().plan
+  const ids: string[] = []
+  for (const ring of unionOutlines(covered.map((r) => r.outer))) {
+    const result = addRoof(plan, layer.id, newRoof(offsetPolygon(ring, EXTERIOR_WALL / 2), roofType, height))
+    if (!result) continue
+    plan = result.plan
+    ids.push(result.id)
+  }
+  store.edit(() => plan)
+  store.select(ids.map((id) => ({ layer: layer.id, kind: 'roof' as const, id })))
+  store.notify({
+    kind: 'info',
+    text: `${ids.length === 1 ? 'A roof covers' : `${ids.length} roofs cover`} the rooms and galleries of ${layer.name}, out to the walls' outside faces. Set its type, pitch and overhang in the Roofs section.`,
+  })
 }
 
 export function isDirty(): boolean {

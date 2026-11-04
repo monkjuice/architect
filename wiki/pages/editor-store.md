@@ -1,8 +1,8 @@
 ---
 title: Editor store and state
 type: component
-summary: "src/state/: the EditorStore (immutable plan, undo via edit/preview/endGesture, editor-only state such as the open tab, active layer, tool, line kind, door/window/gate style to place, view and prompt), user-level actions, derived data cached per object (derived.ts: regions, wall thicknesses and shapes, covered area, 3-D solids), files (File System Access API, IndexedDB draft, image import) and per-browser prefs (per-style opening widths, folded panel sections, sun view settings, the View section's toggles, the Exterior's roof toggle)."
-tags: [state, undo, files, autosave, derived, prefs, tabs]
+summary: "src/state/: the EditorStore (immutable plan, undo via edit/preview/endGesture, editor-only state such as the open tab, active layer, tool, line kind, door/window/gate style to place, roof type to draw, view and prompt), user-level actions (openTab, roofTheHouse among them), derived data cached per object (derived.ts: regions, wall thicknesses and shapes, covered area, 3-D solids), files (File System Access API, IndexedDB draft, image import) and per-browser prefs (per-style opening widths, folded panel sections, sun view settings, the View section's toggles, the Exterior's roof toggle)."
+tags: [state, undo, files, autosave, derived, prefs, tabs, roof]
 sources: []
 updated: 2026-11-02
 ---
@@ -14,12 +14,14 @@ updated: 2026-11-02
 - There is one instance. `initStore` sets it in `src/main.tsx`. Code calls `getStore()`, and components use
   `useEditor(selector)` (`useSyncExternalStore`), whose selector must return existing references.
 - State: `plan`, `past`/`future` (undo history, capped at 200), `tab`, `selection`, `activeLayer`, `tool`,
-  `lineKind`, `openingStyle`, `view`, `file` (`name`, an optional handle and the `saved` plan), `notice` and `prompt`.
+  `lineKind`, `openingStyle`, `roofType`, `view`, `file` (`name`, an optional handle and the `saved` plan), `notice`
+  and `prompt`.
 - These live in the store, not in the plan:
-  - `tab` (`Tab`, default `'floor'`, set by `setTab`): the open tab; every tab shares the plan and the undo history
-    ([Tabs over one plan](tabs-over-one-plan.md));
+  - `tab` (`Tab`, default `'floor'`, set by the `openTab` action; `setTab` was removed): the open tab; every tab
+    shares the plan and the undo history ([Tabs over one plan](tabs-over-one-plan.md));
   - `activeLayer`;
-  - `tool` (`ToolId`, including `door`, `window`, `gate` and `north`);
+  - `tool` (`ToolId`, including `door`, `window`, `gate`, `north`, and the Roof tab's `roof` and `roof-select`);
+  - `roofType` (`RoofType`, default gable): what the Roof tool and *Roof the house* make ([Roof tab](roof-tab.md));
   - `lineKind` (`SegmentKind`): what the line tool draws (wall, open edge or outline), set by `O` or the Library
     panel ([Open edges and outlines are segment kinds](segment-kind-not-layer.md));
   - `openingStyle` (`{door, window, gate}`): the style the Door, Window and Gate tools place, set by picking it in
@@ -27,14 +29,14 @@ updated: 2026-11-02
   - `view` and `prompt`.
 
   Switching layers or zooming is therefore not an undo step and is not saved in the file. The draft keeps
-  `activeLayer` and `view` but not `tab`, `lineKind` or `openingStyle`. Those start as wall, single door, sliding window and
+  `activeLayer` and `view` but not `tab`, `lineKind`, `openingStyle` or `roofType`. Those start as wall, single door, sliding window and
   single gate (the editor's default window is sliding, while a file's missing window style reads as fixed).
 - `edit(change)` makes one undo step. If `change` returns the same plan, no step is recorded.
 - `preview(change)` is for drags. `change` always receives the plan from before the gesture (`gestureBase`).
   `endGesture()` records the whole drag as one step, and `cancelGesture()` restores the plan.
 - `update(patch)` sets state that is not undoable (selection, tool, view, notices).
 - After an edit, undo or redo, `settle` prunes the selection (`refExists` from `plan.ts`, for segments, vertices,
-  areas and openings) and keeps the active layer valid.
+  areas, openings and roofs) and keeps the active layer valid.
 - The plan is dirty while `plan !== file.saved` (identity, not deep equality).
 - `prompt` is a `Prompt` union, `length` or `text`. `askLength(title, text)` and `askText(title, text, initial)`
   return Promises (null when cancelled) that `src/ui/PromptDialog.tsx` resolves; lengths accept `28,00` and `28.00`.
@@ -47,8 +49,9 @@ unlocked image); `deleteSelection`; `selectAll` (the active layer's lines and ar
 which clears `view` ([View fitted once and stored](view-fitted-once.md)); `editImageInPlace`
 ([Base image placement and calibration](base-image-calibration.md)); and `placeOpeningAt` / `dropOpening(kind, style,
 …)` with `OPENING_DRAG_TYPE` (data `"kind:style"`), used by the Door, Window and Gate tools and the Library panel's
-drag ([Doors, windows and gates](doors-and-windows.md)). They live here, not in `src/ui`, because state never imports from ui
-([Code conventions](code-conventions.md)).
+drag ([Doors, windows and gates](doors-and-windows.md)). Since the roofs: `openTab` (switches the tool between the
+floor set and `ROOF_TOOLS` and filters the selection), `addRoofOutline` and `roofTheHouse` ([Roof tab](roof-tab.md)).
+They live here, not in `src/ui`, because state never imports from ui ([Code conventions](code-conventions.md)).
 
 ## Derived data (`src/state/derived.ts`)
 
@@ -57,9 +60,9 @@ so an unchanged object means an unchanged result. One faces cache, keyed on a la
 maps, backs `getRegions`, `getThickness`, `facesOutside` and `hostThickness`; `getPlacedAreas` and `visibleAreas`
 build on it ([Areas](areas.md), [Regions](regions.md)). `getWalls` (wall shapes) is cached per layer object
 because openings cut walls; `coveredArea` sums indoor rooms and their walls; `drawnHalfWidth` reads
-`prefs.thickWalls` and is passed to model hit tests as a callback ([Walls](walls.md)). `getSolids(plan)` (the
-Exterior's 3-D prisms) is cached per plan object and built from the faces and walls caches
-([House solids](house-solids.md)).
+`prefs.thickWalls` and is passed to model hit tests as a callback ([Walls](walls.md)). `getSolids(plan)` (the 3-D
+solids of the Exterior and the [Elevations](elevations.md)) is cached per plan object and built from the faces and
+walls caches ([House solids](house-solids.md)).
 
 ## Files (`src/state/files.ts`)
 
@@ -93,8 +96,8 @@ Since the sixth session prefs also hold:
 Since the eighth session the Floor tab's View section (`src/ui/panels/ViewPanel.tsx`) toggles `grid`, `lengths`,
 `calibration`, `thickWalls`, the new `areaNames` and `areaSizes` (which lines area labels show,
 [Canvas and tools](canvas-and-tools.md)) and `sun.visible`; the top bar no longer has these. Its *Base plan* box is
-`plan.image.visible`, plan data and undoable. `roofs` is the Exterior's *Roof* toggle
-([Exterior tab](exterior-tab.md)). All default on except `calibration`.
+`plan.image.visible`, plan data and undoable. `roofs` is the Exterior's *Roof* toggle (hides the drawn roofs and parapets,
+[Exterior tab](exterior-tab.md)). All default on except `calibration`.
 
 `load` validates every field (types, ranges, known seasons) and falls back to its default, so a bad stored value
 never breaks the app. The sun's north and location are in the plan, not here.

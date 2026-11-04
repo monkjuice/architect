@@ -1,8 +1,8 @@
 ---
 title: Canvas and tools
 type: component
-summary: "The Floor tab's SVG canvas in src/ui/canvas/: Canvas.tsx routes pointer and key events to plain tool controllers in tools/ that return OverlayData; Scene.tsx draws the plan (walls filled at their thickness unless Thick walls is off, area labels with the lines the View section shows), Sun.tsx the sun dial and wall shadows, and Overlay.tsx the tool feedback, at constant screen size."
-tags: [ui, canvas, svg, tools, sun, walls, tabs]
+summary: "The SVG canvas of the Floor and Roof tabs in src/ui/canvas/ (mode floor or roof): Canvas.tsx routes pointer and key events to plain tool controllers in tools/ that return OverlayData; Scene.tsx draws the plan (walls filled at their thickness unless Thick walls is off, area labels with the lines the View section shows), Sun.tsx the sun dial and wall shadows, Roofs.tsx the roof plan, and Overlay.tsx the tool feedback, at constant screen size."
+tags: [ui, canvas, svg, tools, sun, walls, tabs, roof]
 sources: []
 updated: 2026-11-02
 ---
@@ -19,8 +19,10 @@ updated: 2026-11-02
   once ([View fitted once and stored](view-fitted-once.md)). On an empty plan it shows the `.empty-state` welcome
   card, only while Select or Pan is active, and the card lets clicks through
   ([Welcome card swallowed canvas clicks](welcome-card-swallowed-clicks.md)). It is mounted by `src/ui/FloorTab.tsx`
-  and unmounts on other tabs, so its single-key shortcuts are inert there
-  ([Tabs over one plan](tabs-over-one-plan.md)).
+  and, with `mode="roof"`, by `RoofTab.tsx`: there it has its own shortcuts (`ROOF_SHORTCUTS`: `v r m h`), fades the
+  floor plan (`.canvas.roof-mode`), leaves out area fills and labels, sun, calibration and selection marks, and
+  draws `RoofLayer` from `Roofs.tsx` ([Roof tab](roof-tab.md)). It unmounts on other tabs, so its single-key
+  shortcuts are inert there ([Tabs over one plan](tabs-over-one-plan.md)).
 - `Scene.tsx`: the static drawing.
   - `BaseImageView`: the image under `imageTransform`, cropped by a clipPath, and shaded outside the crop while the
     crop tool is active.
@@ -50,7 +52,8 @@ updated: 2026-11-02
   current prefs, so a hidden label cannot be grabbed.
 - `tools/`: `select.ts`, `line.ts`, `area.ts`, `opening.ts` (Door, Window and Gate), `measure.ts`, `image.ts`
   (move, level, crop, calibrate) and `north.ts` (North: two clicks along the survey's north arrow set
-  `plan.site.north`; no key, not an image tool, so it works with a locked or missing image).
+  `plan.site.north`; no key, not an image tool, so it works with a locked or missing image), and the Roof tab's
+  `roof.ts` (draw an outline) and `roofSelect.ts` (pick, move, reshape) ([Roof tab](roof-tab.md)).
   - `index.ts` builds the tools (`createTools`) and holds `TOOL_INFO` (titles, keys, hints).
   - `types.ts` holds the interfaces and the screen-pixel tolerances (`SNAP_PX` 10, vertex hit 8, segment hit 6,
     drag 3, `WALL_REACH_PX` 14 for picking a wall for an opening).

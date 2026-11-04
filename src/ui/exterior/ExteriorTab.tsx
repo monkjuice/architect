@@ -30,7 +30,7 @@ export default function ExteriorTab() {
   const fileName = useEditor((s) => s.file.name)
   const { sun, roofs } = usePrefs()
   const solids = getSolids(plan)
-  const shown = useMemo(() => (roofs ? solids : solids.filter((s) => s.kind !== 'roof')), [solids, roofs])
+  const shown = useMemo(() => (roofs ? solids : solids.filter((s) => s.kind !== 'roof' && s.kind !== 'parapet')), [solids, roofs])
   const [preset, setPreset] = useState<CameraPreset | undefined>(lastPose ? undefined : 'aerial')
   const supported = useMemo(() => webglAvailable(), [])
   const hostRef = useRef<HTMLDivElement>(null)
@@ -74,7 +74,7 @@ export default function ExteriorTab() {
     <>
       <div className="tab-actions">
         <Segmented<CameraPreset> value={preset} options={PRESETS} onChange={look} title="Camera: from above, straight down, or facing each side of the house" />
-        <CheckField label="Roof" title="The flat roof over the covered areas; off, you look into the rooms" checked={roofs} onChange={(on) => setPrefs({ roofs: on })} />
+        <CheckField label="Roof" title="The roofs drawn on the Roof tab; off, you look into the rooms" checked={roofs} onChange={(on) => setPrefs({ roofs: on })} />
         <label className="inline-field" title="The day of the sun (also in the Floor tab's Sun section)">
           Sun
           <select value={sun.season} onChange={(e) => setSun({ season: e.target.value as Season })}>
@@ -98,8 +98,8 @@ export default function ExteriorTab() {
         {!supported && <p className="exterior-message">This browser has no WebGL, so the 3-D view is unavailable.</p>}
         {supported && !solids.length && <p className="exterior-message">Nothing to show yet: draw walls and name areas on the Floor tab.</p>}
         <p className="exterior-hint">
-          Drag to orbit, right-drag to pan, wheel to zoom. Built from the Floor tab&apos;s visible layers: rooms and galleries get a flat roof, areas
-          bounded by outlines stay open.
+          Drag to orbit, right-drag to pan, wheel to zoom. Built from the visible layers: walls and openings from the Floor tab, roofs from the Roof
+          tab.
         </p>
         <NoticeBar />
       </main>

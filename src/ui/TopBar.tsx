@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { loadBaseImage, newPlan, openPlan, savePlan } from '../state/actions'
+import { loadBaseImage, newPlan, openPlan, openTab, savePlan } from '../state/actions'
 import { getStore, useEditor, type Tab } from '../state/store'
 
 /** The tabs in order; those not built yet show, disabled. */
 const TABS: { id: Tab; title: string; ready?: boolean }[] = [
   { id: 'foundation', title: 'Foundation' },
   { id: 'floor', title: 'Floor', ready: true },
-  { id: 'roof', title: 'Roof' },
-  { id: 'elevations', title: 'Elevations' },
+  { id: 'roof', title: 'Roof', ready: true },
+  { id: 'elevations', title: 'Elevations', ready: true },
   { id: 'exterior', title: 'Exterior', ready: true },
   { id: 'interior', title: 'Interior' },
   { id: 'plumbing', title: 'Plumbing' },
@@ -18,7 +18,7 @@ const TABS: { id: Tab; title: string; ready?: boolean }[] = [
 
 /**
  * The first row of the bar: the file, the tabs, undo and saving, which every tab shares. Each tab draws its own
- * actions in the row under it (see FloorTab and ExteriorTab).
+ * actions in the row under it (see FloorTab, RoofTab, ElevationsTab and ExteriorTab).
  */
 export function TopBar() {
   const store = getStore()
@@ -52,7 +52,7 @@ export function TopBar() {
             aria-current={tab === id ? 'page' : undefined}
             disabled={!ready}
             title={ready ? undefined : `${title}: not built yet`}
-            onClick={() => store.setTab(id)}
+            onClick={() => openTab(id)}
           >
             {title}
           </button>

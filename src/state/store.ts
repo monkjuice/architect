@@ -1,10 +1,25 @@
 import { useSyncExternalStore } from 'react'
-import { findLayer, refExists, type DoorStyle, type GateStyle, type Plan, type Ref, type SegmentKind, type WindowStyle } from '../model/plan'
+import { findLayer, refExists, type DoorStyle, type GateStyle, type Plan, type Ref, type RoofType, type SegmentKind, type WindowStyle } from '../model/plan'
 
-/** The tabs along the top, in order. Only the floor plan and the exterior exist yet. */
+/** The tabs along the top, in order. */
 export type Tab = 'foundation' | 'floor' | 'roof' | 'elevations' | 'exterior' | 'interior' | 'plumbing' | 'electricity' | 'gas' | 'materials'
 
-export type ToolId = 'select' | 'line' | 'area' | 'door' | 'window' | 'gate' | 'measure' | 'pan' | 'image-move' | 'level' | 'crop' | 'calibrate' | 'north'
+export type ToolId =
+  | 'select'
+  | 'line'
+  | 'area'
+  | 'door'
+  | 'window'
+  | 'gate'
+  | 'measure'
+  | 'pan'
+  | 'image-move'
+  | 'level'
+  | 'crop'
+  | 'calibrate'
+  | 'north'
+  | 'roof'
+  | 'roof-select'
 
 export interface Notice {
   kind: 'info' | 'error'
@@ -46,6 +61,8 @@ export interface EditorState {
   lineKind: SegmentKind
   /** The style the door, window and gate tools place (picked in the library; D and W keep the last one). */
   openingStyle: { door: DoorStyle; window: WindowStyle; gate: GateStyle }
+  /** The type new roofs get (the Roof tab's toolbar). */
+  roofType: RoofType
   /** Zoom and pan; absent: the canvas fits the plan once and stores that fit (start, Fit, new plan or image). */
   view?: Viewport
   file: FileInfo
@@ -72,6 +89,7 @@ export class EditorStore {
       tool: 'select',
       lineKind: 'wall',
       openingStyle: { door: 'single', window: 'sliding', gate: 'single' },
+      roofType: 'gable',
       view: extra.view,
       file,
       notice: extra.notice,
@@ -151,10 +169,6 @@ export class EditorStore {
 
   setActiveLayer(id: string) {
     if (id !== this.state.activeLayer) this.update({ activeLayer: id })
-  }
-
-  setTab(tab: Tab) {
-    if (tab !== this.state.tab) this.update({ tab })
   }
 
   setTool(tool: ToolId) {

@@ -1,46 +1,57 @@
 ---
 title: "House solids: the plan in 3-D"
 type: component
-summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into prisms (outline, holes, bottom, top, palette material, ref): walls at their thickness rising to the roof they carry, lintels, sills, frames, glass and leaves of openings, floors of named areas, flat roofs over rooms and galleries, beams and columns along open edges; cached per plan by getSolids."
-tags: [model, 3d, exterior, walls, roof]
+summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns; cached per plan by getSolids."
+tags: [model, 3d, exterior, elevations, walls, roof]
 sources: []
 updated: 2026-11-02
 ---
 
 # House solids: the plan in 3-D
 
-Added in the eighth session (2026-11-02) for the [Exterior tab](exterior-tab.md). Pure model code, tested in
-`src/model/solids.test.ts` (9 tests).
+Added in the eighth session (2026-11-02) for the [Exterior tab](exterior-tab.md), and rewritten the same day as
+faces for the roofs and the [Elevations tab](elevations.md). Pure model code, tested in `src/model/solids.test.ts`
+(12 tests).
 
 ## Output
 
-`houseSolids(plan, source)` returns `Solid[]`: a plan outline (m, +y down) with `holes`, extruded from `bottom` to
-`top` (m above the ground). Each has a `kind` (`wall`, `lintel`, `sill`, `beam`, `column`, `frame`, `glass`,
-`leaf`, `floor`, `roof`), a `SolidMaterial` palette key (`facade` for exterior walls and structure, `interior` for
-walls between rooms, `floor` covered and `paving` open, …) and the `ref` of its plan item. The palette is a
-placeholder: nothing is picked per surface yet ([Exterior kept basic](exterior-kept-basic.md)).
+`houseSolids(plan, source)` returns `Solid[]`: `{kind, faces, bottom, top, material, ref}`. A `Face` has `pts`
+(`Vec3`: plan x, y with +y down, z up), `holes` and an explicit unit `normal` pointing out of the solid. Consumers
+use the normals, never the winding: the three.js renderer winds triangles to them and the elevations cull by them.
+Builders: `prismFaces` (an outline with holes between two heights), `profileFaces` (a shape in a vertical plane
+along a line, given a thickness) and `roofSolidFaces` (each roof face on top and underneath, plus its eaves edge).
+
+Kinds: `wall`, `lintel`, `sill`, `infill`, `beam`, `column`, `frame`, `glass`, `leaf`, `floor`, `roof`, `parapet`.
+Materials are a fixed palette ([Exterior kept basic](exterior-kept-basic.md)): `facade` (exterior walls and
+structure), `interior`, `roof` (pitched, terracotta), `slab` (flat, grey), `frame`, `glass`, `door`, `gate`,
+`floor` (covered) and `paving` (open).
 
 ## Rules
 
 - Only visible layers are built, as for the plan's shadows and totals.
-- Floors only for named areas ([Areas](areas.md)); unnamed regions get nothing.
-- A named area's region gets a roof when `isRoofed`: indoor, or no outline in its boundary (a gallery bounded by
-  walls and open edges). An area an outline bounds (pool, terrace) is open to the sky. The roof is a flat slab
-  (`ROOF_SLAB` 0.20 m) at the height of the region's tallest wall: an automatic placeholder until the Roof tab exists.
-- Walls: one prism per `layerWalls` fill, each with its own wall's height through `LayerWalls.owners`
-  ([Walls](walls.md)). A wall carrying a roof rises to the roof's top minus `ROOF_LIP` (1 cm).
+- Floors only for named areas ([Areas](areas.md)). `isCovered` (formerly `isRoofed`): indoor, or no outline in the
+  boundary (a gallery) → `floor`; otherwise (pool, terrace) `paving`. It no longer creates roofs; *Roof the house*
+  uses it to pick areas ([Roof tab](roof-tab.md)).
+- No automatic roof: roofs come only from `layer.roofs` ([Roofs are drawn outlines](roofs-drawn-outlines.md)).
+  Each gives one `roof` solid ([Roofs: model and geometry](roofs.md)); a flat one with a parapet adds a `parapet`
+  ring on its eaves, `PARAPET_WALL` thick, from `height + SLAB`.
+- Walls: one prism per `layerWalls` fill at its own wall's height (`LayerWalls.owners`, [Walls](walls.md)).
+- Under overlapping roofs, the one with the highest underside at a point counts.
+- `infill`: an exterior wall whose midpoint is under a roof that rises above the wall's top is filled up to the
+  underside profile (`undersideAlong`): gable ends, a shed's high side. Walls between rooms are not filled.
 - Openings ([Doors, windows and gates](doors-and-windows.md)): wall over doors and windows from `DOOR_HEAD` 2.10 m
-  (capped at the wall's height); windows on a sill wall up to `WINDOW_SILL` 0.90 m (awnings `HIGH_SILL` 1.50 m);
-  frames, glass and closed leaves by style. Gates have no lintel: as tall as their wall, or `GATE_HEIGHT` 1.8 m in
-  an open edge.
-- An open edge next to a roofed region (sampled 5 cm either side of its midpoint) becomes a beam under the roof. A
-  column stands at each end that no wall holds, judged by position (within a wall's half thickness of its
-  centreline), not by a shared vertex id: a test caught chains that touch a wall without sharing a vertex.
+  (capped at the wall's height); windows on a sill up to `WINDOW_SILL` 0.90 m (awnings `HIGH_SILL` 1.50 m); frames,
+  glass and closed leaves by style. Gates have no lintel: as tall as their wall, or `GATE_HEIGHT` 1.8 m in an open
+  edge.
+- An open edge whose midpoint is under a roof becomes a beam (`BEAM_DEPTH` 0.30 m) following the underside. A point
+  within 1 cm of the eaves counts: a gallery front drawn on the roof's edge got no beam before, which a test caught.
+  A column, up to the beam's bottom, stands at each end that no wall holds, judged by position (within a wall's
+  half thickness of its centreline), not by a shared vertex id.
 
-## Gotcha: coplanar tops flicker
+## Gotcha: coplanar faces flicker
 
-Two faces at the same height z-fight in WebGL. Hence the 1 cm roof lip on walls and `LAYER_LIFT`: each layer's
-floors sit 4 mm × layer index higher.
+Two faces at the same height z-fight in WebGL, hence `LAYER_LIFT`: each layer's floors sit 4 mm × layer index
+higher. (The 1 cm roof lip went with the automatic roof.)
 
 ## Caching
 

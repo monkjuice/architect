@@ -11,6 +11,7 @@ import {
   type OpeningStyle,
   type Plan,
   type Ref,
+  type Roof,
   type Segment,
   type SegmentKind,
   type Site,
@@ -29,9 +30,16 @@ import type { Snap } from './snap'
 
 const ON_POINT = 1e-6
 
-/** A copy of `layer` whose vertex, segment, area and opening maps may be written to. */
+/** A copy of `layer` whose vertex, segment, area, opening and roof maps may be written to. */
 export function draftLayer(layer: Layer): Layer {
-  return { ...layer, vertices: { ...layer.vertices }, segments: { ...layer.segments }, areas: { ...layer.areas }, openings: { ...layer.openings } }
+  return {
+    ...layer,
+    vertices: { ...layer.vertices },
+    segments: { ...layer.segments },
+    areas: { ...layer.areas },
+    openings: { ...layer.openings },
+    roofs: { ...layer.roofs },
+  }
 }
 
 export function replaceLayer(plan: Plan, layer: Layer): Plan {
@@ -254,6 +262,7 @@ export function deleteItems(plan: Plan, refs: readonly Ref[]): Plan {
         if (ref.kind === 'segment') delete d.segments[ref.id]
         else if (ref.kind === 'area') delete d.areas[ref.id]
         else if (ref.kind === 'opening') delete d.openings[ref.id]
+        else if (ref.kind === 'roof') delete d.roofs[ref.id]
         else for (const id of segmentsAt(d, ref.id)) delete d.segments[id]
       }
       removeOrphans(d)
@@ -464,6 +473,47 @@ export function updateOpening(plan: Plan, layerId: string, id: string, patch: Op
     if ((Object.keys(next) as (keyof Opening)[]).every((k) => next[k] === o[k])) return false
     openings[id] = next
   })
+}
+
+// ---- roofs: they only touch a layer's roof map, so its lines stay the same
+
+function withRoofs(plan: Plan, layerId: string, change: (roofs: Record<string, Roof>) => boolean | void): Plan {
+  const layer = findLayer(plan, layerId)
+  if (!layer) return plan
+  const roofs = { ...layer.roofs }
+  return change(roofs) === false ? plan : replaceLayer(plan, { ...layer, roofs })
+}
+
+export function addRoof(plan: Plan, layerId: string, roof: Roof): { plan: Plan; id: string } | null {
+  if (!findLayer(plan, layerId)) return null
+  let id = ''
+  const next = withRoofs(plan, layerId, (roofs) => {
+    id = nextId('r', roofs)
+    roofs[id] = roof
+  })
+  return { plan: next, id }
+}
+
+/** Changes a roof; the same plan when nothing changes. An edge index past the outline's end wraps round. */
+export function updateRoof(plan: Plan, layerId: string, id: string, patch: Partial<Roof>): Plan {
+  return withRoofs(plan, layerId, (roofs) => {
+    const roof = roofs[id]
+    if (!roof) return false
+    const next = { ...roof, ...patch }
+    next.edge %= next.outline.length
+    if ((Object.keys(next) as (keyof Roof)[]).every((k) => next[k] === roof[k])) return false
+    roofs[id] = next
+  })
+}
+
+/** Moves whole roofs by `delta`, starting from their outlines in `from` (the plan before a drag). */
+export function moveRoofs(plan: Plan, from: Plan, refs: readonly Ref[], delta: Vec): Plan {
+  let next = plan
+  for (const ref of refs) {
+    const roof = ref.kind === 'roof' ? findLayer(from, ref.layer)?.roofs[ref.id] : undefined
+    if (roof) next = updateRoof(next, ref.layer, ref.id, { outline: roof.outline.map((p) => ({ x: p.x + delta.x, y: p.y + delta.y })) })
+  }
+  return next
 }
 
 /** Changes where the plan is in the world (north, latitude…); the same plan when nothing changes. */

@@ -1,7 +1,7 @@
 ---
 title: Code conventions
 type: convention
-summary: "Rules inherited from the Forge H1 planner: pure model layer, state never imports ui, three.js only in src/render, immutable edits through layer drafts (same plan = no undo step), derived data cached by object identity, saved data in the plan, UI state in the store and view settings in prefs, foldable panel sections with Box ids, erasable-only TypeScript, tools without React refs, compound .opening.<kind> CSS selectors, oxlint rules, ids and rounding."
+summary: "Rules inherited from the Forge H1 planner: pure model layer, state never imports ui, three.js only in src/render, explicit face normals in 3-D, immutable edits through layer drafts (same plan = no undo step), derived data cached by object identity, saved data in the plan, UI state in the store and view settings in prefs, foldable panel sections with Box ids, erasable-only TypeScript, tools without React refs, compound .opening.<kind> CSS selectors, oxlint rules, ids and rounding."
 tags: [convention, model, state, ui, lint, typescript, css]
 sources: []
 updated: 2026-11-02
@@ -23,6 +23,9 @@ repo), adapted to this codebase ([Stack adapted from the Forge H1 planner](forge
   state that is not undoable.
 - `src/render/` (three.js) depends only on `src/model` and is the only code that imports `three`; only the lazily
   loaded `ExteriorTab` uses it, so three.js stays out of the main chunk ([Exterior tab](exterior-tab.md)).
+- 3-D geometry carries explicit outward normals on every face ([House solids](house-solids.md)); consumers (the
+  renderer, the elevations' culling) use them and never infer facing from winding, because plan x, y (down) with z
+  up is left-handed.
 - Dependencies point `src/ui` → `src/state` → `src/model`, never back. Logic that a tool and a panel share goes in
   `actions.ts` (`placeOpeningAt`, `dropOpening`); an early version of the doors work had state import it from a
   tool, which was fixed.
@@ -36,7 +39,7 @@ repo), adapted to this codebase ([Stack adapted from the Forge H1 planner](forge
 
 A panel section is a `Box` (`src/ui/fields.tsx`). Give it a stable `id`: its title then folds it, the id is stored
 in `prefs.collapsed` and set as `data-box` on the `<section>` (ids so far: `view`, `base-plan`, `layers`,
-`selection`, `areas`, `sun`, `library-lines`, `library-door`, `library-window`, `library-gate`). A folded `Box` does
+`selection`, `areas`, `sun`, `library-lines`, `library-door`, `library-window`, `library-gate`, `roofs`). A folded `Box` does
 not render its children, so their local state (a half-typed field) is dropped. Tests should find sections by
 `[data-box="<id>"]`, not by position: adding `view` first shifted every index
 ([Playwright flow-check pitfalls](playwright-flow-checks.md)).
@@ -52,8 +55,9 @@ not render its children, so their local state (a half-typed field) is dropped. T
   object changed.
 - Derived data (regions, wall thicknesses, wall shapes, placed areas) is cached in WeakMaps keyed on plan objects
   in `src/state/derived.ts`, not stored in the plan. An edit that does not change a layer's lines must keep its `vertices` and `segments` maps:
-  the area edits replace only the `areas` map and the opening edits only the `openings` map, so regions are not
-  recomputed ([Areas](areas.md), [Doors and windows](doors-and-windows.md)).
+  the area edits replace only the `areas` map, the opening edits only the `openings` map and the roof edits only
+  the `roofs` map, so regions are not recomputed ([Areas](areas.md), [Doors and windows](doors-and-windows.md),
+  [Roofs](roofs.md)).
 - Edits that change segments must keep the layer's openings consistent (`splitSegment`, `followOpenings`,
   `pruneOpenings`, `moveSegments`).
 - Edits that can be refused return an error string instead of throwing (`removeLayer`). File parsing returns
@@ -83,13 +87,14 @@ and comes later, so selection still wins. Per App.css, 0,3,0 also beats the libr
 ## Lint
 
 `.oxlintrc.json` enables the `react`, `typescript` and `oxc` plugins. `react/rules-of-hooks` is an error;
-`react/only-export-components` is a warning, with constant exports allowed. `npm run lint` prints nothing when the
-code is clean.
+`react/only-export-components` is a warning, with `allowConstantExport`, which covers literal constants only: a
+table such as `ROOF_TITLES` goes in the model (`src/model/roofs.ts`), not in a component file. `npm run lint` prints
+nothing when the code is clean.
 
 ## Numbers and ids
 
-- Units are meters. Vertex coordinates and opening offsets are rounded to 0.1 mm only when saving
+- Units are meters. Vertex coordinates, opening offsets and roof outlines are rounded to 0.1 mm only when saving
   ([Plan model and file format](plan-model.md)).
-- Ids are `v<n>`, `s<n>`, `a<n>`, `o<n>` (per layer) and `L<n>`, using the next free number.
+- Ids are `v<n>`, `s<n>`, `a<n>`, `o<n>`, `r<n>` (per layer) and `L<n>`, using the next free number.
 - A wall has no `kind` key: `addSegment` and `setSegmentKind` write `kind` only for the other kinds (open edges and
   outlines).

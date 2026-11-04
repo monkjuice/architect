@@ -6,6 +6,7 @@ import { getPrefs, setPrefs, setSun, usePrefs } from '../../state/prefs'
 import { getStore, useEditor, type ToolId, type Viewport } from '../../state/store'
 import { Overlay } from './Overlay'
 import { OpeningLayer } from './Openings'
+import { RoofLayer } from './Roofs'
 import { AreaFills, AreaLabels, BaseImageView, CalibrationMarks, Grid, LayerShapes, SelectionMarks } from './Scene'
 import { SunDial, SunShadows } from './Sun'
 import { createTools, TOOL_INFO } from './tools'
@@ -13,10 +14,16 @@ import { SNAP_PX, WALL_REACH_PX, type PointerInfo } from './tools/types'
 import { formatMeters, frame, gridSteps, MAX_ZOOM, MIN_ZOOM, niceStep } from './view'
 
 const SHORTCUTS: Record<string, ToolId> = { v: 'select', l: 'line', a: 'area', d: 'door', w: 'window', m: 'measure', h: 'pan' }
+const ROOF_SHORTCUTS: Record<string, ToolId> = { v: 'roof-select', r: 'roof', m: 'measure', h: 'pan' }
 
 const isTyping = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')
 
-export function Canvas() {
+/**
+ * The plan, drawn to scale with its tools. On the Floor tab it is the floor plan; on the Roof tab (`mode` roof)
+ * the floor plan is faded under the roofs, which are what the tools there work on.
+ */
+export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
+  const roofMode = mode === 'roof'
   const store = getStore()
   const plan = useEditor((s) => s.plan)
   const selection = useEditor((s) => s.selection)
@@ -113,11 +120,13 @@ export function Canvas() {
       }
       if (event.ctrlKey || event.metaKey || event.altKey) return
       const key = event.key.toLowerCase()
-      if (SHORTCUTS[key]) chooseTool(SHORTCUTS[key])
+      const shortcuts = roofMode ? ROOF_SHORTCUTS : SHORTCUTS
+      const home = roofMode ? 'roof-select' : 'select'
+      if (shortcuts[key]) chooseTool(shortcuts[key])
       else if (key === 'f') fitView()
       else if (key === 'g') setPrefs({ grid: !getPrefs().grid })
-      else if (key === 's') setSun({ visible: !getPrefs().sun.visible })
-      else if (key === 'escape' && store.getState().tool !== 'select') chooseTool('select')
+      else if (key === 's' && !roofMode) setSun({ visible: !getPrefs().sun.visible })
+      else if (key === 'escape' && store.getState().tool !== home) chooseTool(home)
     }
     window.addEventListener('keydown', onKey)
     window.addEventListener('keyup', onKey)
@@ -128,7 +137,7 @@ export function Canvas() {
       window.removeEventListener('keyup', onKey)
       window.removeEventListener('blur', onBlur)
     }
-  }, [store, tools])
+  }, [store, tools, roofMode])
 
   const toInfo = (event: PointerEvent): PointerInfo => {
     const rect = svgRef.current!.getBoundingClientRect()
@@ -207,9 +216,15 @@ export function Canvas() {
   }
 
   const overlay = tool.overlay()
-  const showCalibration = !!plan.image?.visible && (prefs.calibration || IMAGE_TOOLS.includes(toolId))
+  const showCalibration = !roofMode && !!plan.image?.visible && (prefs.calibration || IMAGE_TOOLS.includes(toolId))
   // the welcome card shows on an empty plan until a drawing tool is picked; it lets clicks through to the canvas
-  const empty = !plan.image && plan.layers.every((l) => !Object.keys(l.segments).length) && (toolId === 'select' || toolId === 'pan')
+  const empty = !roofMode && !plan.image && plan.layers.every((l) => !Object.keys(l.segments).length) && (toolId === 'select' || toolId === 'pan')
+  const refIds = (kind: 'area' | 'opening' | 'roof', layer: string) =>
+    selection
+      .filter((r) => r.kind === kind && r.layer === layer)
+      .map((r) => r.id)
+      .join(' ')
+  const hovered = (kind: 'area' | 'opening' | 'roof', layer: string) => (overlay.hover?.kind === kind && overlay.hover.layer === layer ? overlay.hover.id : undefined)
   const cursorStyle = panning ? 'grabbing' : spaceHeld || toolId === 'pan' ? 'grab' : tool.cursor()
   const scaleBar = view ? niceStep(90 / view.zoom).step : 0
 
@@ -224,7 +239,7 @@ export function Canvas() {
       {view && (
         <svg
           ref={svgRef}
-          className="canvas"
+          className={roofMode ? 'canvas roof-mode' : 'canvas'}
           style={{ cursor: cursorStyle }}
           viewBox={`${view.x0} ${view.y0} ${size.w / view.zoom} ${size.h / view.zoom}`}
           onPointerDown={onPointerDown}
@@ -241,39 +256,38 @@ export function Canvas() {
         >
           {plan.image?.visible && <BaseImageView image={plan.image} cropping={toolId === 'crop'} />}
           {prefs.grid && <Grid view={view} width={size.w} height={size.h} />}
+          {!roofMode &&
+            plan.layers.map((layer) => layer.visible && <AreaFills key={layer.id} layer={layer} selected={refIds('area', layer.id)} hovered={hovered('area', layer.id)} />)}
+          {!roofMode && <SunShadows plan={plan} sun={prefs.sun} />}
           {plan.layers.map(
             (layer) =>
               layer.visible && (
-                <AreaFills
+                <LayerShapes
                   key={layer.id}
                   layer={layer}
-                  selected={selection.filter((r) => r.kind === 'area' && r.layer === layer.id).map((r) => r.id).join(' ')}
-                  hovered={overlay.hover?.kind === 'area' && overlay.hover.layer === layer.id ? overlay.hover.id : undefined}
-                />
-              ),
-          )}
-          <SunShadows plan={plan} sun={prefs.sun} />
-          {plan.layers.map(
-            (layer) =>
-              layer.visible && <LayerShapes key={layer.id} layer={layer} active={layer.id === activeLayer} zoom={view.zoom} lengths={prefs.lengths} thick={prefs.thickWalls} />,
-          )}
-          {plan.layers.map(
-            (layer) =>
-              layer.visible && (
-                <OpeningLayer
-                  key={layer.id}
-                  layer={layer}
+                  active={!roofMode && layer.id === activeLayer}
                   zoom={view.zoom}
+                  lengths={!roofMode && prefs.lengths}
                   thick={prefs.thickWalls}
-                  selected={selection.filter((r) => r.kind === 'opening' && r.layer === layer.id).map((r) => r.id).join(' ')}
-                  hovered={overlay.hover?.kind === 'opening' && overlay.hover.layer === layer.id ? overlay.hover.id : undefined}
                 />
               ),
           )}
-          <AreaLabels plan={plan} selection={selection} zoom={view.zoom} lines={{ name: prefs.areaNames, size: prefs.areaSizes }} />
-          <SunDial plan={plan} sun={prefs.sun} zoom={view.zoom} />
+          {plan.layers.map(
+            (layer) =>
+              layer.visible && (
+                <OpeningLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} selected={refIds('opening', layer.id)} hovered={hovered('opening', layer.id)} />
+              ),
+          )}
+          {roofMode ? (
+            plan.layers.map((layer) => layer.visible && <RoofLayer key={layer.id} layer={layer} zoom={view.zoom} selected={refIds('roof', layer.id)} hovered={hovered('roof', layer.id)} />)
+          ) : (
+            <>
+              <AreaLabels plan={plan} selection={selection} zoom={view.zoom} lines={{ name: prefs.areaNames, size: prefs.areaSizes }} />
+              <SunDial plan={plan} sun={prefs.sun} zoom={view.zoom} />
+            </>
+          )}
           {showCalibration && plan.image && <CalibrationMarks image={plan.image} zoom={view.zoom} />}
-          <SelectionMarks plan={plan} refs={selection} hover={overlay.hover} zoom={view.zoom} />
+          {!roofMode && <SelectionMarks plan={plan} refs={selection} hover={overlay.hover} zoom={view.zoom} />}
           {!prompt || toolId === 'calibrate' ? <Overlay data={overlay} zoom={view.zoom} thick={prefs.thickWalls} /> : null}
         </svg>
       )}

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { addArea, addOpening, addSegment, addVertex, draftLayer, replaceLayer, updateLayer } from './edit'
+import { addArea, addOpening, addRoof, addSegment, addVertex, draftLayer, replaceLayer, updateLayer } from './edit'
 import type { Vec } from './geometry'
-import { createPlan, type Opening, type Plan, type SegmentKind } from './plan'
-import { BEAM_DEPTH, DOOR_HEAD, FLOOR, GATE_HEIGHT, HIGH_SILL, houseSolids, ROOF_SLAB, WINDOW_SILL, type Solid } from './solids'
+import { createPlan, type Opening, type Plan, type Roof, type SegmentKind } from './plan'
+import { COVERING, newRoof, SLAB } from './roofs'
+import { BEAM_DEPTH, DOOR_HEAD, FLOOR, GATE_HEIGHT, HIGH_SILL, houseSolids, WINDOW_SILL, type Solid } from './solids'
 import { WALL_HEIGHT } from './walls'
 
 /** A plan whose first layer holds the chains, each line of a chain of its `kind`. */
@@ -28,24 +29,24 @@ const rect = (x: number, y: number, w: number, h: number): Vec[] => [
 /** A 10 × 4 room named "Living": s1 is its top wall, from (0,0) to (10,0). */
 const room = () => addArea(planOf([{ points: rect(0, 0, 10, 4), closed: true }]), 'L1', { x: 5, y: 2 }, 'Living').plan
 
+const roofed = (plan: Plan, patch: Partial<Roof> = {}) => addRoof(plan, 'L1', { ...newRoof(rect(0, 0, 10, 4), 'gable'), ...patch })!.plan
+
 const withOpening = (plan: Plan, o: Partial<Opening> & Pick<Opening, 'kind' | 'style'>) =>
   addOpening(plan, 'L1', { segment: 's1', offset: 5, width: 1, hinge: 'a', swing: 'left', ...o } as Opening)!.plan
 
 const of = (solids: Solid[], kind: Solid['kind']) => solids.filter((s) => s.kind === kind)
 
+/** Every point of a solid on the plan. */
+const plan2d = (s: Solid) => s.faces.flatMap((f) => f.pts)
+
 describe('houseSolids', () => {
-  it('builds a room: walls up to the top of its roof, a floor and a flat roof', () => {
+  it('builds a room: walls as tall as they are and a floor; no roof until one is drawn', () => {
     const solids = houseSolids(room())
-    const [roof] = of(solids, 'roof')
-    expect(of(solids, 'roof')).toHaveLength(1)
-    expect([roof.bottom, roof.top]).toEqual([WALL_HEIGHT, WALL_HEIGHT + ROOF_SLAB])
-    expect(roof.material).toBe('roof')
+    expect(of(solids, 'roof')).toHaveLength(0)
     const walls = of(solids, 'wall')
     expect(walls).toHaveLength(4)
     for (const w of walls) {
-      expect(w.bottom).toBe(0)
-      expect(w.top).toBeGreaterThan(WALL_HEIGHT + ROOF_SLAB - 0.02)
-      expect(w.top).toBeLessThan(WALL_HEIGHT + ROOF_SLAB)
+      expect([w.bottom, w.top]).toEqual([0, WALL_HEIGHT])
       // all four face outside
       expect(w.material).toBe('facade')
     }
@@ -55,18 +56,47 @@ describe('houseSolids', () => {
     expect(floor.ref).toEqual({ layer: 'L1', kind: 'area', id: 'a1' })
   })
 
-  it('leaves unnamed outlines without floor or roof', () => {
-    const solids = houseSolids(planOf([{ points: rect(0, 0, 10, 4), closed: true }]))
-    expect(of(solids, 'floor')).toHaveLength(0)
-    expect(of(solids, 'roof')).toHaveLength(0)
-    expect(of(solids, 'wall').every((w) => w.top === WALL_HEIGHT)).toBe(true)
+  it('closes every face round: a wall has six, each facing out', () => {
+    const [wall] = of(houseSolids(room()), 'wall')
+    expect(wall.faces.length).toBeGreaterThanOrEqual(6)
+    // the faces' normals cancel out over a closed solid, weighted by area; for a box, opposite faces pair up
+    const sum = wall.faces.reduce((acc, f) => ({ x: acc.x + f.normal.x, y: acc.y + f.normal.y, z: acc.z + f.normal.z }), { x: 0, y: 0, z: 0 })
+    expect(Math.abs(sum.z)).toBeLessThan(1e-9)
+  })
+
+  it('puts a flat roof on the walls, with its parapet', () => {
+    const solids = houseSolids(roofed(room(), { type: 'flat', overhang: 0, parapet: 0.3 }))
+    const [roof] = of(solids, 'roof')
+    expect([roof.bottom, roof.top]).toEqual([WALL_HEIGHT, WALL_HEIGHT + SLAB])
+    expect(roof.material).toBe('slab')
+    expect(roof.ref).toEqual({ layer: 'L1', kind: 'roof', id: 'r1' })
+    const [parapet] = of(solids, 'parapet')
+    expect(parapet.top).toBeCloseTo(WALL_HEIGHT + SLAB + 0.3)
+    // the walls already reach the slab: nothing to fill
+    expect(of(solids, 'infill')).toHaveLength(0)
+  })
+
+  it('fills the gable ends up to a pitched roof, and leaves the eaves walls as they are', () => {
+    // a 45° gable whose ridge runs along the 10 m sides: it peaks 2 m over the walls at the middle
+    const solids = houseSolids(roofed(room(), { type: 'gable', pitch: 45, overhang: 0.5 }))
+    const [roof] = of(solids, 'roof')
+    expect(roof.material).toBe('roof')
+    expect(roof.top).toBeCloseTo(WALL_HEIGHT + 2 + COVERING)
+    expect(roof.bottom).toBeCloseTo(WALL_HEIGHT - 0.5)
+    const infill = of(solids, 'infill')
+    expect(infill).toHaveLength(2)
+    for (const g of infill) {
+      expect(g.bottom).toBeCloseTo(WALL_HEIGHT)
+      expect(g.top).toBeCloseTo(WALL_HEIGHT + 2)
+      // the short walls, at x = 0 and x = 10
+      expect(plan2d(g).every((p) => Math.abs(p.x) < 0.2 || Math.abs(p.x - 10) < 0.2)).toBe(true)
+    }
   })
 
   it('cuts a door: the wall over it, a frame and a closed leaf', () => {
     const solids = houseSolids(withOpening(room(), { kind: 'door', style: 'single', width: 0.8 }))
     const [lintel] = of(solids, 'lintel')
-    expect(lintel.bottom).toBe(DOOR_HEAD)
-    expect(lintel.top).toBe(of(solids, 'wall')[0].top)
+    expect([lintel.bottom, lintel.top]).toEqual([DOOR_HEAD, WALL_HEIGHT])
     expect(lintel.ref).toEqual({ layer: 'L1', kind: 'segment', id: 's1' })
     expect(of(solids, 'sill')).toHaveLength(0)
     const leaves = of(solids, 'leaf')
@@ -104,31 +134,36 @@ describe('houseSolids', () => {
     expect(of(fence, 'leaf')[0].top).toBe(GATE_HEIGHT)
   })
 
-  it('roofs a gallery and carries its open front on a beam and columns', () => {
+  it('carries a gallery’s open front on beams under its roof, with columns at the free corners', () => {
     // a room, and a gallery in front of it closed by open edges from (0,4) to (0,7) to (10,7) to (10,4)
     let plan = planOf([
       { points: rect(0, 0, 10, 4), closed: true },
       { points: [{ x: 0, y: 4 }, { x: 0, y: 7 }, { x: 10, y: 7 }, { x: 10, y: 4 }], kind: 'open' },
     ])
-    plan = addArea(plan, 'L1', { x: 5, y: 2 }, 'Living').plan
-    plan = addArea(plan, 'L1', { x: 5, y: 5.5 }, 'Gallery').plan
+    expect(of(houseSolids(plan), 'beam')).toHaveLength(0)
+    plan = addRoof(plan, 'L1', newRoof(rect(0, 0, 10, 7), 'flat'))!.plan
     const solids = houseSolids(plan)
-    expect(of(solids, 'roof')).toHaveLength(2)
     const beams = of(solids, 'beam')
     expect(beams).toHaveLength(3)
-    expect(beams.every((b) => b.top === WALL_HEIGHT && b.bottom === WALL_HEIGHT - BEAM_DEPTH)).toBe(true)
+    expect(beams.every((b) => Math.abs(b.top - WALL_HEIGHT) < 1e-9 && Math.abs(b.bottom - (WALL_HEIGHT - BEAM_DEPTH)) < 1e-9)).toBe(true)
     // the gallery's two free corners; its other ends meet the room's walls
     const columns = of(solids, 'column')
     expect(columns).toHaveLength(2)
-    expect(columns.every((c) => c.top === WALL_HEIGHT - BEAM_DEPTH)).toBe(true)
-    // the wall between room and gallery faces a space the outside reaches, so it is a facade
-    expect(of(solids, 'wall').every((w) => w.material === 'facade')).toBe(true)
+    expect(columns.every((c) => Math.abs(c.top - (WALL_HEIGHT - BEAM_DEPTH)) < 1e-9)).toBe(true)
   })
 
-  it('leaves a pool open to the sky, paved', () => {
+  it('slopes a beam under a shed roof', () => {
+    // a free-standing open edge across a 45° shed rising away from y = 0
+    let plan = planOf([{ points: [{ x: 5, y: 0 }, { x: 5, y: 4 }], kind: 'open' }])
+    plan = addRoof(plan, 'L1', { ...newRoof(rect(0, 0, 10, 4), 'shed'), pitch: 45, overhang: 0, edge: 0 })!.plan
+    const [beam] = of(houseSolids(plan), 'beam')
+    expect(beam.top).toBeCloseTo(WALL_HEIGHT + 4)
+    expect(beam.bottom).toBeCloseTo(WALL_HEIGHT - BEAM_DEPTH)
+  })
+
+  it('leaves a pool open and paved', () => {
     let plan = planOf([{ points: rect(0, 0, 8, 4), closed: true, kind: 'outline' }])
     plan = addArea(plan, 'L1', { x: 4, y: 2 }, 'Pool').plan
-    expect(of(houseSolids(plan), 'roof')).toHaveLength(0)
     expect(of(houseSolids(plan), 'floor')[0].material).toBe('paving')
   })
 
@@ -136,14 +171,14 @@ describe('houseSolids', () => {
     // two rooms side by side: the wall at x = 5 is between them
     const plan = planOf([{ points: rect(0, 0, 10, 4), closed: true }, { points: [{ x: 5, y: 0 }, { x: 5, y: 4 }] }])
     const walls = of(houseSolids(plan), 'wall')
-    const inner = walls.filter((w) => w.outline.every((q) => Math.abs(q.x - 5) < 0.2))
+    const inner = walls.filter((w) => plan2d(w).every((q) => Math.abs(q.x - 5) < 0.2))
     expect(inner.length).toBeGreaterThan(0)
     expect(inner.every((w) => w.material === 'interior')).toBe(true)
     expect(walls.filter((w) => !inner.includes(w)).every((w) => w.material === 'facade')).toBe(true)
   })
 
   it('builds only visible layers', () => {
-    const plan = updateLayer(room(), 'L1', { visible: false })
+    const plan = updateLayer(roofed(room()), 'L1', { visible: false })
     expect(houseSolids(plan)).toEqual([])
   })
 })

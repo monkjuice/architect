@@ -1,8 +1,8 @@
 ---
 title: Plan model and file format
 type: component
-summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds and optional wall thickness and height, named areas and styled doors/windows/gates hosted by segments, embedded base image), with parsing, migrations and serialization in planFile.ts."
-tags: [model, file-format, schema, site, walls]
+summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds and optional wall thickness and height, named areas, styled doors/windows/gates hosted by segments and drawn roofs, embedded base image), with parsing, migrations and serialization in planFile.ts."
+tags: [model, file-format, schema, site, walls, roof]
 sources: []
 updated: 2026-11-02
 ---
@@ -13,8 +13,8 @@ updated: 2026-11-02
 
 - `src/model/plan.ts`: the zod schemas (`PlanSchema`, `LayerSchema`, `SegmentSchema`, `AreaSchema`,
   `OpeningSchema`, `BaseImageSchema`, …), the types inferred from them, `createPlan`, `createLayer`, `segmentKind`,
-  `SEGMENT_KINDS`, `Ref` (a selectable segment, vertex, area or opening), `refExists` (used by the store to prune the
-  selection) and `checkIntegrity`.
+  `SEGMENT_KINDS`, `ROOF_TYPES`, `RoofSchema`, `Ref` (a selectable segment, vertex, area, opening or roof),
+  `refExists` (used by the store to prune the selection) and `checkIntegrity`.
 - `src/model/planFile.ts`: `parsePlanText` / `parsePlan`, `MIGRATIONS` and `serializePlan`.
 - `src/model/edit.ts`: the immutable edits ([Code conventions](code-conventions.md)).
 
@@ -41,16 +41,20 @@ updated: 2026-11-02
   `segment`, a centre `offset` from the segment's `a` end, `width`, `hinge` (for a sliding gate: the end it slides
   towards) and `swing` ([Doors, windows and gates](doors-and-windows.md),
   [Door, window and gate styles](opening-styles.md), [hosted by a segment](openings-hosted-by-segment.md)).
-- Ids: `v1`, `v2`…, `s1`, `s2`…, `a1`, `a2`… and `o1`, `o2`… within each layer (`nextId` in `edit.ts`), and `L1`,
+- `roofs` (id → `RoofSchema`: `outline`, `type`, `pitch`, `height`, `overhang`, `edge`, `parapet`): outlines drawn
+  on the Roof tab, independent of the lines, so they do not follow moved walls
+  ([Roofs: model and geometry](roofs.md)).
+- Ids: `v1`, `v2`…, `s1`, `s2`…, `a1`, `a2`…, `o1`, `o2`… and `r1`, `r2`… within each layer (`nextId` in `edit.ts`), and `L1`,
   `L2`… for layers (`addLayer`). A new plan has one layer, `L1` "Walls".
 - `image`: `src` must be a `data:image/` URL, because the photo is embedded so that the file is self-contained. It
   also holds the natural `width`/`height`, the placement (`cx`, `cy`, `rotation` in radians, `scale` in m/px), an
   optional `crop` in image pixels, `opacity`, `visible`, `locked` and `calibration` (known lengths, with ends in image
   pixels). See [Base image placement and calibration](base-image-calibration.md).
-- Not in the plan: the open tab, active layer, tool, line kind to draw, opening style to place, view, selection and
-  prompt (editor state), and the sun's season, time, cloudiness and shadows, the View section's toggles and the
-  Exterior's roof toggle (per-browser prefs). See [Editor store and state](editor-store.md). The 3-D Exterior is
-  derived from the plan and added no fields ([Exterior kept basic](exterior-kept-basic.md)).
+- Not in the plan: the open tab, active layer, tool, line kind to draw, opening style to place, roof type to draw,
+  view, selection and prompt (editor state), and the sun's season, time, cloudiness and shadows, the View section's
+  toggles and the Exterior's roof toggle (per-browser prefs). See [Editor store and state](editor-store.md). The 3-D
+  Exterior and the Elevations are derived from the plan; roofs are the only 3-D data it stores
+  ([Exterior kept basic](exterior-kept-basic.md)).
 
 ## Loading
 
@@ -69,7 +73,7 @@ them.
 ## Saving
 
 `serializePlan` runs the plan through `PlanSchema.parse` again. This puts keys in schema order, and an invalid plan
-throws, which `savePlan` reports and does not save. Vertex coordinates and opening offsets are rounded to 0.1 mm
+throws, which `savePlan` reports and does not save. Vertex coordinates, opening offsets and roof outline points are rounded to 0.1 mm
 (1e-4 m) only here; edits keep full precision, and so do the image transform values. The output is 2-space JSON with a trailing newline.
 The autosaved draft stores the same text.
 
@@ -91,4 +95,5 @@ defaulting to `'single'`) came in the fifth session, also at version 1. `site` (
 in the sixth session at version 1; `sun.test.ts` loads a file without it. The `outline` segment kind (a second
 value in the optional `kind` enum) came in the seventh session, also at version 1. Wall `thickness` and `height`
 (optional segment keys) came after it, still at version 1: older files load with every wall automatic and 2.70 m
-tall.
+tall. Layer `roofs` (`.default({})`) came in the eighth session, also at version 1: older files load unroofed,
+since the automatic roof was removed at the same time ([Roofs are drawn outlines](roofs-drawn-outlines.md)).

@@ -1,0 +1,38 @@
+---
+title: Elevations tab
+type: component
+summary: "Four facades drawn automatically from the house solids, view only: src/model/elevations.ts (main direction from the walls, four views square to it named by compass bearing through site.north, back-face culling on explicit normals, painter's sort by each face's nearest point, level marks) and src/ui/ElevationsTab.tsx (All four or one, layer visibility checkboxes, Save SVG as a standalone drawing)."
+tags: [ui, model, elevations, svg, 3d]
+sources: []
+updated: 2026-11-02
+---
+
+# Elevations tab
+
+Added in the eighth session (2026-11-02). The user chose **auto-drawn facades, view only**: heights stay edited on
+the Floor tab (walls, [Walls](walls.md)) and the [Roof tab](roof-tab.md). The drawings come from the same
+`getSolids(plan)` as the [Exterior tab](exterior-tab.md) ([House solids](house-solids.md)), so they follow every
+edit. No three.js: the tab is not lazy-loaded.
+
+## Model (`src/model/elevations.ts`, 3 tests)
+
+- `mainDirection`: the length-weighted circular mean of 4θ over the visible walls, divided by 4: the walls'
+  direction modulo a quarter turn.
+- `elevationViews`: four views square to it, starting with the side facing the plan's top, then clockwise. Each is
+  named by the compass bearing its facade faces, through `site.north` ([Sun and shadows](sun.md)); on the user's
+  plan: North-west, North-east, South-east, South-west.
+- `elevation(solids, view)`: parallel projection to (u to the viewer's right, z). Faces whose explicit normal does
+  not face the viewer are culled. The rest are painted farthest first, ordered by each face's **nearest** point:
+  ordering by centroid let a wall's top overdraw the eave that overhangs it. This assumes faces do not
+  interpenetrate. Levels: the ground, wall tops, roof bottoms and tops, parapet tops, merged within 15 cm.
+
+## UI (`src/ui/ElevationsTab.tsx`)
+
+- Row 2: *All four* (a 2×2 grid; click one to open it) or one facade; *Layers* checkboxes set `layer.visible`
+  through `updateLayer`, an undoable plan edit that hides the layer on every tab, so the boundary wall can be left
+  out; *Save SVG* (one facade only) downloads `<file>-<facade>-elevation.svg`.
+- Paper colours (`FILL` per material, `INK`, `PAPER`) are SVG attributes, not CSS, so the saved SVG is standalone.
+- Level marks sit on the right; a label closer than about 1.3 text heights to the one below is dropped. The overall
+  width is dimensioned underneath.
+
+Not there yet: other dimensions, sections, editing heights from the drawing.

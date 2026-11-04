@@ -1,7 +1,7 @@
 ---
 title: Overview
 type: overview
-summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges, ground-level outlines, named areas with floor and covered totals, doors, windows and gates) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
+summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges, ground-level outlines, named areas with floor and covered totals, doors, windows and gates) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable and hip roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
 tags: [overview]
 sources: []
 updated: 2026-11-02
@@ -23,8 +23,11 @@ The sun can be shown over the plan for a season and time of day, with the walls'
 autosaved in IndexedDB. `README.md` lists the workflow, tools and keys.
 
 The bar's top row holds tabs over the same plan ([Tabs over one plan](pages/tabs-over-one-plan.md)): Floor is the
-drawing, Exterior shows the house in 3-D under the plan's sun ([Exterior tab](pages/exterior-tab.md)), and the
-other tabs (Foundation, Roof, Elevations, Interior, Plumbing, Electricity, Gas, Materials) show but are not built.
+drawing; Roof is a roof plan where roof outlines are drawn over the faded floor plan, each flat, shed, gable or hip
+([Roof tab](pages/roof-tab.md)); Elevations draws the four facades from the 3-D model, view only
+([Elevations tab](pages/elevations.md)); Exterior shows the house in 3-D under the plan's sun
+([Exterior tab](pages/exterior-tab.md)). The other tabs (Foundation, Interior, Plumbing, Electricity, Gas,
+Materials) show but are not built.
 
 The user owns two lots of the survey, 8a and 10a; the tests use lot 8a
 ([Development and testing](pages/development-and-testing.md)).
@@ -39,8 +42,10 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   [Regions](pages/regions.md)), wall thickness, joins and footprints (`walls.ts`, [Walls](pages/walls.md)), doors, windows and gates on their walls (`openings.ts`,
   [Doors, windows and gates](pages/doors-and-windows.md)), hit tests and loop areas (`pick.ts`), the base image math
   ([Base image placement and calibration](pages/base-image-calibration.md)), the solar math (`sun.ts`, kept
-  independent of the plan's geometry for reuse, [Sun and shadows](pages/sun.md)) and the house as 3-D prisms
-  (`solids.ts`, [House solids](pages/house-solids.md)).
+  independent of the plan's geometry for reuse, [Sun and shadows](pages/sun.md)), roof geometry (`roofs.ts`,
+  [Roofs: model and geometry](pages/roofs.md)), the house as 3-D solids made of faces with explicit normals
+  (`solids.ts`, [House solids](pages/house-solids.md)) and the elevations projected from them (`elevations.ts`,
+  [Elevations tab](pages/elevations.md)).
 - `src/state/`: the `EditorStore` with undo and gestures, user-level actions, derived data cached per object
   (`derived.ts`, [Areas](pages/areas.md)), files and the autosaved draft, and prefs
   ([Editor store and state](pages/editor-store.md)).
@@ -49,7 +54,8 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
 - `src/ui/`: the shell (`TopBar`, the tabs row; `NoticeBar`, `PromptDialog`, `fields.tsx`), `FloorTab.tsx` (the
   tools row, then in `panels/` the Library panel in the left column and the View, Base plan, Layers, Selection,
   Areas and Sun panels on the right, around the SVG canvas and its tool controllers,
-  [Canvas and tools](pages/canvas-and-tools.md)) and `exterior/ExteriorTab.tsx`. Every panel section folds from its title
+  [Canvas and tools](pages/canvas-and-tools.md)), `RoofTab.tsx` (the same canvas in roof mode, roof tools and the
+  Roofs panel), `ElevationsTab.tsx` and `exterior/ExteriorTab.tsx`. Every panel section folds from its title
   and stays folded per browser ([Code conventions](pages/code-conventions.md)). The Library lists line types (Wall, Open edge, Outline),
   then a Doors group (single, double, sliding), a Windows group (fixed, sliding, double hung, awning, casement) and a
   Gates group (single, double, sliding) ([Door, window and gate styles](pages/opening-styles.md)). Click an item to
@@ -65,7 +71,9 @@ a layer ([Open edges and outlines are segment kinds](pages/segment-kind-not-laye
 ([Doors and windows are hosted by a segment](pages/openings-hosted-by-segment.md)), and a room is indoor unless the
 outside reaches it across open edges or outlines ([Indoor means unreachable from outside](pages/indoor-reachability-rule.md)).
 The Exterior is kept basic while roof design and elevations come first
-([Exterior kept basic; roof and elevations first](pages/exterior-kept-basic.md)).
+([Exterior kept basic; roof and elevations first](pages/exterior-kept-basic.md)), and roofs are drawn outlines
+whose slopes are planes, not one roof per area
+([Roofs are drawn outlines; slopes are planes](pages/roofs-drawn-outlines.md)).
 
 ## Tech stack
 
@@ -76,7 +84,8 @@ eighth session, `three` (^0.186.1, with `@types/three`, the Forge H1 planner's v
 ## Build, run and test
 
 Run `npm install`, then `npm run dev` (http://localhost:5173). The checks are `npm test`, `npm run typecheck`,
-`npm run lint` and `npm run build`. Details, the sample lot used by the tests and the browser flow checks are in
+`npm run lint` and `npm run build`. The code is on GitHub (`monkjuice/architect`, branch `main`, since
+2026-11-02). Details, the sample lot used by the tests and the browser flow checks are in
 [Development and testing](pages/development-and-testing.md). For pitfalls, see
 [Playwright flow-check pitfalls](pages/playwright-flow-checks.md),
 [Bash hook blocks `*.key` patterns and path colons](pages/bash-hook-key-paths.md),
@@ -89,13 +98,19 @@ Run `npm install`, then `npm run dev` (http://localhost:5173). The checks are `n
 2. `src/state/store.ts` (how edits and undo work).
 3. `src/ui/canvas/Canvas.tsx` and `src/ui/canvas/tools/types.ts` (how tools plug in).
 4. `src/model/baseImage.ts`, `src/model/snap.ts`, `src/model/regions.ts` and `src/model/openings.ts`.
-5. For the 3-D view: `src/model/solids.ts`, then `src/render/engine.ts`.
+5. For roofs and 3-D: `src/model/roofs.ts`, `src/model/solids.ts`, `src/model/elevations.ts`, then
+   `src/render/engine.ts`.
 
-## Open items (as of 2026-11-02, after the Exterior tab)
+## Open items (as of 2026-11-02, after the Roof and Elevations tabs)
 
-Next, per the user: the Roof tab (roof design, replacing the Exterior's automatic flat roof) and Elevations
-([Exterior kept basic](pages/exterior-kept-basic.md)). Heights are not drawn in plan yet (no level marks), and
-sections do not exist.
+Roofs and elevations ([Roof tab](pages/roof-tab.md), [Elevations tab](pages/elevations.md)):
+
+- Roofs do not follow walls that move; *Roof the house* ignores unnamed rooms, drops courtyards and offsets by the
+  automatic 0.30 m exterior wall, not a set thickness.
+- Hip roofs are exact only on convex outlines (a straight skeleton was deferred,
+  [Roofs are drawn outlines](pages/roofs-drawn-outlines.md)).
+- Elevations are view only: no heights edited there, no dimensions besides levels and the overall width. Heights are
+  not marked in plan, and sections do not exist.
 
 Other candidates:
 
@@ -115,4 +130,5 @@ Other candidates:
   ([Sun and shadows](pages/sun.md)); the Exterior's 3-D shadows include roofs and openings.
 
 Also open: re-anchoring areas when walls move past their point ([Areas](pages/areas.md)), other objects and
-complex shapes, plan exports (SVG, DXF, PNG; only the Exterior saves a PNG of its view) and grid snapping.
+complex shapes, plan exports (SVG, DXF, PNG; only the Exterior saves a PNG of its view and the Elevations an SVG
+per facade) and grid snapping.

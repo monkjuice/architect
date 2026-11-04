@@ -1,7 +1,7 @@
 ---
 title: "Exterior kept basic; roof and elevations first"
 type: decision
-summary: "At the user's direction the Exterior tab stays basic (fixed palette, automatic flat roof with an on/off toggle, no materials UI, plan format unchanged); a drafted materials catalogue with a surfaces × indoor/outdoor compatibility table and exterior/facade/floor schema fields was removed; the Roof tab and Elevations come next."
+summary: "At the user's direction the Exterior tab stays basic (fixed palette, a roof on/off toggle, no materials UI or materials fields in the plan); a drafted materials catalogue with a surfaces × indoor/outdoor compatibility table and exterior/facade/floor schema fields was removed; the Roof tab and Elevations came next and were built the same day, replacing the automatic flat roof with drawn roofs."
 tags: [decision, exterior, materials, roof, roadmap]
 sources: []
 updated: 2026-11-02
@@ -21,10 +21,11 @@ first focus on roof design and elevations."
 
 - The Exterior uses a fixed basic palette (`PALETTE` in `src/render/house.ts`, keyed by `SolidMaterial`); nothing is
   picked per surface.
-- No materials or finishes UI and no schema change. The drafted catalogue and schema fields were deleted before the
-  session ended, so the plan format is unchanged ([Plan model and file format](plan-model.md)).
-- The roof is an automatic flat slab over rooms and galleries ([House solids](house-solids.md)), with a *Roof*
-  toggle (`prefs.roofs`) to look inside.
+- No materials or finishes UI and no materials fields in the plan. The drafted catalogue and schema fields were
+  deleted before the session ended ([Plan model and file format](plan-model.md)).
+- A *Roof* toggle (`prefs.roofs`) to look inside. At first the roof was an automatic flat slab over rooms and
+  galleries; that was superseded the same day by drawn roofs
+  ([Roofs are drawn outlines](roofs-drawn-outlines.md)), and the toggle now hides those and their parapets.
 
 ## Alternative rejected
 
@@ -33,6 +34,6 @@ reasons.
 
 ## Consequences
 
-- Next, per the user: the Roof tab (roof design, which should replace the automatic flat roof) and Elevations
-  ([Tabs over one plan](tabs-over-one-plan.md)).
+- The Roof tab ([Roof tab](roof-tab.md)) and Elevations ([Elevations tab](elevations.md)) were built next, in the
+  same session ([Tabs over one plan](tabs-over-one-plan.md)).
 - Materials stay open and belong to the Materials tab; the open points are in the [Overview](../overview.md).

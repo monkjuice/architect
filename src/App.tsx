@@ -5,7 +5,9 @@ import { serializePlan } from './model/planFile'
 import { loadBaseImage, openPlan, savePlan } from './state/actions'
 import { writeDraft } from './state/files'
 import { getStore, useEditor } from './state/store'
+import { ElevationsTab } from './ui/ElevationsTab'
 import { FloorTab } from './ui/FloorTab'
+import { RoofTab } from './ui/RoofTab'
 import { PromptDialog } from './ui/PromptDialog'
 import { TopBar } from './ui/TopBar'
 
@@ -21,6 +23,8 @@ export default function App() {
     <div className="app">
       <TopBar />
       {tab === 'floor' && <FloorTab />}
+      {tab === 'roof' && <RoofTab />}
+      {tab === 'elevations' && <ElevationsTab />}
       {tab === 'exterior' && (
         <Suspense fallback={<p className="tab-loading">Loading the 3-D view…</p>}>
           <ExteriorTab />

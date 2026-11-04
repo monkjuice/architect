@@ -5,6 +5,8 @@ import { createNorthTool } from './north'
 import { createLineTool } from './line'
 import { createMeasureTool } from './measure'
 import { createOpeningTool } from './opening'
+import { createRoofTool } from './roof'
+import { createRoofSelectTool } from './roofSelect'
 import { createSelectTool } from './select'
 import type { Tool, ToolContext } from './types'
 
@@ -24,6 +26,8 @@ export function createTools(ctx: ToolContext): Record<ToolId, Tool> {
     crop: createCropTool(ctx),
     calibrate: createCalibrateTool(ctx),
     north: createNorthTool(ctx),
+    roof: createRoofTool(ctx),
+    'roof-select': createRoofSelectTool(ctx),
   }
 }
 
@@ -71,5 +75,15 @@ export const TOOL_INFO: Record<ToolId, { title: string; key?: string; hint: stri
   calibrate: {
     title: 'Calibrate',
     hint: 'Click both ends of a length written on the plan, then type its real value · zoom in for precision · Shift: 45°',
+  },
+  roof: {
+    title: 'Roof',
+    key: 'R',
+    hint: 'Click the corners of what the roof covers (they snap to the plan) · click the first corner or Enter to close · Shift: 45° · Backspace: undo a corner · Esc: cancel',
+  },
+  'roof-select': {
+    title: 'Select',
+    key: 'V',
+    hint: 'Click a roof (Shift: add) · drag it to move it · drag a corner of a selected roof to reshape it · Del: delete',
   },
 }

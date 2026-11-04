@@ -1,8 +1,8 @@
 # Architect
 
 A lightweight browser app for sketching a house over a measured plan: load a photo or scan of the survey,
-straighten and calibrate it so it reads in real meters, then draw connected lines on layers on top of it, and see
-the house in 3-D. It runs locally with no backend; the stack and structure follow the Forge H1 planner
+straighten and calibrate it so it reads in real meters, then draw connected lines on layers on top of it, roof
+it, and see the house in elevation and in 3-D. It runs locally with no backend; the stack and structure follow the Forge H1 planner
 (`../forge-h1/planner`).
 
 ## Run it
@@ -29,8 +29,10 @@ actions. Every tab works on the same plan, with one undo history and one file:
 | Tab | |
 |---|---|
 | **Floor** | The floor plan: the base plan, lines, areas, doors, windows and gates (everything below). |
-| **Exterior** | The house in 3-D, built from the floor plan (see [Exterior](#exterior)). |
-| Foundation, Roof, Elevations, Interior, Plumbing, Electricity, Gas, Materials | Not built yet: shown, disabled. |
+| **Roof** | The roof plan: roofs drawn over the floor plan (see [Roof](#roof)). |
+| **Elevations** | The four facades, drawn from the floor plan and the roofs (see [Elevations](#elevations)). |
+| **Exterior** | The house in 3-D, built from the floor plan and the roofs (see [Exterior](#exterior)). |
+| Foundation, Interior, Plumbing, Electricity, Gas, Materials | Not built yet: shown, disabled. |
 
 ## Workflow
 
@@ -165,22 +167,59 @@ click inside the area to select it instead. The rest are per browser.
 
 Every panel section folds away from its title, and stays folded the next time.
 
+## Roof
+
+The **Roof** tab is the roof plan: the floor plan faded, and the roofs over it. A roof is an outline (what it
+covers, usually the walls' outside faces) on a layer, and its eaves stand an **overhang** beyond it. Its type:
+
+| Type | |
+|---|---|
+| **Flat** | A 0.20 m slab, level, with a parapet round its edge (0.30 m unless set; 0 for none). |
+| **Shed** | One slope, rising away from one side. *Turn the slope* moves the low side round the outline. |
+| **Gable** | Two slopes meeting at a ridge along one side's direction; the other sides are gable ends. *Turn the ridge* runs it the other way. |
+| **Hip** | A slope from every side, meeting at hips and a ridge. It needs a convex outline: draw an L-shaped house as two overlapping roofs (the panel warns otherwise). |
+
+- **Roof the house** covers the active layer's covered areas (rooms, and galleries bounded by walls and open
+  edges) with one roof per group of areas that touch, out to the walls' outside faces (0.15 m past the
+  centrelines) and as high as their tallest wall, of the type picked under *New roofs*.
+- **Roof** (`R`) draws one: click its corners (they snap to the plan's points and lines; `Shift` keeps 45°), then
+  click the first corner or press `Enter`. `Backspace` takes a corner back, `Esc` cancels.
+- **Select** (`V`): click a roof (`Shift` adds), drag it to move it, drag a corner of a selected roof to reshape
+  it, `Delete` removes it. The Roofs section lists the roofs and sets the selected one's type, **pitch** (in
+  degrees; the slope in % is shown), **height at the walls** (its underside where it crosses the outline at an
+  eaves side, 2.70 m by default), overhang and parapet, with the area it covers, its own sloped area, and the
+  heights of its eaves and top.
+- The roof plan shades each slope by the way it faces, with an arrow down it, the eaves line solid and the walls'
+  line dashed under an overhang, and a label with the type, pitch and top. New roofs start with their slopes
+  running off the outline's longest side, 25° (shed 10°) and a 0.50 m overhang (flat: none).
+
+Roofs do not follow the walls: move a wall and redraw or reshape the roof.
+
+## Elevations
+
+The **Elevations** tab draws the four facades from the same 3-D model as the Exterior tab, so they follow the
+floor plan and the roofs as you change them. The views are square to the house's main walls (their directions,
+weighted by length), and each is named by the compass direction it faces, from the plan's north (for example
+North-west). Faces are drawn as on paper, the farthest first so nearer ones cover them, with the ground line,
+level marks (±0.00, the tops of walls, the eaves and tops of roofs) and the overall width. *All four* shows them
+together; click one to open it, and *Save SVG* downloads it as a standalone drawing. The **Layers** checkboxes
+hide a layer everywhere (an undoable change), for example the boundary wall that would stand in front of the house.
+
 ## Exterior
 
-The **Exterior** tab shows the house in 3-D, built again from the Floor tab's visible layers on every change
-(undo works across tabs):
+The **Exterior** tab shows the house in 3-D, built again from the visible layers on every change (undo works
+across tabs):
 
 - walls at their thickness and height, cut by their doors, windows and gates, with the wall over each door and
   window and under each window; doors and windows are 2.10 m tall, windows sit on a 0.90 m sill (awnings on
   1.50 m), gates are as tall as their wall (1.80 m in a fence drawn as an open edge);
 - frames, glass and closed door and gate leaves;
-- the floor of every named area, and a flat 0.20 m roof over the covered ones: rooms, and areas bounded only by
-  walls and open edges (a gallery), whose walls rise to the roof's top. An area bounded by outlines (a pool,
-  paving) stays open and paved;
-- open edges along a roofed area as beams under the roof, on columns where no wall holds them.
+- the floor of every named area (tiled under cover, paved where outlines bound it: a pool, a terrace);
+- the roofs from the Roof tab, with the walls that face outside filled up to the roof over them (gable ends);
+- open edges under a roof as beams following its underside, on columns where no wall holds them.
 
-Its toolbar has the camera (*Aerial*, *Top* as the plan, and the four facades by the plan's north), *Roof* to look
-into the rooms, the sun's season and time (the same as the Floor tab's Sun section, with its site and
+Its toolbar has the camera (*Aerial*, *Top* as the plan, and the four facades by the plan's north), *Roof* to hide
+the roofs and look into the rooms, the sun's season and time (the same as the Floor tab's Sun section, with its site and
 cloudiness) and *Save image* (a PNG at twice the screen resolution). Drag to orbit, right-drag to pan, wheel to
 zoom. Colours are a fixed basic palette: materials are not picked yet. three.js loads only when the tab opens.
 
@@ -200,7 +239,7 @@ zoom. Colours are a fixed basic palette: materials are not picked yet. three.js 
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo (`Ctrl+Shift+Z` also redoes). |
 | `Ctrl+S` / `Ctrl+Shift+S` / `Ctrl+O` | Save / save as / open. |
 
-These keys work on the Floor tab. The Selection panel shows a line's length (edit it to resize the line: the end with fewer other lines on it
+These keys work on the Floor tab; on the Roof tab `V`, `R`, `M` and `H` pick its tools. The Selection panel shows a line's length (edit it to resize the line: the end with fewer other lines on it
 moves), its angle and type (wall, open edge or outline), a wall's thickness and height, for several lines their
 total length and, when they form one closed outline, its area, and for an area its name, floor area and
 boundary. A click on a thick wall's face picks it, not only on its centreline.
@@ -220,8 +259,10 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   `double`, `sliding`), `window` (`fixed`, `sliding`, `double-hung`, `awning`, `casement`) or `gate`
   (`single`, `double`, `sliding`); `offset` is the centre's distance from the segment's `a` end, `hinge` the
   end a single leaf hangs from (a sliding gate: the end it slides towards), `swing` the side it opens or
-  slides to looking from `a` to `b`). Files saved before areas, openings, styles or wall thicknesses existed
-  open unchanged (older openings read as single doors and fixed windows, older walls as automatic).
+  slides to looking from `a` to `b`), and `roofs` (id → `{outline, type, pitch, height, overhang, edge,
+  parapet}`: `type` is `flat`, `shed`, `gable` or `hip`, `pitch` in degrees, `height` the underside at the
+  outline in meters, `edge` the outline side a shed slopes down to or a gable's ridge runs along). Files saved
+  before areas, openings, styles, wall thicknesses or roofs existed open unchanged (older openings read as single doors and fixed windows, older walls as automatic).
 
 In Chrome and Edge *Save* writes back to the file you opened; elsewhere it downloads. The latest state is also
 autosaved in the browser (IndexedDB), so a reload never loses work. Loading validates the file and reports the
@@ -234,8 +275,9 @@ changes.
   (parse, validate, serialize), `edit.ts` (immutable edits), `regions.ts` (the outlines lines enclose, which
   walls face outside, floor areas inside the walls, area label points), `walls.ts` (wall thickness and height,
   walls drawn at their thickness with their joints), `openings.ts` (doors, windows and gates laid out on their walls, where a new one goes),
-  `sun.ts` (sun position, sunrise and sunset, shadows), `solids.ts` (the house in 3-D as prisms extruded from
-  the plan), `snap.ts`, `pick.ts` (hit tests, loops),
+  `sun.ts` (sun position, sunrise and sunset, shadows), `roofs.ts` (roof slopes, faces, eaves and the house's
+  outline), `solids.ts` (the house in 3-D as solids of flat faces), `elevations.ts` (the facades from the
+  solids), `snap.ts`, `pick.ts` (hit tests, loops),
   `baseImage.ts` (image placement, calibration, crop), `geometry.ts`.
 - `src/state/`: the editor store (tab, undo history, gestures, selection, tool, view), `derived.ts` (regions, wall
   thicknesses and shapes, placed areas, the covered area and the 3-D solids, cached per object), prefs, files and
@@ -243,7 +285,8 @@ changes.
 - `src/ui/canvas/`: the SVG canvas. Each tool in `tools/` is a plain controller that gets pointer and key
   events and returns overlay data the canvas draws.
 - `src/ui/panels/`: the Library (left) and View, Base plan, Layers, Selection, Areas and Sun (right).
-  `src/ui/TopBar.tsx` is the tab row; `src/ui/FloorTab.tsx` lays out the Floor tab.
+  `src/ui/TopBar.tsx` is the tab row; `FloorTab.tsx`, `RoofTab.tsx` (with `canvas/Roofs.tsx` and
+  `panels/RoofPanel.tsx`) and `ElevationsTab.tsx` lay out those tabs.
 - `src/ui/exterior/ExteriorTab.tsx` and `src/render/`: the Exterior tab and its three.js engine (lights from the
   sun, shadows, camera presets) and house meshes, adapted from the Forge H1 planner's render tab and loaded on
   demand.

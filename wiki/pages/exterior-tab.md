@@ -1,8 +1,8 @@
 ---
 title: Exterior tab (3-D view)
 type: component
-summary: "The Exterior tab: src/ui/exterior/ExteriorTab.tsx (camera presets, Roof toggle, sun season and time, Save image) over a three.js view in src/render/ (house.ts extrudes the solids with plan y as three z; engine.ts, adapted from the Forge H1 planner, lights it with the plan's sun and real shadows, draws on demand and keeps the camera pose across tab switches); three.js is a separate chunk loaded only when the tab opens."
-tags: [ui, 3d, three, render, sun, exterior]
+summary: "The Exterior tab: src/ui/exterior/ExteriorTab.tsx (camera presets, Roof toggle for the drawn roofs and parapets, sun season and time, Save image) over a three.js view in src/render/ (house.ts triangulates each solid face in its own plane and winds it to the face's explicit normal, plan y as three z; engine.ts, adapted from the Forge H1 planner, lights it with the plan's sun and real shadows, draws on demand and keeps the camera pose across tab switches); three.js is a separate chunk loaded only when the tab opens."
+tags: [ui, 3d, three, render, sun, exterior, roof]
 sources: []
 updated: 2026-11-02
 ---
@@ -10,19 +10,23 @@ updated: 2026-11-02
 # Exterior tab (3-D view)
 
 Added in the eighth session (2026-11-02). It shows the [House solids](house-solids.md), rebuilt on every plan
-change, and edits nothing ([Tabs over one plan](tabs-over-one-plan.md)). It is kept basic on purpose
-([Exterior kept basic](exterior-kept-basic.md)).
+change, and edits nothing ([Tabs over one plan](tabs-over-one-plan.md)); the [Elevations tab](elevations.md) draws
+the same solids in 2-D. It is kept basic on purpose ([Exterior kept basic](exterior-kept-basic.md)).
 
 ## Files
 
-- `src/ui/exterior/ExteriorTab.tsx`: row 2 of the bar (camera presets; *Roof* = `prefs.roofs`, off filters the roof
-  solids out so you look into the rooms; Sun season and time, the same `prefs.sun` as the Floor tab's Sun section;
-  *Save image* → `<file>-exterior.png` at 2× through `snapshot`), the full-width 3-D host, messages for an empty
-  plan and for no WebGL, and its own `NoticeBar`.
-- `src/render/house.ts`: `buildHouse` makes an `ExtrudeGeometry` per solid, then `rotateX(π/2)` and
-  `translate(top)`: plan x → three x, plan y → three z, heights → y, so the Top view matches the plan. A fixed
-  `PALETTE` per `SolidMaterial`. Glass casts no shadow. Roofs receive none: they drew dark seams where neighbouring
-  rooms' slabs meet.
+- `src/ui/exterior/ExteriorTab.tsx`: row 2 of the bar (camera presets; *Roof* = `prefs.roofs`, off filters the
+  `roof` and `parapet` solids out so you look into the rooms; roofs exist only once drawn on the
+  [Roof tab](roof-tab.md), as the hint says; Sun season and time, the same `prefs.sun` as the Floor tab's Sun
+  section; *Save image* → `<file>-exterior.png` at 2× through `snapshot`), the full-width 3-D host, messages for an
+  empty plan and for no WebGL, and its own `NoticeBar`.
+- `src/render/house.ts`: `buildHouse` makes one `BufferGeometry` per solid from its faces: each face is
+  triangulated in its own plane (`ShapeUtils.triangulateShape` on two in-plane axes) and each triangle wound to
+  agree with the face's explicit normal, flat-shaded. Plan x → three x, plan y → three z, heights → y, so the Top
+  view matches the plan. Since plan (x, y down) with z up is left-handed and three's (x, height, plan y) is not,
+  nothing may depend on winding; `ExtrudeGeometry` was dropped with the switch to faces. A fixed `PALETTE` per
+  `SolidMaterial` (`roof` terracotta, `slab` grey). Glass casts no shadow. Roofs receive none: the old per-room slabs
+  drew dark seams where they met.
 - `src/render/engine.ts`: `createExteriorEngine(host, pose)`, adapted from `../forge-h1/planner/src/render/engine.ts`
   ([Stack adapted from the Forge H1 planner](forge-h1-stack.md)): renderer with soft shadows, `RoomEnvironment`, a
   lawn, `OrbitControls` with frames drawn on demand, `fitDistance`, `snapshot`.

@@ -1,8 +1,8 @@
 ---
 title: Playwright flow-check pitfalls
 type: gotcha
-summary: "Python Playwright against the SVG canvas: <text> has no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft hides its photo and keeps changing, folded sections render nothing, panel sections must be found by data-box not position, WebGL needs SwiftShader flags and reads back blank (measure screenshots), and Ctrl+Z is ignored while a checkbox has focus."
-tags: [gotcha, testing, playwright, python, webgl]
+summary: "Python Playwright against the SVG canvas: <text> has no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft hides its photo and keeps changing, folded sections render nothing, panel sections must be found by data-box not position, WebGL needs SwiftShader flags and reads back blank (measure screenshots), Ctrl+Z is ignored while a checkbox has focus, a long-running dev server serves stale HMR module copies, a stopped background vite can keep its port, layer names are inputs, and tool buttons' text has a newline before the key."
+tags: [gotcha, testing, playwright, python, webgl, vite]
 sources: []
 updated: 2026-11-02
 ---
@@ -59,3 +59,15 @@ Found in the eighth session, with the exterior flow ([Exterior tab](exterior-tab
   them with PIL.
 - **Ctrl+Z is ignored while a checkbox has focus**: `useShortcuts` in `src/App.tsx` skips keys aimed at inputs, by
   design. After ticking a View box, click *Undo* instead.
+
+Found later in the eighth session, with the roof flow ([Roof tab](roof-tab.md)):
+
+- **Restart the dev server before running flows.** One left running across many edits served the app a newer HMR
+  copy (`?t=…`) of a module than a test's `await import('/src/state/store.ts')` got, so the test's copy threw "The
+  editor store is not initialised".
+- **Stopping a background `npx vite` task can leave its node child running**, still holding port 5180, so the next
+  `--strictPort` start fails. Find the process by its port and kill it by PID.
+- **Layer names in the Layers panel are inputs**, so text matching finds nothing: find a row by the value of its
+  `input.layer-name`.
+- **A tool button's inner text has a newline before its key** (the `<kbd>`), e.g. "Roof\nR": match the start of the
+  text, not the whole of it.
