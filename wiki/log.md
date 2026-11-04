@@ -208,3 +208,8 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/development-and-testing.md (171 tests, furniture 12, sofa tests, 28-check furniture flow, 3657510, recurring "no tests" gotcha restated; summary)
 - updated: overview.md (summary, what it does, Library groups)
 - updated: index.md
+
+## [2026-11-04] update | Coffee table
+- updated: pages/furniture.md (table style coffee, snap sofa, COFFEE_GAP and the sectional's main seat, chairs skip it, Style field grouping and title, 3-D top/shelf/legs, limit; summary)
+- updated: pages/development-and-testing.md (172 tests, furniture 13, coffee table tests, 29-check furniture flow, round table looked up by style, 4cf872f; summary)
+- updated: index.md

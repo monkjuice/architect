@@ -1,7 +1,7 @@
 ---
 title: Furniture and fixtures
 type: component
-summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips), square and round tables, chairs; src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters and tables, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
+summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips), square, round and coffee tables, chairs; src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
 tags: [model, furniture, ui, canvas, 3d]
 sources: []
 updated: 2026-11-04
@@ -13,7 +13,8 @@ Added on 2026-11-04 for the user's request: counters, sinks (the kitchen one "ca
 bathtubs ("allow me to move the shower head"), beds, tables and chairs. Why pieces stand free and only the kitchen
 sink is hosted: [Furniture stands free; a kitchen sink is hosted by its counter](furniture-free-standing.md).
 The same day (`3014137`) the user asked for a toilet and a bidet, then a simple shower and a corner bathtub, and
-then (`0acdce9`) a kitchen island and (`3657510`) sofas.
+then (`0acdce9`) a kitchen island, (`3657510`) sofas and (`4cf872f`) a coffee table (asked for as a "mouse table",
+the Argentine *mesa ratona*).
 
 ## Model
 
@@ -25,7 +26,7 @@ then (`0acdce9`) a kitchen island and (`3657510`) sofas.
   instead of `at`/`angle`. Code tells the two apart with `'at' in f` (type `StandingFurniture`).
 - `src/model/furniture.ts`:
   - `FURNITURE`: the catalogue in library order (title, new size, height, `snap`: `wall`, `counter`, `table`,
-    `none`); `furnitureInfo`/`infoOf`; `furnitureKey` (`"bed:queen"`, `"counter"`).
+    `sofa`, `none`); `furnitureInfo`/`infoOf`; `furnitureKey` (`"bed:queen"`, `"counter"`).
   - `placement(at, angle, width, depth)` is a piece's frame (`u` across the front, `v` back to front), with
     `local`/`toLocal`/`corners`. **Always get a piece's position from `placeFurniture(layer, f)`**: it lays a kitchen
     sink out from its counter (offset clamped inside it, 3 cm forward) and returns null when the counter is gone.
@@ -43,7 +44,11 @@ then (`0acdce9`) a kitchen island and (`3657510`) sofas.
   - `furnitureTarget`: `wall` pieces back up to the nearest wall face (not open edges or outlines) within
     `depth + FURNITURE_REACH_M` (0.4 m),
     facing into the room and kept from hanging past the wall's ends; a chair faces a nearby table (round: radially;
-    square: the side the cursor is most past), tucked 10 cm under it; tables are free. A kitchen sink goes in a
+    square: the side the cursor is most past), tucked 10 cm under it, but never to a coffee table; square and round
+    tables are free. A **coffee table** (`table` style `coffee`, 1.20 × 0.60 m, 0.42 m high, snap `sofa`) put
+    within reach of the space in front of a sofa's main seat (the first such sofa on the layer) is centred in front
+    of that seat `COFFEE_GAP` (0.40 m) out, squared to the sofa; a sectional's main seat stops short of its return
+    (`SOFA.chaise`) and is only `SOFA.seat` deep, mirrored with `mirror`; elsewhere it stands free. A kitchen sink goes in a
     counter within reach or gets a `problem` (no counter; counter shorter than the sink), with or without snap/Alt.
     Wall thickness comes in as a callback (`hostThickness`).
   - `furnitureAt`: the smallest piece under the point (a sink beats its counter), top layer first.
@@ -77,7 +82,8 @@ then (`0acdce9`) a kitchen island and (`3657510`) sofas.
   its catalogue size; a kitchen sink has none), width and depth (or diameter), *Turned*, *Flip* for a sectional
   (toggles `mirror`), hints, *Turn*. The field
   shows only when the piece has a style (a counter's is optional); a counter and an island differ in `snap`, so it
-  never switches one into the other.
+  never switches one into the other, and likewise a coffee table and a square or round one. The title adds the kind
+  for beds, bathtubs and tables ("Coffee table").
 
 ## In 3-D
 
@@ -88,10 +94,10 @@ tubs with real holes (a corner tub: quarter-disc rim and basin, smooth), a showe
 the rim or tray to 1.95 m, a shower's 0.05 m tray and 2.0 m glass screen with a metal edge post, a toilet (pedestal,
 bowl ring at 0.30–0.40 m, cistern to 0.78 m), a bidet with its tap, beds, sofas (wood plinth to 0.10 m, then fabric:
 seat over the outline to 0.45, back to 0.85, arms to 0.62, none on a sectional's return; `mirror` via a min/max box
-helper), tables and chairs, in the new `ceramic`, `wood` and `fabric` materials.
+helper), tables (a coffee table: rounded top at 0.38–0.42 m, a shelf at 0.10–0.12, four legs) and chairs, in the new `ceramic`, `wood` and `fabric` materials.
 
 ## Limits (2026-11-04)
 
-Pieces do not follow walls that move; *Move to layer* in the Selection panel moves lines and areas, not furniture; a
+Pieces do not follow walls that move, nor a coffee table its sofa; *Move to layer* in the Selection panel moves lines and areas, not furniture; a
 kitchen sink needs a counter on its own layer; counters are straight; nothing snaps a corner tub into a corner (it
 backs up to one wall face like other wall pieces).
