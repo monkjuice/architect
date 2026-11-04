@@ -20,8 +20,22 @@ const FILL: Record<SolidMaterial, string> = {
   gate: '#76797d',
   floor: '#dcd7ce',
   paving: '#cdc7bd',
+  stone: '#ece3cf',
+  metal: '#4a4d51',
+  brick: '#b5694e',
+  soot: '#2a2725',
+  ceramic: '#f7f6f2',
+  wood: '#b0825c',
+  fabric: '#a3adc2',
 }
 const INK = '#2a2a2d'
+
+/** A paper colour darkened for a face turned away from the viewer, so round columns and slopes read as such. */
+function shade(hex: string, facing: number): string {
+  const k = 0.72 + 0.28 * facing
+  const c = (i: number) => Math.round(parseInt(hex.slice(i, i + 2), 16) * k)
+  return `rgb(${c(1)},${c(3)},${c(5)})`
+}
 const PAPER = '#fbfaf7'
 const FONT = "Inter, 'Segoe UI', system-ui, sans-serif"
 
@@ -114,9 +128,11 @@ function ElevationDrawing({ view, elevation: e, svgRef }: { view: ElevationView;
       <text x={x0 + fs} y={y0 + fs * 1.8} fontSize={fs * 1.3} fontWeight={600} fill={INK}>
         {title}
       </text>
-      {e.polygons.map((p, i) => (
-        <polygon key={i} points={p.pts.map((q) => `${q.x},${-q.y}`).join(' ')} fill={FILL[p.material]} strokeLinejoin="round" {...line} />
-      ))}
+      {e.polygons.map((p, i) => {
+        const fill = shade(FILL[p.material], p.facing)
+        // facets of a round surface are drawn in their own colour: lines between them would merge into a dark bar
+        return <polygon key={i} points={p.pts.map((q) => `${q.x},${-q.y}`).join(' ')} fill={fill} strokeLinejoin="round" {...line} stroke={p.smooth ? fill : INK} />
+      })}
       <line x1={b.u0 - 1} y1={0} x2={b.u1 + 1} y2={0} {...line} strokeWidth={2.5} />
       {levels.map((z) => (
         <g key={z}>

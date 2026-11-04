@@ -1,5 +1,18 @@
 import { useSyncExternalStore } from 'react'
-import { findLayer, refExists, type DoorStyle, type GateStyle, type Plan, type Ref, type RoofType, type SegmentKind, type WindowStyle } from '../model/plan'
+import {
+  findLayer,
+  refExists,
+  type ColumnStyle,
+  type DoorStyle,
+  type FireplaceStyle,
+  type FurnitureKind,
+  type GateStyle,
+  type Plan,
+  type Ref,
+  type RoofType,
+  type SegmentKind,
+  type WindowStyle,
+} from '../model/plan'
 
 /** The tabs along the top, in order. */
 export type Tab = 'foundation' | 'floor' | 'roof' | 'elevations' | 'exterior' | 'interior' | 'plumbing' | 'electricity' | 'gas' | 'materials'
@@ -11,6 +24,9 @@ export type ToolId =
   | 'door'
   | 'window'
   | 'gate'
+  | 'fireplace'
+  | 'colonnade'
+  | 'furniture'
   | 'measure'
   | 'pan'
   | 'image-move'
@@ -59,8 +75,12 @@ export interface EditorState {
   tool: ToolId
   /** What the line tool draws. */
   lineKind: SegmentKind
-  /** The style the door, window and gate tools place (picked in the library; D and W keep the last one). */
-  openingStyle: { door: DoorStyle; window: WindowStyle; gate: GateStyle }
+  /** The style the door, window, gate and fireplace tools place (picked in the library; D and W keep the last one). */
+  openingStyle: { door: DoorStyle; window: WindowStyle; gate: GateStyle; fireplace: FireplaceStyle }
+  /** The columns the colonnade tool puts on an open edge. */
+  columnStyle: ColumnStyle
+  /** The piece the furniture tool puts down (picked in the library). */
+  furniturePick: { kind: FurnitureKind; style?: string }
   /** The type new roofs get (the Roof tab's toolbar). */
   roofType: RoofType
   /** Zoom and pan; absent: the canvas fits the plan once and stores that fit (start, Fit, new plan or image). */
@@ -88,7 +108,9 @@ export class EditorStore {
       activeLayer: validLayer(plan, extra.activeLayer),
       tool: 'select',
       lineKind: 'wall',
-      openingStyle: { door: 'single', window: 'sliding', gate: 'single' },
+      openingStyle: { door: 'single', window: 'sliding', gate: 'single', fireplace: 'masonry' },
+      columnStyle: 'roman',
+      furniturePick: { kind: 'counter' },
       roofType: 'gable',
       view: extra.view,
       file,

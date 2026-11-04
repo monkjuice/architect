@@ -1,12 +1,13 @@
-import { connectVertex, segmentsAt, setAreaAnchors, setVertices, updateOpening } from '../../../model/edit'
+import { connectVertex, moveFurniture, segmentsAt, setAreaAnchors, setVertices, turnFurniture, updateFurniture, updateOpening } from '../../../model/edit'
+import { FURNITURE_REACH_M, furnitureAt, furnitureInBox, furnitureTarget, infoOf, placeFurniture, showerAt, showerPoint, type FurnitureTarget } from '../../../model/furniture'
 import { openingAt, openingTarget, type OpeningTarget } from '../../../model/openings'
-import { add, constrainAngle, len, sub, type Box, type Vec } from '../../../model/geometry'
+import { add, constrainAngle, dist, len, sub, type Box, type Vec } from '../../../model/geometry'
 import { areasInBox, hitTest, segmentsInBox, selectedVertices } from '../../../model/pick'
 import { findLayer, isEditable, sameRef, type Plan, type Ref } from '../../../model/plan'
 import { pointInPolygon } from '../../../model/regions'
 import { findSnap, type Snap } from '../../../model/snap'
 import { deleteSelection, selectAll } from '../../../state/actions'
-import { drawnHalfWidth, getPlacedAreas, type PlacedArea } from '../../../state/derived'
+import { drawnHalfWidth, getPlacedAreas, hostThickness, type PlacedArea } from '../../../state/derived'
 import { areaLabelAt } from '../areas'
 import { openingOverlay } from './opening'
 import { DRAG_PX, HIT_SEGMENT_PX, HIT_VERTEX_PX, SNAP_PX, WALL_REACH_PX, type PointerInfo, type Tool, type ToolContext } from './types'
@@ -34,6 +35,26 @@ type Drag =
       snap?: Snap
       /** A lone area label being dragged: it settles in whichever region it is dropped in. */
       label?: { layer: string; id: string }
+      /** Furniture that moves along with the rest (a kitchen sink goes with its counter). */
+      furniture: Ref[]
+    }
+  | {
+      /** A lone piece of furniture: it snaps as it does when put down (to a wall, into a counter, to a table). */
+      kind: 'furniture'
+      layer: string
+      id: string
+      /** Where it was grabbed, from its centre. */
+      grab: Vec
+      start: Vec
+      moved: boolean
+      target?: FurnitureTarget
+    }
+  | {
+      /** A bathtub's shower head, moved round its rim. */
+      kind: 'shower'
+      layer: string
+      id: string
+      moved: boolean
     }
   | {
       /** A door or window sliding along its wall, or onto another wall of its layer. */
@@ -67,7 +88,19 @@ export function createSelectTool(ctx: ToolContext): Tool {
   let drag: Drag | null = null
   let hover: Ref | null = null
 
-  /** Area labels sit on top, so they win; then points, doors and windows, and lines. */
+  /** A selected bathtub whose shower head is under the cursor. */
+  const showerHandle = (e: PointerInfo): { layer: string; id: string } | null => {
+    const { plan, selection } = store.getState()
+    for (const r of selection) {
+      const layer = r.kind === 'furniture' ? findLayer(plan, r.layer) : undefined
+      const f = isEditable(layer) ? layer.furniture[r.id] : undefined
+      const pl = f?.kind === 'bathtub' ? placeFurniture(layer!, f) : null
+      if (f?.kind === 'bathtub' && pl && dist(showerPoint(pl, f.shower), e.p) <= Math.max(HIT_VERTEX_PX * e.px, 0.08)) return { layer: r.layer, id: r.id }
+    }
+    return null
+  }
+
+  /** Area labels sit on top, so they win; then points, doors and windows, furniture, and lines. */
   const hit = (e: PointerInfo): Ref | null => {
     const { plan, activeLayer } = store.getState()
     const { areaNames, areaSizes } = ctx.prefs()
@@ -75,8 +108,10 @@ export function createSelectTool(ctx: ToolContext): Tool {
     if (label) return areaRef(label)
     const vertex = hitTest(plan, e.p, activeLayer, HIT_VERTEX_PX * e.px, 0)
     if (vertex) return vertex
-    const opening = openingAt(plan, e.p, HIT_SEGMENT_PX * e.px)
+    const opening = openingAt(plan, e.p, HIT_SEGMENT_PX * e.px, (layer, segment) => hostThickness(layer, segment) / 2)
     if (opening) return { layer: opening.layer, kind: 'opening', id: opening.id }
+    const piece = furnitureAt(plan, e.p)
+    if (piece) return { layer: piece.layer, kind: 'furniture', id: piece.id }
     return hitTest(plan, e.p, activeLayer, 0, HIT_SEGMENT_PX * e.px, drawnHalfWidth)
   }
 
@@ -102,6 +137,11 @@ export function createSelectTool(ctx: ToolContext): Tool {
 
     down(e) {
       const { plan, selection } = store.getState()
+      const shower = showerHandle(e)
+      if (shower) {
+        drag = { kind: 'shower', ...shower, moved: false }
+        return
+      }
       const target = hit(e)
       if (!target) {
         if (!e.shift) store.select([])
@@ -120,6 +160,12 @@ export function createSelectTool(ctx: ToolContext): Tool {
       store.setActiveLayer(target.layer)
       if (target.kind === 'opening' && refs.length === 1) {
         drag = { kind: 'opening', layer: target.layer, id: target.id, start: e.p, moved: false }
+        return
+      }
+      if (target.kind === 'furniture' && refs.length === 1) {
+        const layer = findLayer(plan, target.layer)!
+        const at = placeFurniture(layer, layer.furniture[target.id])!.at
+        drag = { kind: 'furniture', layer: target.layer, id: target.id, grab: sub(e.p, at), start: e.p, moved: false }
         return
       }
       const vertices: Positions = new Map()
@@ -143,6 +189,7 @@ export function createSelectTool(ctx: ToolContext): Tool {
         anchors,
         single: lone && target.kind === 'vertex' ? { layer: target.layer, id: target.id, origin: findLayer(plan, target.layer)!.vertices[target.id] } : undefined,
         label: lone && target.kind === 'area' ? { layer: target.layer, id: target.id } : undefined,
+        furniture: refs.filter((r) => r.kind === 'furniture'),
       }
     },
 
@@ -160,9 +207,51 @@ export function createSelectTool(ctx: ToolContext): Tool {
         ctx.redraw()
         return
       }
+      if (drag.kind === 'shower') {
+        const { layer, id } = drag
+        drag.moved = true
+        store.preview((base) => {
+          const l = findLayer(base, layer)!
+          const f = l.furniture[id]
+          const pl = f?.kind === 'bathtub' ? placeFurniture(l, f) : null
+          return f?.kind === 'bathtub' && pl ? updateFurniture(base, layer, id, { ...f, shower: showerAt(pl, e.p) }) : base
+        })
+        return
+      }
       let delta = sub(e.p, drag.start)
       if (!drag.moved && len(delta) < DRAG_PX * e.px) return
       drag.moved = true
+      if (drag.kind === 'furniture') {
+        const { layer, id, grab } = drag
+        const f = findLayer(store.getState().plan, layer)?.furniture[id]
+        if (!f) return
+        const info = infoOf(f)
+        // a kitchen sink follows the cursor along its counter; everything else is carried by where it was grabbed
+        const p = 'at' in f ? sub(e.p, grab) : e.p
+        const target = furnitureTarget(store.getState().plan, p, {
+          kind: f.kind,
+          style: info.style,
+          width: f.width,
+          depth: f.depth,
+          angle: 'angle' in f ? f.angle : 0,
+          layer,
+          reach: FURNITURE_REACH_M,
+          snap: !e.alt && ctx.prefs().snap,
+          thickness: hostThickness,
+          ignore: id,
+        })
+        drag.target = target ?? undefined
+        if (!target || target.problem) {
+          ctx.redraw()
+          return
+        }
+        store.preview((base) => {
+          const g = findLayer(base, layer)?.furniture[id]
+          if (!g) return base
+          return updateFurniture(base, layer, id, 'at' in g ? { ...g, at: target.at, angle: target.angle } : { ...g, counter: target.counter!, offset: target.offset! })
+        })
+        return
+      }
       if (drag.kind === 'opening') {
         const { layer, id } = drag
         const { plan, activeLayer } = store.getState()
@@ -177,6 +266,7 @@ export function createSelectTool(ctx: ToolContext): Tool {
           snap: !e.alt && ctx.prefs().snap,
           ignore: id,
           halfWidth: drawnHalfWidth,
+          kind: o.kind,
         })
         drag.target = target ?? undefined
         drag.cursor = e.p
@@ -184,7 +274,7 @@ export function createSelectTool(ctx: ToolContext): Tool {
         ctx.redraw()
         return
       }
-      const { single, vertices, anchors } = drag
+      const { single, vertices, anchors, furniture } = drag
       if (single) {
         const layer = findLayer(store.getState().plan, single.layer)!
         const snap = findSnap(store.getState().plan, add(single.origin, delta), {
@@ -201,7 +291,7 @@ export function createSelectTool(ctx: ToolContext): Tool {
       }
       if (e.shift) delta = constrainAngle({ x: 0, y: 0 }, delta).point
       const d = delta
-      store.preview((base) => setAreaAnchors(setVertices(base, moved(vertices, d)), moved(anchors, d)))
+      store.preview((base) => moveFurniture(setAreaAnchors(setVertices(base, moved(vertices, d)), moved(anchors, d)), base, furniture, d))
     },
 
     up(e) {
@@ -212,7 +302,7 @@ export function createSelectTool(ctx: ToolContext): Tool {
         const box = boxOf(d.start, d.end)
         if (Math.max(box.x1 - box.x0, box.y1 - box.y0) >= DRAG_PX * e.px) {
           const { plan, selection } = store.getState()
-          const inside = [...segmentsInBox(plan, box), ...areasInBox(plan, box)]
+          const inside = [...segmentsInBox(plan, box), ...areasInBox(plan, box), ...furnitureInBox(plan, box).map((f) => ({ ...f, kind: 'furniture' as const }))]
           store.select(d.additive ? [...selection, ...inside.filter((r) => !selection.some((c) => sameRef(c, r)))] : inside)
         } else if (d.inside) {
           store.select(d.additive ? [...store.getState().selection, d.inside] : [d.inside])
@@ -222,7 +312,7 @@ export function createSelectTool(ctx: ToolContext): Tool {
         return
       }
       if (!d.moved) return
-      if (d.kind === 'opening') {
+      if (d.kind === 'opening' || d.kind === 'furniture' || d.kind === 'shower') {
         store.endGesture()
         ctx.redraw()
         return
@@ -266,6 +356,11 @@ export function createSelectTool(ctx: ToolContext): Tool {
         deleteSelection()
         return true
       }
+      const pieces = store.getState().selection.filter((r) => r.kind === 'furniture')
+      if (e.key.toLowerCase() === 'r' && !mod && !drag && pieces.length) {
+        store.edit((plan) => turnFurniture(plan, pieces))
+        return true
+      }
       if (mod && e.key.toLowerCase() === 'a') {
         selectAll()
         return true
@@ -284,6 +379,7 @@ export function createSelectTool(ctx: ToolContext): Tool {
         const data = openingOverlay(plan, shown, drag.target, drag.cursor, `${drag.target.gaps[0].toFixed(2)}  |  ${drag.target.gaps[1].toFixed(2)}`)
         return drag.target.problem ? data : { ...data, opening: undefined }
       }
+      if (drag?.kind === 'furniture' && drag.target?.problem) return { tag: { p: drag.target.at, text: drag.target.problem, style: 'warning' } }
       return {
         hover: !drag && hover && !selected.some((r) => sameRef(r, hover)) ? hover : undefined,
         marquee: drag?.kind === 'box' ? boxOf(drag.start, drag.end) : undefined,

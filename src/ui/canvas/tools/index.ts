@@ -1,5 +1,7 @@
 import type { ToolId } from '../../../state/store'
 import { createAreaTool } from './area'
+import { createColonnadeTool } from './colonnade'
+import { createFurnitureTool } from './furniture'
 import { createCalibrateTool, createCropTool, createImageMoveTool, createLevelTool } from './image'
 import { createNorthTool } from './north'
 import { createLineTool } from './line'
@@ -18,6 +20,9 @@ export function createTools(ctx: ToolContext): Record<ToolId, Tool> {
     door: createOpeningTool(ctx, 'door'),
     window: createOpeningTool(ctx, 'window'),
     gate: createOpeningTool(ctx, 'gate'),
+    fireplace: createOpeningTool(ctx, 'fireplace'),
+    colonnade: createColonnadeTool(ctx),
+    furniture: createFurnitureTool(ctx),
     measure: createMeasureTool(ctx),
     // the canvas pans with a left drag while this tool is active
     pan: { cursor: () => 'grab', overlay: () => ({}) },
@@ -61,6 +66,18 @@ export const TOOL_INFO: Record<ToolId, { title: string; key?: string; hint: stri
   gate: {
     title: 'Gate',
     hint: 'Hover a fence or wall and click to put a gate in it (style: pick it in the library); it swings to the side the cursor is on, a sliding gate parks towards the side with more fence · type a width · X: other way · Alt: no snap',
+  },
+  fireplace: {
+    title: 'Fireplace',
+    hint: 'Hover a wall and click to put a fireplace against it, on the side the cursor is on; its chimney goes up through the roof over it · type a width · Alt: no snap',
+  },
+  colonnade: {
+    title: 'Colonnade',
+    hint: "Click an open edge (a gallery's front) to stand columns along it, the style picked in the library; set their spacing in the Selection panel",
+  },
+  furniture: {
+    title: 'Furniture',
+    hint: 'Click to put the piece picked in the library down: near a wall it backs up to it, a kitchen sink goes in a counter, a chair faces a table · R: turn · Alt: no snap',
   },
   measure: {
     title: 'Measure',

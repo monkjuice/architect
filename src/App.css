@@ -736,7 +736,7 @@ button.icon {
   left: 12px;
 }
 
-.canvas.roof-mode :is(.layer, .openings) {
+.canvas.roof-mode :is(.layer, .openings, .columns, .furnishings) {
   opacity: 0.35;
 }
 
@@ -807,6 +807,13 @@ button.icon {
 
 .roof.problem .roof-detail {
   fill: var(--warning);
+}
+
+/* a fireplace's chimney, where it comes up through the roof */
+.roof-chimney {
+  fill: var(--bg);
+  stroke: var(--text);
+  stroke-width: 1.5;
 }
 
 .roof-corner {
@@ -1144,6 +1151,116 @@ button.icon {
   fill: none;
   stroke: var(--layer);
   stroke-width: 1.5;
+}
+
+/* a fireplace stands against its wall: a brick surround, its dark firebox, the hearth before it and the flue */
+.opening.fireplace .fireplace-box {
+  fill: rgba(181, 105, 78, 0.35);
+}
+
+.opening.fireplace .fireplace-fire {
+  fill: #1b1917;
+  stroke-width: 1;
+}
+
+.opening.fireplace .fireplace-hearth {
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.opening.fireplace .fireplace-flue {
+  stroke-width: 1;
+}
+
+/* furniture at its real size: an outline faintly filled, and the lines that say what it is */
+.furnishings {
+  pointer-events: none;
+}
+
+.furnishings.locked {
+  opacity: 0.6;
+}
+
+.furniture :is(polygon, polyline, circle) {
+  fill: none;
+  stroke: var(--layer);
+  stroke-width: 1.25;
+}
+
+.furniture .furniture-outline {
+  fill: var(--layer);
+  fill-opacity: 0.08;
+  stroke-width: 1.5;
+}
+
+.furniture .furniture-detail {
+  stroke-width: 1;
+}
+
+.furniture .furniture-soft {
+  stroke-width: 0.75;
+  opacity: 0.7;
+}
+
+.furniture .furniture-heavy {
+  stroke-width: 2.5;
+}
+
+/* a bathtub's shower head: a filled mark, which is also its handle */
+.furniture.bathtub circle.furniture-heavy {
+  fill: var(--layer);
+  stroke-width: 1.5;
+}
+
+.furniture.hovered :is(polygon, polyline, circle) {
+  stroke: var(--hover);
+}
+
+.furniture.selected :is(polygon, polyline, circle) {
+  stroke: var(--selection);
+}
+
+.furniture.selected.bathtub circle.furniture-heavy {
+  fill: var(--selection);
+}
+
+.furniture.preview {
+  opacity: 0.75;
+}
+
+.furniture.preview.problem :is(polygon, polyline, circle) {
+  stroke: var(--error);
+}
+
+.library-icon .furniture :is(polygon, polyline, circle) {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1;
+}
+
+/* colonnades: columns at their real size, Roman ones on a square plinth */
+.columns {
+  pointer-events: none;
+}
+
+.columns.locked {
+  opacity: 0.6;
+}
+
+.column-shaft {
+  fill: var(--layer);
+  fill-opacity: 0.35;
+  stroke: var(--layer);
+  stroke-width: 1.5;
+}
+
+.colonnade.metal .column-shaft {
+  fill-opacity: 1;
+}
+
+.column-plinth {
+  fill: none;
+  stroke: var(--layer);
+  stroke-width: 1;
 }
 
 .opening .opening-panel {

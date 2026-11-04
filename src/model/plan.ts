@@ -18,6 +18,11 @@ import { z } from 'zod'
  *
  * Doors, windows and gates are openings hosted by a segment: they sit at a distance along it, so they follow it when
  * it moves, and they leave a gap in the line. They do not open regions: a room stays closed through its doors.
+ * A fireplace is hosted the same way, against one side of a wall, but leaves no gap; its chimney goes up through
+ * the roof. An open edge can carry a colonnade: columns shared out along it under a beam.
+ *
+ * Furniture and fixtures (counters, sinks, bathtubs, beds, tables, chairs) stand where they are put, turned to
+ * an angle; a kitchen sink sits in a counter and goes where its counter goes (see furniture.ts).
  *
  * Roofs are outlines drawn over a layer's plan (the Roof tab), each with a type and slope (see roofs.ts). They do
  * not follow the walls: they are drawn to cover them.
@@ -34,6 +39,8 @@ const Positive = z.number().positive()
 
 export const VecSchema = z.strictObject({ x: Num, y: Num })
 
+export const COLUMN_STYLES = ['roman', 'metal'] as const
+
 export const SegmentSchema = z.strictObject({
   a: z.string().min(1),
   b: z.string().min(1),
@@ -46,6 +53,11 @@ export const SegmentSchema = z.strictObject({
   thickness: Positive.optional(),
   /** A wall's height in m; absent: the usual height (see walls.ts). */
   height: Positive.optional(),
+  /**
+   * An open edge's columns: their style and the most they stand apart, in m (they are shared out evenly along
+   * it, see colonnades.ts). Kept but unused while the segment is another kind.
+   */
+  colonnade: z.strictObject({ style: z.enum(COLUMN_STYLES), spacing: Positive }).optional(),
 })
 
 export type SegmentKind = 'wall' | 'open' | 'outline'
@@ -61,6 +73,7 @@ export const AreaSchema = z.strictObject({
 export const DOOR_STYLES = ['single', 'double', 'sliding'] as const
 export const WINDOW_STYLES = ['fixed', 'sliding', 'double-hung', 'awning', 'casement'] as const
 export const GATE_STYLES = ['single', 'double', 'sliding'] as const
+export const FIREPLACE_STYLES = ['masonry'] as const
 
 const OpeningFields = {
   /** The segment it sits in. */
@@ -75,7 +88,7 @@ const OpeningFields = {
   hinge: z.enum(['a', 'b']).default('a'),
   /**
    * The side of the segment it opens or slides to, looking from `a` to `b`: into the room for a door, outside
-   * for a casement or an awning.
+   * for a casement or an awning; the side a fireplace stands on.
    */
   swing: z.enum(['left', 'right']).default('left'),
 }
@@ -88,7 +101,57 @@ export const WindowSchema = z.strictObject({ kind: z.literal('window'), style: z
 /** Gates go in fences and boundary walls (often open edges): a pedestrian leaf, a pair, or a sliding gate. */
 export const GateSchema = z.strictObject({ kind: z.literal('gate'), style: z.enum(GATE_STYLES).default('single'), ...OpeningFields })
 
-export const OpeningSchema = z.discriminatedUnion('kind', [DoorSchema, WindowSchema, GateSchema])
+/** A fireplace against a wall, in the room on its `swing` side; it cuts no gap in the wall. */
+export const FireplaceSchema = z.strictObject({ kind: z.literal('fireplace'), style: z.enum(FIREPLACE_STYLES).default('masonry'), ...OpeningFields })
+
+export const OpeningSchema = z.discriminatedUnion('kind', [DoorSchema, WindowSchema, GateSchema, FireplaceSchema])
+
+export const SINK_STYLES = ['outdoor', 'kitchen', 'bathroom'] as const
+export const BATHTUB_STYLES = ['alcove', 'clawfoot', 'drop-in'] as const
+export const BED_STYLES = ['single', 'double', 'queen', 'king'] as const
+export const TABLE_STYLES = ['square', 'circle'] as const
+
+const Standing = {
+  /** Its centre on the plan, in m. */
+  at: VecSchema,
+  /** Turned clockwise on screen, in degrees; at 0 its back is up the sheet and its front faces down. */
+  angle: Num,
+  /** Across its front, and from its back to its front, in m (a round table's diameter is its width). */
+  width: Positive,
+  depth: Positive,
+}
+
+export const CounterSchema = z.strictObject({ kind: z.literal('counter'), ...Standing })
+
+/** A kitchen sink sits in a counter, `offset` m from the counter's left end to its own centre. */
+export const KitchenSinkSchema = z.strictObject({
+  kind: z.literal('sink'),
+  style: z.literal('kitchen'),
+  counter: z.string().min(1),
+  offset: Num,
+  width: Positive,
+  depth: Positive,
+})
+
+export const StandingSinkSchema = z.strictObject({ kind: z.literal('sink'), style: z.enum(['outdoor', 'bathroom']), ...Standing })
+
+export const SinkSchema = z.discriminatedUnion('style', [KitchenSinkSchema, StandingSinkSchema])
+
+export const BathtubSchema = z.strictObject({
+  kind: z.literal('bathtub'),
+  style: z.enum(BATHTUB_STYLES),
+  ...Standing,
+  /** Where the shower head is round the rim: 0–1 along the back from its left end, 1–2 down the right, 2–3 the front, 3–4 up the left. */
+  shower: z.number().min(0).max(4),
+})
+
+export const BedSchema = z.strictObject({ kind: z.literal('bed'), style: z.enum(BED_STYLES), ...Standing })
+
+export const TableSchema = z.strictObject({ kind: z.literal('table'), style: z.enum(TABLE_STYLES), ...Standing })
+
+export const ChairSchema = z.strictObject({ kind: z.literal('chair'), ...Standing })
+
+export const FurnitureSchema = z.discriminatedUnion('kind', [CounterSchema, SinkSchema, BathtubSchema, BedSchema, TableSchema, ChairSchema])
 
 export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip'] as const
 
@@ -122,6 +185,8 @@ export const LayerSchema = z.strictObject({
   openings: z.record(z.string(), OpeningSchema).default({}),
   /** Roofs over this layer's walls. Files from before roofs lack it. */
   roofs: z.record(z.string(), RoofSchema).default({}),
+  /** Furniture and fixtures in this layer's rooms. Files from before furniture lack it. */
+  furniture: z.record(z.string(), FurnitureSchema).default({}),
 })
 
 /** A known length on the image: two points in image pixels and the real distance between them in meters. */
@@ -178,8 +243,16 @@ export type OpeningKind = Opening['kind']
 export type DoorStyle = (typeof DOOR_STYLES)[number]
 export type WindowStyle = (typeof WINDOW_STYLES)[number]
 export type GateStyle = (typeof GATE_STYLES)[number]
-export type OpeningStyle = DoorStyle | WindowStyle | GateStyle
+export type FireplaceStyle = (typeof FIREPLACE_STYLES)[number]
+export type OpeningStyle = DoorStyle | WindowStyle | GateStyle | FireplaceStyle
+export type ColumnStyle = (typeof COLUMN_STYLES)[number]
+export type Colonnade = NonNullable<Segment['colonnade']>
 export type Roof = z.infer<typeof RoofSchema>
+export type Furniture = z.infer<typeof FurnitureSchema>
+export type FurnitureKind = Furniture['kind']
+export type KitchenSink = z.infer<typeof KitchenSinkSchema>
+/** Everything but a kitchen sink stands where it is put. */
+export type StandingFurniture = Exclude<Furniture, KitchenSink>
 export type RoofType = (typeof ROOF_TYPES)[number]
 export type Layer = z.infer<typeof LayerSchema>
 export type Calibration = z.infer<typeof CalibrationSchema>
@@ -192,7 +265,7 @@ export type Site = z.infer<typeof SiteSchema>
 export const LAYER_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f59e0b', '#14b8a6', '#ec4899']
 
 export function createLayer(id: string, name: string, color = LAYER_COLORS[0]): Layer {
-  return { id, name, color, visible: true, locked: false, vertices: {}, segments: {}, areas: {}, openings: {}, roofs: {} }
+  return { id, name, color, visible: true, locked: false, vertices: {}, segments: {}, areas: {}, openings: {}, roofs: {}, furniture: {} }
 }
 
 export function createPlan(): Plan {
@@ -207,10 +280,10 @@ export function createPlan(): Plan {
 
 export const segmentKind = (s: Segment): SegmentKind => s.kind ?? 'wall'
 
-/** One selectable item of a layer: a segment, a vertex, an area, an opening (door or window) or a roof. */
+/** One selectable item of a layer: a segment, a vertex, an area, an opening (door or window), a roof or a piece of furniture. */
 export interface Ref {
   layer: string
-  kind: 'segment' | 'vertex' | 'area' | 'opening' | 'roof'
+  kind: 'segment' | 'vertex' | 'area' | 'opening' | 'roof' | 'furniture'
   id: string
 }
 
@@ -218,7 +291,7 @@ export interface Ref {
 export function refExists(plan: Plan, r: Ref): boolean {
   const layer = findLayer(plan, r.layer)
   if (!layer) return false
-  const items = { segment: layer.segments, vertex: layer.vertices, area: layer.areas, opening: layer.openings, roof: layer.roofs }[r.kind]
+  const items = { segment: layer.segments, vertex: layer.vertices, area: layer.areas, opening: layer.openings, roof: layer.roofs, furniture: layer.furniture }[r.kind]
   return !!items[r.id]
 }
 
@@ -247,6 +320,11 @@ export function checkIntegrity(plan: Plan): string[] {
     }
     for (const [id, o] of Object.entries(layer.openings)) {
       if (!layer.segments[o.segment]) errors.push(`layers (${layer.id}).openings.${id}: segment "${o.segment}" does not exist`)
+    }
+    for (const [id, f] of Object.entries(layer.furniture)) {
+      if (f.kind === 'sink' && f.style === 'kitchen' && layer.furniture[f.counter]?.kind !== 'counter') {
+        errors.push(`layers (${layer.id}).furniture.${id}: counter "${f.counter}" does not exist`)
+      }
     }
   }
   return errors

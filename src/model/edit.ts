@@ -6,6 +6,8 @@ import {
   LAYER_COLORS,
   segmentKind,
   type Area,
+  type Colonnade,
+  type Furniture,
   type Layer,
   type Opening,
   type OpeningStyle,
@@ -39,6 +41,7 @@ export function draftLayer(layer: Layer): Layer {
     areas: { ...layer.areas },
     openings: { ...layer.openings },
     roofs: { ...layer.roofs },
+    furniture: { ...layer.furniture },
   }
 }
 
@@ -263,10 +266,12 @@ export function deleteItems(plan: Plan, refs: readonly Ref[]): Plan {
         else if (ref.kind === 'area') delete d.areas[ref.id]
         else if (ref.kind === 'opening') delete d.openings[ref.id]
         else if (ref.kind === 'roof') delete d.roofs[ref.id]
+        else if (ref.kind === 'furniture') delete d.furniture[ref.id]
         else for (const id of segmentsAt(d, ref.id)) delete d.segments[id]
       }
       removeOrphans(d)
       pruneOpenings(d)
+      pruneFurniture(d)
     })
   }
   return next
@@ -317,6 +322,28 @@ export function updateWalls(plan: Plan, refs: readonly Ref[], patch: WallPatch):
         }
         if (w.thickness === s.thickness && w.height === s.height) continue
         d.segments[ref.id] = w
+        changed = true
+      }
+      return changed
+    })
+  }
+  return next
+}
+
+/** Puts a colonnade on the open edges among `refs`, or takes theirs away with null; the same plan when nothing changes. */
+export function setColonnade(plan: Plan, refs: readonly Ref[], colonnade: Colonnade | null): Plan {
+  let next = plan
+  for (const layerId of new Set(refs.filter((r) => r.kind === 'segment').map((r) => r.layer))) {
+    next = editLayer(next, layerId, (d) => {
+      let changed = false
+      for (const ref of refs) {
+        const s = ref.layer === layerId && ref.kind === 'segment' ? d.segments[ref.id] : undefined
+        if (!s || segmentKind(s) !== 'open') continue
+        if (colonnade === null ? !s.colonnade : s.colonnade?.style === colonnade.style && s.colonnade.spacing === colonnade.spacing) continue
+        const c = { ...s }
+        if (colonnade === null) delete c.colonnade
+        else c.colonnade = { ...colonnade }
+        d.segments[ref.id] = c
         changed = true
       }
       return changed
@@ -512,6 +539,62 @@ export function moveRoofs(plan: Plan, from: Plan, refs: readonly Ref[], delta: V
   for (const ref of refs) {
     const roof = ref.kind === 'roof' ? findLayer(from, ref.layer)?.roofs[ref.id] : undefined
     if (roof) next = updateRoof(next, ref.layer, ref.id, { outline: roof.outline.map((p) => ({ x: p.x + delta.x, y: p.y + delta.y })) })
+  }
+  return next
+}
+
+// ---- furniture: it only touches a layer's furniture map
+
+function withFurniture(plan: Plan, layerId: string, change: (furniture: Record<string, Furniture>) => boolean | void): Plan {
+  const layer = findLayer(plan, layerId)
+  if (!layer) return plan
+  const furniture = { ...layer.furniture }
+  return change(furniture) === false ? plan : replaceLayer(plan, { ...layer, furniture })
+}
+
+/** Removes kitchen sinks whose counter is gone. */
+export function pruneFurniture(d: Layer) {
+  for (const [id, f] of Object.entries(d.furniture)) if (f.kind === 'sink' && f.style === 'kitchen' && d.furniture[f.counter]?.kind !== 'counter') delete d.furniture[id]
+}
+
+export function addFurniture(plan: Plan, layerId: string, item: Furniture): { plan: Plan; id: string } | null {
+  if (!findLayer(plan, layerId)) return null
+  let id = ''
+  const next = withFurniture(plan, layerId, (furniture) => {
+    id = nextId('f', furniture)
+    furniture[id] = item
+  })
+  return { plan: next, id }
+}
+
+/** Replaces a piece of furniture; the same plan when nothing changes. */
+export function updateFurniture(plan: Plan, layerId: string, id: string, item: Furniture): Plan {
+  return withFurniture(plan, layerId, (furniture) => {
+    const old = furniture[id]
+    if (!old || JSON.stringify(old) === JSON.stringify(item)) return false
+    furniture[id] = item
+  })
+}
+
+/**
+ * Moves furniture by `delta` from where it stood in `from` (the plan before a drag). A kitchen sink goes with its
+ * counter, so it is not moved by itself.
+ */
+export function moveFurniture(plan: Plan, from: Plan, refs: readonly Ref[], delta: Vec): Plan {
+  let next = plan
+  for (const ref of refs) {
+    const f = ref.kind === 'furniture' ? findLayer(from, ref.layer)?.furniture[ref.id] : undefined
+    if (f && 'at' in f) next = updateFurniture(next, ref.layer, ref.id, { ...f, at: { x: f.at.x + delta.x, y: f.at.y + delta.y } })
+  }
+  return next
+}
+
+/** Turns furniture a quarter turn clockwise (or by `degrees`) where it stands; kitchen sinks turn with their counter. */
+export function turnFurniture(plan: Plan, refs: readonly Ref[], degrees = 90): Plan {
+  let next = plan
+  for (const ref of refs) {
+    const f = ref.kind === 'furniture' ? findLayer(next, ref.layer)?.furniture[ref.id] : undefined
+    if (f && 'angle' in f) next = updateFurniture(next, ref.layer, ref.id, { ...f, angle: (((f.angle + degrees) % 360) + 360) % 360 })
   }
   return next
 }

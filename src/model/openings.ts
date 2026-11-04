@@ -1,5 +1,5 @@
 import { add, clamp, closestOnSegment, cross, dist, dot, EPS, mul, sub, type Vec } from './geometry'
-import { isEditable, type Layer, type Opening, type OpeningKind, type OpeningStyle, type Plan } from './plan'
+import { isEditable, segmentKind, type Layer, type Opening, type OpeningKind, type OpeningStyle, type Plan } from './plan'
 
 export interface StyleInfo {
   kind: OpeningKind
@@ -22,6 +22,7 @@ export const STYLES: readonly StyleInfo[] = [
   { kind: 'gate', style: 'single', title: 'Single', width: 1.0 },
   { kind: 'gate', style: 'double', title: 'Double', width: 3.0 },
   { kind: 'gate', style: 'sliding', title: 'Sliding', width: 4.0 },
+  { kind: 'fireplace', style: 'masonry', title: 'Masonry', width: 1.2 },
 ]
 
 export const styleKey = (kind: OpeningKind, style: OpeningStyle): string => `${kind}:${style}`
@@ -38,7 +39,14 @@ export const hasSide = (o: Pick<Opening, 'kind' | 'style'>): boolean => !(o.kind
 
 /** Whether it hangs from one hinged leaf (or slides one way), which Flip hinge changes. */
 export const hasHinge = (o: Pick<Opening, 'kind' | 'style' | 'width'>): boolean =>
-  o.kind === 'window' ? o.style === 'casement' && o.width < CASEMENT_PAIR : o.kind === 'door' ? o.style === 'single' : o.style !== 'double'
+  o.kind === 'window'
+    ? o.style === 'casement' && o.width < CASEMENT_PAIR
+    : o.kind === 'door'
+      ? o.style === 'single'
+      : o.kind === 'gate' && o.style !== 'double'
+
+/** Whether it leaves a gap in its wall: everything but a fireplace, which stands against it. */
+export const cutsWall = (o: Pick<Opening, 'kind'>): boolean => o.kind !== 'fireplace'
 
 /** A sliding gate's hinge is the end it slides away towards. */
 export const slides = (o: Pick<Opening, 'kind' | 'style'>): boolean => o.kind === 'gate' && o.style === 'sliding'
@@ -88,6 +96,49 @@ export function placeOpening(layer: Layer, o: Opening): PlacedOpening | null {
   }
 }
 
+/** A fireplace: how far its surround stands out from the wall, the hearth before it, and its chimney's width, in m. */
+export const FIREPLACE_DEPTH = 0.5
+export const HEARTH = 0.4
+export const FLUE_WIDTH = 0.7
+
+/** A fireplace on the plan, against the face of its wall on its side. */
+export interface FireplaceShape {
+  /** The masonry surround, its firebox (the opening at its front), and the hearth on the floor before it. */
+  box: Vec[]
+  firebox: Vec[]
+  hearth: Vec[]
+  /** Where its chimney rises: the middle of the surround, against the wall. */
+  flue: Vec[]
+}
+
+/**
+ * A rectangle on an opening's side of its wall: along it from `u0` to `u1` (m from its start), and out from the
+ * wall's face (`half` from its line) from `v0` to `v1`.
+ */
+export function besideWall(p: PlacedOpening, o: Pick<Opening, 'swing'>, half: number) {
+  const side = o.swing === 'left' ? 1 : -1
+  return (u0: number, u1: number, v0: number, v1: number): Vec[] =>
+    [
+      [u0, v0],
+      [u1, v0],
+      [u1, v1],
+      [u0, v1],
+    ].map(([u, v]) => add(add(p.start, mul(p.dir, u)), mul(p.left, side * (half + v))))
+}
+
+export function fireplaceShape(p: PlacedOpening, o: Opening, half: number): FireplaceShape {
+  const w = dist(p.start, p.end)
+  const rect = besideWall(p, o, half)
+  const fire = Math.min(0.75, w * 0.6)
+  const flue = Math.min(FLUE_WIDTH, w)
+  return {
+    box: rect(0, w, 0, FIREPLACE_DEPTH),
+    firebox: rect((w - fire) / 2, (w + fire) / 2, FIREPLACE_DEPTH * 0.35, FIREPLACE_DEPTH),
+    hearth: rect(-0.1, w + 0.1, FIREPLACE_DEPTH, FIREPLACE_DEPTH + HEARTH),
+    flue: rect((w - flue) / 2, (w + flue) / 2, 0, FIREPLACE_DEPTH),
+  }
+}
+
 /** An arc for SVG: from a leaf's tip to the jamb it closes on. */
 export interface Arc {
   from: Vec
@@ -113,6 +164,7 @@ export interface OpeningParts {
   dashed: Vec[][]
   /** Gate posts at the ends of the opening. */
   posts: Vec[][]
+  fireplace?: FireplaceShape
 }
 
 /**
@@ -142,6 +194,11 @@ export function openingParts(p: PlacedOpening, o: Opening, half: number): Openin
     parts.leaves.push([hinge, tip])
     // SVG sweeps clockwise on screen with flag 1, which is a positive cross product in y-down coordinates
     parts.arcs.push({ from: tip, to: jamb, radius, sweep: cross(sub(tip, hinge), sub(jamb, hinge)) > 0 ? 1 : 0 })
+  }
+
+  if (o.kind === 'fireplace') {
+    parts.fireplace = fireplaceShape(p, o, half)
+    return parts
   }
 
   if (o.kind === 'gate') {
@@ -198,11 +255,11 @@ export function openingParts(p: PlacedOpening, o: Opening, half: number): Openin
   return parts
 }
 
-/** The stretches of a segment its openings take, as [from, to] distances from its `a` end, in order. */
+/** The stretches of a segment its openings cut out, as [from, to] distances from its `a` end, in order. */
 export function openingSpans(layer: Layer, segment: string): [number, number][] {
   const spans: [number, number][] = []
   for (const o of Object.values(layer.openings)) {
-    if (o.segment !== segment) continue
+    if (o.segment !== segment || !cutsWall(o)) continue
     const p = placeOpening(layer, o)
     if (p) spans.push([p.offset - Math.min(o.width, p.length) / 2, p.offset + Math.min(o.width, p.length) / 2])
   }
@@ -248,6 +305,8 @@ export interface TargetOptions {
   snap: boolean
   /** An opening to leave out of the overlap check: the one being dragged. */
   ignore?: string
+  /** What goes there: a fireplace only goes against a wall. */
+  kind?: OpeningKind
 }
 
 /**
@@ -260,6 +319,7 @@ export function openingTarget(plan: Plan, p: Vec, opts: TargetOptions): OpeningT
   for (const layer of plan.layers) {
     if (!isEditable(layer) || (opts.layer && layer.id !== opts.layer)) continue
     for (const [id, s] of Object.entries(layer.segments)) {
+      if (opts.kind === 'fireplace' && segmentKind(s) !== 'wall') continue
       const c = closestOnSegment(p, layer.vertices[s.a], layer.vertices[s.b])
       if (c.dist > opts.reach + (opts.halfWidth?.(layer, id) ?? 0)) continue
       if (!best || c.dist < best.d - EPS || (Math.abs(c.dist - best.d) <= EPS && layer.id === opts.activeLayer)) best = { layer, segment: id, t: c.t, d: c.dist }
@@ -316,8 +376,11 @@ export function parkingRoom(layer: Layer, id: string): number {
   return Math.max(0, room)
 }
 
-/** The opening under `p` on an editable layer: near its stretch of wall or one of its leaves. */
-export function openingAt(plan: Plan, p: Vec, reach: number): { layer: string; id: string } | null {
+/**
+ * The opening under `p` on an editable layer: near its stretch of wall or one of its leaves, or on a fireplace's
+ * surround (laid out `half` out from its wall's line).
+ */
+export function openingAt(plan: Plan, p: Vec, reach: number, half?: (layer: Layer, segment: string) => number): { layer: string; id: string } | null {
   let hit: { layer: string; id: string } | null = null
   let best = reach
   for (const layer of plan.layers) {
@@ -326,9 +389,21 @@ export function openingAt(plan: Plan, p: Vec, reach: number): { layer: string; i
       const placed = placeOpening(layer, o)
       if (!placed) continue
       let d = closestOnSegment(p, placed.start, placed.end).dist
-      for (const [a, b] of openingParts(placed, o, 0).leaves) d = Math.min(d, closestOnSegment(p, a, b).dist)
+      const parts = openingParts(placed, o, half?.(layer, o.segment) ?? 0)
+      for (const [a, b] of parts.leaves) d = Math.min(d, closestOnSegment(p, a, b).dist)
+      // a fireplace is picked anywhere on its surround
+      if (parts.fireplace && inside(p, parts.fireplace.box)) d = 0
       if (d < best) [best, hit] = [d, { layer: layer.id, id }]
     }
+  }
+  return hit
+}
+
+function inside(p: Vec, poly: readonly Vec[]): boolean {
+  let hit = false
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [a, b] = [poly[i], poly[j]]
+    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) hit = !hit
   }
   return hit
 }

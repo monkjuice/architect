@@ -1,13 +1,16 @@
 import { memo, type CSSProperties } from 'react'
 import { add, mul, sub, type Vec } from '../../model/geometry'
+import { fireplaceShape, placeOpening } from '../../model/openings'
 import type { Layer, Roof } from '../../model/plan'
 import { labelPoint } from '../../model/regions'
 import { eavesOf, ROOF_TITLES, roofFaces, roofProblem, roofSummary, type RoofFace } from '../../model/roofs'
+import { hostThickness } from '../../state/derived'
+import { flueMark } from './symbols'
 
 /**
  * The roof plan: each roof's slopes shaded by the way they face, as roof plans draw them (light from the top
  * left of the sheet), its eaves line, the walls' line under an overhang (dashed), an arrow down each slope, and
- * a label with its type, pitch and top.
+ * a label with its type, pitch and top. The chimneys of the layer's fireplaces come up through them.
  */
 
 const ring = (pts: readonly Vec[]) => `M${pts.map((p) => `${p.x} ${p.y}`).join('L')}Z`
@@ -35,6 +38,10 @@ export const RoofLayer = memo(function RoofLayer({ layer, zoom, selected, hovere
       {Object.entries(layer.roofs).map(([id, roof]) => (
         <RoofShape key={id} roof={roof} px={1 / zoom} selected={ids.has(id)} hovered={id === hovered} />
       ))}
+      {Object.entries(layer.openings).map(([id, o]) => {
+        const placed = o.kind === 'fireplace' ? placeOpening(layer, o) : null
+        return placed && <path key={id} className="roof-chimney" d={flueMark(fireplaceShape(placed, o, hostThickness(layer, o.segment) / 2).flue)} />
+      })}
     </g>
   )
 })

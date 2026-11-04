@@ -54,8 +54,9 @@ actions. Every tab works on the same plan, with one undo history and one file:
    or drag it there.
 
 The **library** (left panel) holds what can be drawn or placed: line types (wall, open edge, outline) with the length
-of each drawn so far, and door, window and gate styles with how many there are and the width the next one
-gets.
+of each drawn so far, door, window, gate and fireplace styles with how many there are and the width the next one
+gets, colonnades with how many open edges have one and the most their columns stand apart, and furniture
+(counters, sinks, bathtubs, beds, tables, chairs) with how many there are and their size.
 
 ### Walls, open edges, outlines and areas
 
@@ -140,6 +141,55 @@ hinge* appear when they make sense for the style. When a wall is stretched, its 
 split (a new wall meets it), each goes to the piece its centre is on; when it is deleted, they go with it.
 Rooms stay closed through doors: an area does not leak into the next room.
 
+### Fireplaces
+
+A **fireplace** (library, *Fireplaces*: masonry, 1.20 m wide) goes against a wall, in the room on the side the
+cursor is on, and follows the wall like a door does, but cuts no gap in it. In plan it shows its brick surround
+standing 0.50 m out from the wall's face, the dark firebox, the hearth before it (dashed) and its flue (crossed).
+*Flip side* moves it to the other side of the wall. Its **chimney** rises from the mantel (1.10 m) through the
+roof over it to 1 m above the roof there (above a flat roof's parapet; with no roof, 1 m above its wall), under a
+stone cap: it shows on the Roof tab's plan, in the elevations and in 3-D.
+
+### Colonnades
+
+An open edge (a gallery's front, a porch) can carry a **colonnade**: columns shared out evenly along it, no
+farther apart than its spacing, one at each end unless a wall holds that end, under a beam that follows the roof
+over it (or stands level with the walls' height when there is none).
+
+| Columns | |
+|---|---|
+| **Roman** | 0.32 m stone columns on a square plinth, with a round base, a shaft that narrows towards the top and a capital, under a 0.35 m stone beam; 2.40 m apart at most. |
+| **Metal** | 0.10 m round steel posts between plates, under a 0.20 m steel beam; 3.00 m apart at most. |
+
+Pick one in the library (*Colonnades*) and click an open edge, or drag it there; walls and outlines are refused.
+Select an open edge to change its columns (*None*, *Roman*, *Metal*) and their spacing in the Selection panel,
+which also says how many there are. The plan draws each column at its size.
+
+### Furniture
+
+Furniture and fixtures go where you click (pick one in the library, or drag it onto the plan), at their real size:
+
+| | | |
+|---|---|---|
+| **Counter** | 2.40 × 0.60 m, 0.90 m high: cabinets, a toe kick and a stone worktop | backs up to a wall |
+| **Sinks** | *Outdoor* 0.70 × 0.50 m, a stone basin on a pedestal; *Bathroom* 0.60 × 0.45 m, a vanity with its basin; *Kitchen* 0.80 × 0.45 m | outdoor and bathroom back up to a wall; a kitchen sink only goes in a counter |
+| **Bathtubs** | *Alcove* 1.70 × 0.75 m; *Clawfoot* 1.65 × 0.78 m, on feet; *Drop in* 1.85 × 0.95 m, in a deck | back up to a wall |
+| **Beds** | *Single* 0.95 × 2.00, *Double* 1.45 × 2.00, *Queen* 1.65 × 2.10, *King* 1.85 × 2.10 m (mattress and frame) | head to a wall |
+| **Tables** | *Square* 0.90 × 0.90 m, *Circle* Ø 1.10 m, 0.75 m high | stand where they are put |
+| **Chairs** | 0.45 × 0.50 m | turn to face a table they are put by |
+
+Near a wall, a piece that goes against one turns its back to the wall and stands flush with its face (`Alt`
+keeps it from snapping); `R` turns it a quarter turn, while placing or with it selected. A **kitchen sink** sits in
+a counter: it is refused anywhere else, slides along its counter when dragged (or onto another counter), moves and
+turns with its counter, and goes when its counter is deleted. A **bathtub** shows its shower head as a round mark
+on its rim (at its left end at first): select the tub and drag the mark round the rim to move it; in 3-D a riser
+goes up from there to the head at 1.95 m.
+
+Select a piece to drag it (it snaps as when it was put down) or to change its style (a bed's or a table's size
+comes with it), width and depth (a round table's diameter) and turn in the Selection panel. Furniture is drawn on
+the plan with the usual symbols (a basin and its drain, a bed's pillows and turned sheet, a chair's back), and in
+3-D and the elevations as simple blocks. It does not move with the walls.
+
 ### Sun
 
 The **Sun** section (right panel, `S` shows and hides it) puts the sun over the plan: a dotted disc that travels
@@ -193,7 +243,8 @@ covers, usually the walls' outside faces) on a layer, and its eaves stand an **o
   line dashed under an overhang, and a label with the type, pitch and top. New roofs start with their slopes
   running off the outline's longest side, 25° (shed 10°) and a 0.50 m overhang (flat: none).
 
-Roofs do not follow the walls: move a wall and redraw or reshape the roof.
+Roofs do not follow the walls: move a wall and redraw or reshape the roof. The chimneys of fireplaces show where
+they come up through the roofs.
 
 ## Elevations
 
@@ -216,7 +267,9 @@ across tabs):
 - frames, glass and closed door and gate leaves;
 - the floor of every named area (tiled under cover, paved where outlines bound it: a pool, a terrace);
 - the roofs from the Roof tab, with the walls that face outside filled up to the roof over them (gable ends);
-- open edges under a roof as beams following its underside, on columns where no wall holds them.
+- open edges under a roof as beams following its underside, on columns where no wall holds them, and colonnades
+  with their columns;
+- fireplaces, with their chimneys through the roof.
 
 Its toolbar has the camera (*Aerial*, *Top* as the plan, and the four facades by the plan's north), *Roof* to hide
 the roofs and look into the rooms, the sun's season and time (the same as the Floor tab's Sun section, with its site and
@@ -235,6 +288,7 @@ zoom. Colours are a fixed basic palette: materials are not picked yet. three.js 
 | `H` | **Pan** (also `Space`+drag or the middle button, with any tool). The wheel zooms around the cursor. |
 | `Shift` | Keeps lines, moves and measurements at 45° steps; while drawing it lines up with nearby points and stops at lines it crosses. |
 | `Alt` | Turns snapping off while held (or untick *Snap* in the toolbar). |
+| `R` | Turns the furniture being placed, or the selected furniture, a quarter turn. |
 | `F` / `G` / `S` | Fit the plan / toggle the grid / show or hide the sun. The other view toggles are in the View section. |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo (`Ctrl+Shift+Z` also redoes). |
 | `Ctrl+S` / `Ctrl+Shift+S` / `Ctrl+O` | Save / save as / open. |
@@ -253,16 +307,22 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
 - `image`: the photo as a data URL, its placement (`cx`, `cy`, `rotation`, `scale` in meters per pixel), crop,
   opacity and the known lengths used to calibrate it.
 - `layers`: each with `vertices` (id → `{x, y}` in meters, +y down), `segments` (id → `{a, b}` vertex ids, plus
-  `kind: "open"` for an open edge or `"outline"` for an outline, and a wall's own `thickness` and `height` in
-  meters when set; without them it is automatic and 2.70 m), `areas` (id → `{name, at}`, `at` being a point inside the area) and
+  `kind: "open"` for an open edge or `"outline"` for an outline, a wall's own `thickness` and `height` in
+  meters when set (without them it is automatic and 2.70 m), and an open edge's `colonnade` (`{style, spacing}`,
+  `style` `roman` or `metal`, `spacing` the most its columns stand apart in m)), `areas` (id → `{name, at}`, `at` being a point inside the area) and
   `openings` (id → `{kind, style, segment, offset, width, hinge, swing}`: `kind` is `door` (styles `single`,
-  `double`, `sliding`), `window` (`fixed`, `sliding`, `double-hung`, `awning`, `casement`) or `gate`
-  (`single`, `double`, `sliding`); `offset` is the centre's distance from the segment's `a` end, `hinge` the
+  `double`, `sliding`), `window` (`fixed`, `sliding`, `double-hung`, `awning`, `casement`), `gate`
+  (`single`, `double`, `sliding`) or `fireplace` (`masonry`); `offset` is the centre's distance from the segment's `a` end, `hinge` the
   end a single leaf hangs from (a sliding gate: the end it slides towards), `swing` the side it opens or
-  slides to looking from `a` to `b`), and `roofs` (id → `{outline, type, pitch, height, overhang, edge,
+  slides to (a fireplace: the side it stands on) looking from `a` to `b`), and `roofs` (id → `{outline, type, pitch, height, overhang, edge,
   parapet}`: `type` is `flat`, `shed`, `gable` or `hip`, `pitch` in degrees, `height` the underside at the
-  outline in meters, `edge` the outline side a shed slopes down to or a gable's ridge runs along). Files saved
-  before areas, openings, styles, wall thicknesses or roofs existed open unchanged (older openings read as single doors and fixed windows, older walls as automatic).
+  outline in meters, `edge` the outline side a shed slopes down to or a gable's ridge runs along), and
+  `furniture` (id → `{kind, style, at, angle, width, depth}`: `kind` is `counter`, `sink` (`outdoor`, `kitchen`,
+  `bathroom`), `bathtub` (`alcove`, `clawfoot`, `drop-in`, with `shower`, the shower head's place round the rim
+  from 0 to 4), `bed` (`single`, `double`, `queen`, `king`), `table` (`square`, `circle`) or `chair`; `at` is its
+  centre and `angle` its turn in degrees, clockwise; a kitchen sink has `counter` and `offset` (its centre's
+  distance from the counter's left end) instead of `at` and `angle`). Files saved before areas, openings,
+  styles, wall thicknesses, roofs or furniture existed open unchanged (older openings read as single doors and fixed windows, older walls as automatic).
 
 In Chrome and Edge *Save* writes back to the file you opened; elsewhere it downloads. The latest state is also
 autosaved in the browser (IndexedDB), so a reload never loses work. Loading validates the file and reports the
@@ -274,7 +334,10 @@ changes.
 - `src/model/`: pure TypeScript, no React or DOM, unit-tested. `plan.ts` (schema and types), `planFile.ts`
   (parse, validate, serialize), `edit.ts` (immutable edits), `regions.ts` (the outlines lines enclose, which
   walls face outside, floor areas inside the walls, area label points), `walls.ts` (wall thickness and height,
-  walls drawn at their thickness with their joints), `openings.ts` (doors, windows and gates laid out on their walls, where a new one goes),
+  walls drawn at their thickness with their joints), `openings.ts` (doors, windows, gates and fireplaces laid out on their walls, where a new one goes),
+  `colonnades.ts` (column styles and where columns stand), `furniture.ts` (the furniture catalogue, where pieces
+  stand and snap, their plan symbols), `furniture3d.ts` (furniture in 3-D), `faces.ts` (the flat faces solids
+  are made of),
   `sun.ts` (sun position, sunrise and sunset, shadows), `roofs.ts` (roof slopes, faces, eaves and the house's
   outline), `solids.ts` (the house in 3-D as solids of flat faces), `elevations.ts` (the facades from the
   solids), `snap.ts`, `pick.ts` (hit tests, loops),

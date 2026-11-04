@@ -1,14 +1,31 @@
 import { createBaseImage, imageToWorld, visibleCorners } from '../model/baseImage'
-import { addOpening, addRoof, deleteItems } from '../model/edit'
+import { newColonnade } from '../model/colonnades'
+import { addFurniture, addOpening, addRoof, deleteItems, setColonnade } from '../model/edit'
+import { FURNITURE_REACH_M, furnitureFor, furnitureInfo, furnitureTarget, type FurnitureTarget } from '../model/furniture'
 import { boundsOf, polygonArea, type Box, type Vec } from '../model/geometry'
 import { openingFor, openingTarget, type OpeningTarget } from '../model/openings'
-import { createPlan, findLayer, isEditable, type BaseImage, type Opening, type OpeningKind, type OpeningStyle, type Plan } from '../model/plan'
+import { hitTest } from '../model/pick'
+import {
+  createPlan,
+  findLayer,
+  isEditable,
+  segmentKind,
+  type BaseImage,
+  type ColumnStyle,
+  type Furniture,
+  type FurnitureKind,
+  type Opening,
+  type OpeningKind,
+  type OpeningStyle,
+  type Plan,
+  type Ref,
+} from '../model/plan'
 import { parsePlanText, serializePlan } from '../model/planFile'
 import { newRoof, offsetPolygon, unionOutlines } from '../model/roofs'
 import { isCovered } from '../model/solids'
 import { EXTERIOR_WALL, WALL_HEIGHT, wallHeight } from '../model/walls'
 import { pickFile, pickPlanFile, readImageFile, savePlanFile } from './files'
-import { drawnHalfWidth, getPlacedAreas } from './derived'
+import { drawnHalfWidth, getPlacedAreas, hostThickness } from './derived'
 import { getPrefs, openingWidth } from './prefs'
 import { getStore, type EditorState, type Tab, type ToolId } from './store'
 
@@ -213,9 +230,77 @@ export function dropOpening(kind: OpeningKind, style: OpeningStyle, p: Vec, reac
   const { plan, activeLayer } = store.getState()
   const prefs = getPrefs()
   const width = openingWidth(prefs, kind, style)
-  const target = openingTarget(plan, p, { reach, snapReach, width, activeLayer, snap: prefs.snap, halfWidth: drawnHalfWidth })
+  const target = openingTarget(plan, p, { reach, snapReach, width, activeLayer, snap: prefs.snap, halfWidth: drawnHalfWidth, kind })
   if (!target) return store.notify({ kind: 'error', text: `Drop the ${kind} on a wall.` })
   placeOpeningAt(openingFor(kind, style, target, width), target)
+}
+
+/** Drag data of furniture dragged from the library: "bed:queen", or a kind without styles ("counter"). */
+export const FURNITURE_DRAG_TYPE = 'application/x-architect-furniture'
+
+/** Puts a piece down where `target` says and selects it; reports why when it cannot go there. */
+export function placeFurnitureAt(item: Furniture, target: FurnitureTarget): string | null {
+  const store = getStore()
+  if (target.problem) {
+    store.notify({ kind: 'error', text: target.problem })
+    return null
+  }
+  const result = addFurniture(store.getState().plan, target.layer, item)
+  if (!result) return null
+  store.edit(() => result.plan)
+  store.select([{ layer: target.layer, kind: 'furniture', id: result.id }])
+  return result.id
+}
+
+/** A piece dropped from the library at world point `p`, on the active layer, snapped as the furniture tool would. */
+export function dropFurniture(kind: FurnitureKind, style: string | undefined, p: Vec) {
+  const store = getStore()
+  const { plan, activeLayer } = store.getState()
+  const info = furnitureInfo(kind, style)
+  const target = furnitureTarget(plan, p, {
+    kind,
+    style,
+    width: info.width,
+    depth: info.depth,
+    angle: 0,
+    layer: activeLayer,
+    reach: FURNITURE_REACH_M,
+    snap: getPrefs().snap,
+    thickness: hostThickness,
+  })
+  if (!target) return store.notify({ kind: 'error', text: 'The active layer is hidden or locked: pick another one in the Layers section.' })
+  placeFurnitureAt(furnitureFor(kind, style, target, info.width, info.depth), target)
+}
+
+/** Drag data of a colonnade dragged from the library: its column style. */
+export const COLONNADE_DRAG_TYPE = 'application/x-architect-colonnade'
+
+/** Stands columns of `style` along an open edge and selects it; says why when the line is not an open edge. */
+export function applyColonnade(ref: Ref, style: ColumnStyle) {
+  const store = getStore()
+  const s = ref.kind === 'segment' ? findLayer(store.getState().plan, ref.layer)?.segments[ref.id] : undefined
+  if (!s) return
+  if (segmentKind(s) !== 'open') {
+    return store.notify({ kind: 'error', text: 'Columns go along open edges: draw one (Open edge, in the library), or make this line one with Type in the Selection panel.' })
+  }
+  // the same style again keeps the spacing set for it
+  store.edit((plan) => setColonnade(plan, [ref], s.colonnade?.style === style ? s.colonnade : newColonnade(style)))
+  store.setActiveLayer(ref.layer)
+  store.select([ref])
+}
+
+/** The line within `reach` (m) of `p` that a colonnade would go on, if any. */
+export function colonnadeTarget(p: Vec, reach: number): Ref | null {
+  const { plan, activeLayer } = getStore().getState()
+  const hit = hitTest(plan, p, activeLayer, 0, reach, drawnHalfWidth)
+  return hit?.kind === 'segment' ? hit : null
+}
+
+/** A colonnade dropped from the library at world point `p` goes on the open edge there. */
+export function dropColonnade(style: ColumnStyle, p: Vec, reach: number) {
+  const target = colonnadeTarget(p, reach)
+  if (!target) return getStore().notify({ kind: 'error', text: 'Drop the colonnade on an open edge.' })
+  applyColonnade(target, style)
 }
 
 /** A file dropped on the canvas: an image becomes the base plan, a .json file opens as a plan. */
@@ -242,6 +327,7 @@ export function selectAll() {
   store.select([
     ...Object.keys(layer.segments).map((id) => ({ layer: layer.id, kind: 'segment' as const, id })),
     ...Object.keys(layer.areas).map((id) => ({ layer: layer.id, kind: 'area' as const, id })),
+    ...Object.keys(layer.furniture).map((id) => ({ layer: layer.id, kind: 'furniture' as const, id })),
   ])
 }
 

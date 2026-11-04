@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { addArea, addOpening, addRoof, addSegment, addVertex, draftLayer, replaceLayer, updateLayer } from './edit'
+import { COLUMNS, newColonnade } from './colonnades'
+import { addArea, addOpening, addRoof, addSegment, addVertex, draftLayer, replaceLayer, setColonnade, updateLayer } from './edit'
 import type { Vec } from './geometry'
 import { createPlan, type Opening, type Plan, type Roof, type SegmentKind } from './plan'
 import { COVERING, newRoof, SLAB } from './roofs'
-import { BEAM_DEPTH, DOOR_HEAD, FLOOR, GATE_HEIGHT, HIGH_SILL, houseSolids, WINDOW_SILL, type Solid } from './solids'
+import { BEAM_DEPTH, CHIMNEY_ABOVE, DOOR_HEAD, FLOOR, GATE_HEIGHT, HIGH_SILL, houseSolids, WINDOW_SILL, type Solid } from './solids'
 import { WALL_HEIGHT } from './walls'
 
 /** A plan whose first layer holds the chains, each line of a chain of its `kind`. */
@@ -175,6 +176,54 @@ describe('houseSolids', () => {
     expect(inner.length).toBeGreaterThan(0)
     expect(inner.every((w) => w.material === 'interior')).toBe(true)
     expect(walls.filter((w) => !inner.includes(w)).every((w) => w.material === 'facade')).toBe(true)
+  })
+
+  it('stands a colonnade’s columns along its edge under its beam, level with the walls with no roof', () => {
+    // a wall from (0,0) to (0,4), and a 10 m open edge from its foot: five Roman columns, the wall holding the sixth end
+    let plan = planOf([{ points: [{ x: 0, y: 0 }, { x: 0, y: 4 }] }, { points: [{ x: 0, y: 4 }, { x: 10, y: 4 }], kind: 'open' }])
+    plan = setColonnade(plan, [{ layer: 'L1', kind: 'segment', id: 's2' }], newColonnade('roman'))
+    const solids = houseSolids(plan)
+    const columns = of(solids, 'column')
+    expect(columns).toHaveLength(5)
+    expect(columns.every((c) => c.material === 'stone' && c.bottom === 0)).toBe(true)
+    expect(columns[0].top).toBeCloseTo(WALL_HEIGHT - COLUMNS.roman.beam)
+    const [beam] = of(solids, 'beam')
+    expect([beam.bottom, beam.top].map((z) => Math.round(z * 1000) / 1000)).toEqual([WALL_HEIGHT - COLUMNS.roman.beam, WALL_HEIGHT])
+    // a Roman column is wider at its capital than its shaft
+    expect(Math.max(...columns[0].faces.flatMap((f) => f.pts.map((q) => q.x))) - 2).toBeGreaterThan(COLUMNS.roman.diameter / 2)
+    const metal = houseSolids(setColonnade(plan, [{ layer: 'L1', kind: 'segment', id: 's2' }], newColonnade('metal')))
+    // 10 m at 3 m at most: four bays, the wall holding one end
+    expect(of(metal, 'column')).toHaveLength(4)
+    expect(of(metal, 'column').every((c) => c.material === 'metal')).toBe(true)
+  })
+
+  it('carries a colonnade’s beam under the roof over it', () => {
+    let plan = planOf([{ points: [{ x: 0, y: 4 }, { x: 10, y: 4 }], kind: 'open' }])
+    plan = setColonnade(plan, [{ layer: 'L1', kind: 'segment', id: 's1' }], newColonnade('roman'))
+    plan = addRoof(plan, 'L1', { ...newRoof(rect(0, 0, 10, 4), 'flat'), height: 3 })!.plan
+    const solids = houseSolids(plan)
+    expect(of(solids, 'beam')[0].top).toBeCloseTo(3)
+    expect(of(solids, 'column')).toHaveLength(6)
+    expect(of(solids, 'column')[0].top).toBeCloseTo(3 - COLUMNS.roman.beam)
+  })
+
+  it('builds a fireplace against its wall, leaving the wall whole, with a chimney through the roof', () => {
+    const fireplace: Opening = { kind: 'fireplace', style: 'masonry', segment: 's1', offset: 5, width: 1.2, hinge: 'a', swing: 'right' }
+    const plan = addOpening(room(), 'L1', fireplace)!.plan
+    let solids = houseSolids(plan)
+    expect(of(solids, 'wall').filter((w) => w.ref.id === 's1')).toHaveLength(1)
+    expect(of(solids, 'lintel')).toHaveLength(0)
+    expect(of(solids, 'fireplace').some((f) => f.material === 'soot')).toBe(true)
+    // inside the room, below the top wall
+    expect(of(solids, 'fireplace').every((f) => plan2d(f).every((q) => q.y > 0))).toBe(true)
+    // no roof: the chimney stands a metre above its wall
+    const chimney = () => Math.max(...of(solids, 'chimney').map((c) => c.top))
+    expect(chimney()).toBeCloseTo(WALL_HEIGHT + CHIMNEY_ABOVE + 0.06)
+    // under a 45° gable over the room, at the wall the ridge runs along: a metre above the roof there
+    solids = houseSolids(roofed(plan, { type: 'gable', pitch: 45, overhang: 0 }))
+    const roofTop = Math.max(...of(solids, 'chimney')[0].faces.flatMap((f) => f.pts.map((q) => q.z)))
+    // the flue reaches 0.15 + 0.5 m into the room, where the underside is 0.65 m higher than at the eaves wall
+    expect(roofTop).toBeCloseTo(WALL_HEIGHT + 0.65 + COVERING + CHIMNEY_ABOVE)
   })
 
   it('builds only visible layers', () => {

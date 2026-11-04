@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addOpening, deleteItems, drawSegment, moveSegments, setSegmentLength, setVertices, updateOpening } from './edit'
+import { addOpening, deleteItems, drawSegment, moveSegments, setSegmentKind, setSegmentLength, setVertices, updateOpening } from './edit'
 import { hasHinge, hasSide, openingAt, openingFor, openingParts, openingSpans, openingTarget, parkingRoom, placeOpening, slides, STYLES } from './openings'
 import { DOOR_STYLES, GATE_STYLES, WINDOW_STYLES, type Opening, type Plan } from './plan'
 import { parsePlan, serializePlan } from './planFile'
@@ -318,5 +318,47 @@ describe('sliding gate parking', () => {
     const blocked = withOpening(plan, door(7))
     expect(parkingRoom(blocked.layers[0], 'o1')).toBeCloseTo(1.6, 9) // the door starts at 6.6
     expect(parkingRoom(blocked.layers[0], 'o2')).toBe(Infinity)
+  })
+})
+
+describe('fireplaces', () => {
+  const fireplace = (offset: number, swing: 'left' | 'right' = 'right'): Opening => ({ kind: 'fireplace', style: 'masonry', segment: 's1', offset, width: 1.2, hinge: 'a', swing })
+
+  it('stands against its wall on its side, and cuts no gap in it', () => {
+    const plan = withOpening(room(), fireplace(5))
+    const layer = plan.layers[0]
+    expect(openingSpans(layer, 's1')).toEqual([])
+    // s1 runs along y = 0 from x = 0 to 10; the room is below it (+y), to the right looking from a to b
+    const parts = openingParts(placeOpening(layer, opening(plan))!, opening(plan), 0.15)
+    expect(parts.fireplace!.box.every((p) => p.y >= 0.15 - 1e-9 && p.y <= 0.65 + 1e-9)).toBe(true)
+    expect(parts.fireplace!.hearth.every((p) => p.y >= 0.65 - 1e-9)).toBe(true)
+    expect(parts.leaves).toEqual([])
+    const other = openingParts(placeOpening(layer, opening(plan))!, fireplace(5, 'left'), 0.15)
+    expect(other.fireplace!.box.every((p) => p.y <= -0.15 + 1e-9)).toBe(true)
+  })
+
+  it('can change sides but has no hinge, and goes against walls only', () => {
+    expect([hasSide(fireplace(5)), hasHinge(fireplace(5))]).toEqual([true, false])
+    const opts = { reach: 0.3, width: 1.2, activeLayer: 'L1', snap: false, kind: 'fireplace' as const }
+    expect(openingTarget(room(), { x: 5, y: 0.2 }, opts)).toMatchObject({ segment: 's1', side: 'right' })
+    const fenced = setSegmentKind(room(), [{ layer: 'L1', kind: 'segment', id: 's1' }], 'open')
+    expect(openingTarget(fenced, { x: 5, y: 0.2 }, opts)).toBeNull()
+    expect(openingTarget(fenced, { x: 5, y: 0.2 }, { ...opts, kind: 'door' })).not.toBeNull()
+  })
+
+  it('is picked anywhere on its surround', () => {
+    const plan = withOpening(room(), fireplace(5))
+    // out from a 0.30 m wall's face, so 0.15 to 0.65 m from its line
+    const half = () => 0.15
+    expect(openingAt(plan, { x: 5.4, y: 0.6 }, 0.05, half)).toEqual({ layer: 'L1', id: 'o1' })
+    expect(openingAt(plan, { x: 5.4, y: 0.6 }, 0.05)).toBeNull()
+    expect(openingAt(plan, { x: 5.4, y: 1.5 }, 0.05, half)).toBeNull()
+  })
+
+  it('round-trips in files', () => {
+    const raw = JSON.parse(serializePlan(withOpening(room(), fireplace(5))))
+    delete raw.layers[0].openings.o1.style
+    const parsed = parsePlan(raw)
+    expect(parsed.ok && parsed.plan.layers[0].openings.o1).toMatchObject({ kind: 'fireplace', style: 'masonry' })
   })
 })

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { addRoof, addSegment, addVertex, draftLayer, replaceLayer } from './edit'
+import { newColonnade } from './colonnades'
+import { addRoof, addSegment, addVertex, draftLayer, replaceLayer, setColonnade } from './edit'
 import { elevation, elevationViews, mainDirection } from './elevations'
 import type { Vec } from './geometry'
 import { createPlan, type Plan } from './plan'
@@ -54,6 +55,23 @@ describe('elevations', () => {
     expect(front.levels[0]).toBe(0)
     expect(front.levels).toContain(WALL_HEIGHT)
     expect(front.levels.at(-1)).toBeCloseTo(WALL_HEIGHT + 2 + COVERING, 2)
+  })
+
+  it('draws a round column as smooth facets, shaded by how they face', () => {
+    // a lone open edge with Roman columns, seen square on
+    const plan = createPlan()
+    const d = draftLayer(plan.layers[0])
+    addSegment(d, addVertex(d, { x: 0, y: 0 }), addVertex(d, { x: 10, y: 0 }), 'open')
+    let next = replaceLayer(plan, d)
+    next = setColonnade(next, [{ layer: 'L1', kind: 'segment', id: 's1' }], newColonnade('roman'))
+    const [view] = elevationViews(next)
+    const columns = elevation(houseSolids(next), view).polygons.filter((p) => p.kind === 'column')
+    expect(columns.some((p) => p.smooth)).toBe(true)
+    expect(columns.some((p) => !p.smooth)).toBe(true)
+    expect(columns.every((p) => p.facing > 0 && p.facing <= 1)).toBe(true)
+    // the facets facing the viewer squarely are lighter than those turning away at the sides
+    const smooth = columns.filter((p) => p.smooth).map((p) => p.facing)
+    expect(Math.max(...smooth) - Math.min(...smooth)).toBeGreaterThan(0.5)
   })
 
   it('has nothing to draw for an empty plan', () => {

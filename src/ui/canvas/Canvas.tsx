@@ -1,7 +1,24 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent, type PointerEvent } from 'react'
 import type { Vec } from '../../model/geometry'
 import { isStyleOf } from '../../model/openings'
-import { chooseTool, dropFile, dropOpening, fitView, IMAGE_TOOLS, loadBaseImage, OPENING_DRAG_TYPE, planBounds } from '../../state/actions'
+import { FURNITURE } from '../../model/furniture'
+import { COLUMN_STYLES, type ColumnStyle } from '../../model/plan'
+import {
+  chooseTool,
+  COLONNADE_DRAG_TYPE,
+  dropColonnade,
+  dropFile,
+  dropFurniture,
+  dropOpening,
+  fitView,
+  FURNITURE_DRAG_TYPE,
+  IMAGE_TOOLS,
+  loadBaseImage,
+  OPENING_DRAG_TYPE,
+  planBounds,
+} from '../../state/actions'
+import { ColonnadeLayer } from './Columns'
+import { FurnitureLayer } from './Furniture'
 import { getPrefs, setPrefs, setSun, usePrefs } from '../../state/prefs'
 import { getStore, useEditor, type ToolId, type Viewport } from '../../state/store'
 import { Overlay } from './Overlay'
@@ -187,7 +204,7 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
   }
 
   const onDragOver = (event: DragEvent) => {
-    if (event.dataTransfer.types.includes(OPENING_DRAG_TYPE)) {
+    if ([OPENING_DRAG_TYPE, COLONNADE_DRAG_TYPE, FURNITURE_DRAG_TYPE].some((t) => event.dataTransfer.types.includes(t))) {
       event.preventDefault()
       event.dataTransfer.dropEffect = 'copy'
       return
@@ -202,11 +219,26 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
     setDropping(false)
     // a door or window from the library arrives as "kind:style"
     const [kind, style] = event.dataTransfer.getData(OPENING_DRAG_TYPE).split(':')
-    if ((kind === 'door' || kind === 'window' || kind === 'gate') && isStyleOf(kind, style) && view && svgRef.current) {
+    const columns = event.dataTransfer.getData(COLONNADE_DRAG_TYPE)
+    const at = () => {
+      const rect = svgRef.current!.getBoundingClientRect()
+      return { x: view!.x0 + (event.clientX - rect.left) / view!.zoom, y: view!.y0 + (event.clientY - rect.top) / view!.zoom }
+    }
+    if ((kind === 'door' || kind === 'window' || kind === 'gate' || kind === 'fireplace') && isStyleOf(kind, style) && view && svgRef.current) {
       event.preventDefault()
-      const rect = svgRef.current.getBoundingClientRect()
-      const p = { x: view.x0 + (event.clientX - rect.left) / view.zoom, y: view.y0 + (event.clientY - rect.top) / view.zoom }
-      dropOpening(kind, style, p, WALL_REACH_PX / view.zoom, SNAP_PX / view.zoom)
+      dropOpening(kind, style, at(), WALL_REACH_PX / view.zoom, SNAP_PX / view.zoom)
+      return
+    }
+    if (COLUMN_STYLES.includes(columns as ColumnStyle) && view && svgRef.current) {
+      event.preventDefault()
+      dropColonnade(columns as ColumnStyle, at(), WALL_REACH_PX / view.zoom)
+      return
+    }
+    const [piece, pieceStyle] = event.dataTransfer.getData(FURNITURE_DRAG_TYPE).split(':')
+    const info = FURNITURE.find((i) => i.kind === piece && i.style === (pieceStyle || undefined))
+    if (info && view && svgRef.current) {
+      event.preventDefault()
+      dropFurniture(info.kind, info.style, at())
       return
     }
     const file = event.dataTransfer.files[0]
@@ -219,12 +251,12 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
   const showCalibration = !roofMode && !!plan.image?.visible && (prefs.calibration || IMAGE_TOOLS.includes(toolId))
   // the welcome card shows on an empty plan until a drawing tool is picked; it lets clicks through to the canvas
   const empty = !roofMode && !plan.image && plan.layers.every((l) => !Object.keys(l.segments).length) && (toolId === 'select' || toolId === 'pan')
-  const refIds = (kind: 'area' | 'opening' | 'roof', layer: string) =>
+  const refIds = (kind: 'area' | 'opening' | 'roof' | 'furniture', layer: string) =>
     selection
       .filter((r) => r.kind === kind && r.layer === layer)
       .map((r) => r.id)
       .join(' ')
-  const hovered = (kind: 'area' | 'opening' | 'roof', layer: string) => (overlay.hover?.kind === kind && overlay.hover.layer === layer ? overlay.hover.id : undefined)
+  const hovered = (kind: 'area' | 'opening' | 'roof' | 'furniture', layer: string) => (overlay.hover?.kind === kind && overlay.hover.layer === layer ? overlay.hover.id : undefined)
   const cursorStyle = panning ? 'grabbing' : spaceHeld || toolId === 'pan' ? 'grab' : tool.cursor()
   const scaleBar = view ? niceStep(90 / view.zoom).step : 0
 
@@ -271,6 +303,10 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
                   thick={prefs.thickWalls}
                 />
               ),
+          )}
+          {plan.layers.map((layer) => layer.visible && <ColonnadeLayer key={layer.id} layer={layer} />)}
+          {plan.layers.map(
+            (layer) => layer.visible && <FurnitureLayer key={layer.id} layer={layer} selected={refIds('furniture', layer.id)} hovered={hovered('furniture', layer.id)} />,
           )}
           {plan.layers.map(
             (layer) =>

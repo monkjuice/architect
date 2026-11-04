@@ -60,6 +60,9 @@ export interface ElevationPolygon {
   pts: Vec[]
   kind: SolidKind
   material: SolidMaterial
+  /** How squarely it faces the viewer, 0 (edge on) to 1, for shading; a facet of a round surface is drawn without lines. */
+  facing: number
+  smooth: boolean
 }
 
 export interface Elevation {
@@ -79,11 +82,12 @@ export function elevation(solids: readonly Solid[], view: ElevationView): Elevat
   for (const solid of solids) {
     for (const face of solid.faces) {
       // facing the viewer, not edge on
-      if (-(face.normal.x * d.x + face.normal.y * d.y) < 0.01) continue
+      const facing = -(face.normal.x * d.x + face.normal.y * d.y)
+      if (facing < 0.01) continue
       const pts = face.pts.map((p) => ({ x: p.x * r.x + p.y * r.y, y: p.z }))
       // the nearest point orders faces: a roof's eaves stand in front of the wall they overhang
       const depth = Math.min(...face.pts.map((p) => p.x * d.x + p.y * d.y))
-      drawn.push({ pts, kind: solid.kind, material: solid.material, depth })
+      drawn.push({ pts, kind: solid.kind, material: solid.material, facing, smooth: !!face.smooth, depth })
     }
   }
   drawn.sort((a, b) => b.depth - a.depth)
@@ -101,7 +105,7 @@ export function elevation(solids: readonly Solid[], view: ElevationView): Elevat
     if (!levels.length || z - levels[levels.length - 1] >= 0.15) levels.push(z)
   }
   return {
-    polygons: drawn.map(({ pts, kind, material }) => ({ pts, kind, material })),
+    polygons: drawn.map(({ depth: _depth, ...polygon }) => polygon),
     bounds: us.length ? { u0: Math.min(...us), u1: Math.max(...us), z0: Math.min(0, ...zs), z1: Math.max(...zs) } : null,
     levels,
   }

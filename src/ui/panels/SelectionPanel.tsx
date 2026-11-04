@@ -1,8 +1,23 @@
-import { moveAreas, moveSegments, segmentsAt, setSegmentKind, setSegmentLength, updateArea, updateOpening, updateWalls, type OpeningPatch } from '../../model/edit'
+import { COLUMNS, layerColonnades, newColonnade } from '../../model/colonnades'
+import {
+  moveAreas,
+  moveSegments,
+  segmentsAt,
+  setColonnade,
+  setSegmentKind,
+  setSegmentLength,
+  turnFurniture,
+  updateArea,
+  updateFurniture,
+  updateOpening,
+  updateWalls,
+  type OpeningPatch,
+} from '../../model/edit'
+import { FURNITURE, infoOf } from '../../model/furniture'
 import { fitOffset, hasHinge, hasSide, overlappingOpening, parkingRoom, placeOpening, slides, STYLES } from '../../model/openings'
 import { dist, screenAngleDeg } from '../../model/geometry'
 import { measureSegments } from '../../model/pick'
-import { findLayer, segmentKind, type OpeningKind, type OpeningStyle, type Ref, type SegmentKind } from '../../model/plan'
+import { COLUMN_STYLES, findLayer, segmentKind, type ColumnStyle, type OpeningKind, type OpeningStyle, type Ref, type SegmentKind } from '../../model/plan'
 import { EXTERIOR_WALL, INTERIOR_WALL, wallHeight } from '../../model/walls'
 import { deleteSelection } from '../../state/actions'
 import { facesOutside, getPlacedAreas, getThickness } from '../../state/derived'
@@ -39,6 +54,7 @@ export function SelectionPanel() {
   const vertices = selection.filter((r) => r.kind === 'vertex')
   const areas = selection.filter((r) => r.kind === 'area')
   const openings = selection.filter((r) => r.kind === 'opening')
+  const furniture = selection.filter((r) => r.kind === 'furniture')
   const movable = [...segments, ...areas]
   const layerIds = [...new Set(movable.map((r) => r.layer))]
   const oneLayer = layerIds.length === 1 ? findLayer(plan, layerIds[0]) : undefined
@@ -49,7 +65,8 @@ export function SelectionPanel() {
     segments.length && plural(segments.length, 'line'),
     vertices.length && plural(vertices.length, 'point'),
     areas.length && plural(areas.length, 'area'),
-    ...(['door', 'window', 'gate'] as const).map((k) => ofKind(k) && plural(ofKind(k), k)),
+    ...(['door', 'window', 'gate', 'fireplace'] as const).map((k) => ofKind(k) && plural(ofKind(k), k)),
+    furniture.length && plural(furniture.length, 'piece'),
   ]
     .filter(Boolean)
     .join(', ')
@@ -83,10 +100,19 @@ export function SelectionPanel() {
     >
       {areas.length === 1 && selection.length === 1 && <AreaDetails layerId={areas[0].layer} id={areas[0].id} />}
       {openings.length === 1 && selection.length === 1 && <OpeningDetails layerId={openings[0].layer} id={openings[0].id} />}
+      {furniture.length === 1 && selection.length === 1 && <FurnitureDetails layerId={furniture[0].layer} id={furniture[0].id} />}
+      {furniture.length > 1 && (
+        <div className="button-row">
+          <button onClick={() => store.edit((p) => turnFurniture(p, furniture))} title="Turn every selected piece a quarter turn where it stands (R)">
+            Turn
+          </button>
+        </div>
+      )}
       {segments.length > 0 && (
         <Segmented<SegmentKind> label="Type" value={kind} options={KIND_OPTIONS} onChange={(k) => store.edit((p) => setSegmentKind(p, segments, k))} />
       )}
       {kind === 'wall' && <WallFields refs={segments} />}
+      {kind === 'open' && <ColonnadeFields refs={segments} />}
       {segments.length === 1 && selection.length === 1 && <SegmentDetails layerId={segments[0].layer} id={segments[0].id} />}
       {segments.length > 1 && segmentLayers.length === 1 && <Totals layerId={segmentLayers[0]} ids={segments.map((r) => r.id)} />}
       {segments.length > 1 && segmentLayers.length > 1 && <p className="muted">Lines on {segmentLayers.length} layers.</p>}
@@ -189,7 +215,10 @@ function OpeningDetails({ layerId, id }: { layerId: string; id: string }) {
       {(hasSide(o) || hasHinge(o)) && (
         <div className="button-row opening-buttons">
           {hasSide(o) && (
-            <button onClick={() => store.edit((p) => updateOpening(p, layerId, id, { swing: o.swing === 'left' ? 'right' : 'left' }))} title="Open or slide to the other side of the wall">
+            <button
+              onClick={() => store.edit((p) => updateOpening(p, layerId, id, { swing: o.swing === 'left' ? 'right' : 'left' }))}
+              title={o.kind === 'fireplace' ? 'Move it to the other side of the wall' : 'Open or slide to the other side of the wall'}
+            >
               Flip side
             </button>
           )}
@@ -206,6 +235,93 @@ function OpeningDetails({ layerId, id }: { layerId: string; id: string }) {
       {!placed.fits && <p className="hint warning">The wall is shorter than this {o.kind}.</p>}
       {slides(o) && <ParkingHint room={parkingRoom(layer, id)} width={o.width} />}
       <p className="hint">Drag it along its wall, or onto another wall of the layer.</p>
+    </>
+  )
+}
+
+/** A piece of furniture: its style, size and turn; a kitchen sink's counter, a bathtub's shower head. */
+function FurnitureDetails({ layerId, id }: { layerId: string; id: string }) {
+  const store = getStore()
+  const layer = useEditor((s) => findLayer(s.plan, layerId))
+  const f = layer?.furniture[id]
+  if (!layer || !f) return null
+  const info = infoOf(f)
+  const styles = FURNITURE.filter((i) => i.kind === f.kind && i.style && i.snap === info.snap)
+  const set = (next: typeof f) => store.edit((p) => updateFurniture(p, layerId, id, next))
+  const round = f.kind === 'table' && f.style === 'circle'
+  return (
+    <>
+      <div className="fields">
+        <div className="field-wide">
+          <b>{f.kind === 'bed' || f.kind === 'bathtub' || f.kind === 'table' ? `${info.title} ${f.kind}` : info.title}</b>
+        </div>
+        {styles.length > 1 && 'style' in f && (
+          <SelectField
+            label="Style"
+            value={f.style}
+            options={styles.map((i) => [i.style!, i.title] as const)}
+            // a new style comes at its own size: a queen bed is a queen's size
+            onChange={(style) => {
+              const to = styles.find((i) => i.style === style)!
+              set({ ...f, style, width: to.width, depth: to.depth } as typeof f)
+            }}
+          />
+        )}
+        <NumberField label={round ? 'Diameter' : 'Width'} value={f.width} min={0.1} onCommit={(width) => set({ ...f, width, ...(round ? { depth: width } : {}) })} />
+        {!round && <NumberField label="Depth" value={f.depth} min={0.1} onCommit={(depth) => set({ ...f, depth })} />}
+        {'angle' in f && <NumberField label="Turned" unit="°" digits={0} value={f.angle} onCommit={(angle) => set({ ...f, angle: ((angle % 360) + 360) % 360 })} />}
+        {'counter' in f && (
+          <p className="hint field-wide">In its counter: drag it along it, or onto another counter. It moves and turns with its counter.</p>
+        )}
+        {f.kind === 'bathtub' && <p className="hint field-wide">Drag the shower head (the round mark on its rim) to move it round the tub.</p>}
+      </div>
+      {'angle' in f && (
+        <div className="button-row">
+          <button onClick={() => store.edit((p) => turnFurniture(p, [{ layer: layerId, kind: 'furniture', id }]))} title="A quarter turn where it stands (R)">
+            Turn
+          </button>
+        </div>
+      )}
+    </>
+  )
+}
+
+/** Columns along open edges: none, Roman or metal, and the most they stand apart; several edges can differ. */
+function ColonnadeFields({ refs }: { refs: Ref[] }) {
+  const store = getStore()
+  const plan = useEditor((s) => s.plan)
+  const found = refs.map((r) => findLayer(plan, r.layer)?.segments[r.id]?.colonnade)
+  const styles = new Set(found.map((c) => c?.style ?? 'none'))
+  const style = styles.size === 1 ? [...styles][0] : undefined
+  const spacings = new Set(found.flatMap((c) => (c ? [c.spacing] : [])))
+  const one = refs.length === 1 ? findLayer(plan, refs[0].layer) : undefined
+  const columns = one && layerColonnades(one, getThickness(one)).find((c) => c.segment === refs[0].id)?.columns.length
+  return (
+    <>
+      <Segmented<ColumnStyle | 'none'>
+        label="Columns"
+        value={style}
+        options={[['none', 'None'], ...COLUMN_STYLES.map((s) => [s, COLUMNS[s].title] as const)]}
+        onChange={(s) => store.edit((p) => setColonnade(p, refs, s === 'none' ? null : newColonnade(s)))}
+        title="A colonnade along the open edge: its columns under a beam"
+      />
+      {style && style !== 'none' && (
+        <div className="fields">
+          <NumberField
+            label="Spacing, at most"
+            value={spacings.size === 1 ? [...spacings][0] : null}
+            min={0.5}
+            onCommit={(spacing) => store.edit((p) => setColonnade(p, refs, { style, spacing }))}
+          />
+          {columns !== undefined && (
+            <div className="field">
+              <label>Columns</label>
+              <span className="readout">{columns}</span>
+            </div>
+          )}
+          <p className="hint field-wide">Shared out evenly along the edge, one at each end a wall does not hold.</p>
+        </div>
+      )}
     </>
   )
 }

@@ -1,6 +1,7 @@
+import type { Placement } from '../../../model/furniture'
 import type { Box, Vec } from '../../../model/geometry'
 import type { PlacedOpening } from '../../../model/openings'
-import type { Opening, Ref } from '../../../model/plan'
+import type { Furniture, Opening, Ref } from '../../../model/plan'
 import type { Snap } from '../../../model/snap'
 import type { Prefs } from '../../../state/prefs'
 import type { EditorStore } from '../../../state/store'
@@ -49,6 +50,8 @@ export interface OverlayData {
   snap?: Snap
   /** A door or window being placed or dragged; `problem` when it cannot go there. */
   opening?: { opening: Opening; placed: PlacedOpening; problem: boolean; /** Its wall's thickness, m. */ wall: number }
+  /** A piece of furniture being put down or dragged; `problem` when it cannot go there. */
+  furniture?: { item: Furniture; placed: Placement; problem: boolean }
   marquee?: Box
   hover?: Ref
 }

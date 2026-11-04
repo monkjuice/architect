@@ -3,6 +3,7 @@ import type { Vec } from '../../model/geometry'
 import { openingParts, parkingRoom, placeOpening, styleInfo, type OpeningParts, type PlacedOpening } from '../../model/openings'
 import type { Layer, Opening, OpeningKind, OpeningStyle } from '../../model/plan'
 import { hostThickness } from '../../state/derived'
+import { flueMark } from './symbols'
 
 /**
  * Doors and windows in plan notation, their jambs and frames across the full thickness of their wall (when walls
@@ -35,6 +36,14 @@ function OpeningShape({ parts, className }: { parts: OpeningParts; className: st
       {parts.arcs.map((arc, i) => (
         <path key={`a${i}`} className="opening-arc" d={`M${arc.from.x} ${arc.from.y}A${arc.radius} ${arc.radius} 0 0 ${arc.sweep} ${arc.to.x} ${arc.to.y}`} />
       ))}
+      {parts.fireplace && (
+        <>
+          <polygon className="fireplace-hearth" points={points(parts.fireplace.hearth)} />
+          <polygon className="fireplace-box" points={points(parts.fireplace.box)} />
+          <polygon className="fireplace-fire" points={points(parts.fireplace.firebox)} />
+          <path className="fireplace-flue" d={flueMark(parts.fireplace.flue)} />
+        </>
+      )}
     </g>
   )
 }
@@ -92,6 +101,19 @@ export const OpeningLayer = memo(function OpeningLayer({
 /** A style's symbol for the library, in a stub of wall, in a 32 × 24 box; it opens upwards (a sliding gate parks to the right). */
 export function OpeningIcon({ kind, style }: { kind: OpeningKind; style: OpeningStyle }) {
   const y = 17
+  if (kind === 'fireplace') {
+    // a fireplace's real depth would vanish at this scale: drawn to the icon instead
+    return (
+      <>
+        <path className="icon-wall" d={`M2 ${y}H30`} />
+        <g className="opening fireplace">
+          <polygon className="fireplace-hearth" points={`7,9 25,9 25,5 7,5`} />
+          <polygon className="fireplace-box" points={`9,${y - 1} 23,${y - 1} 23,9 9,9`} />
+          <polygon className="fireplace-fire" points={`12.5,12 19.5,12 19.5,9 12.5,9`} />
+        </g>
+      </>
+    )
+  }
   const placed: PlacedOpening = {
     start: { x: 9, y },
     end: { x: 23, y },

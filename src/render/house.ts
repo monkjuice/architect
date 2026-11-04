@@ -18,6 +18,13 @@ const PALETTE: Record<SolidMaterial, THREE.MeshStandardMaterialParameters> = {
   gate: { color: '#4a4c4f', roughness: 0.5, metalness: 0.5 },
   floor: { color: '#d9d4cb', roughness: 0.45 },
   paving: { color: '#b4aea4', roughness: 0.9 },
+  stone: { color: '#e3d9c4', roughness: 0.8 },
+  metal: { color: '#2d3033', roughness: 0.45, metalness: 0.7 },
+  brick: { color: '#9a5038', roughness: 0.9 },
+  soot: { color: '#1b1917', roughness: 1 },
+  ceramic: { color: '#f3f2ee', roughness: 0.15, metalness: 0.05 },
+  wood: { color: '#9a6a44', roughness: 0.6 },
+  fabric: { color: '#8a97b0', roughness: 1 },
 }
 
 export const GRASS = '#6d8f4e'

@@ -57,6 +57,7 @@ export function createOpeningTool(ctx: ToolContext, kind: OpeningKind): Tool {
       activeLayer,
       snap: !e.alt && ctx.prefs().snap,
       halfWidth: drawnHalfWidth,
+      kind,
     })
   }
 
@@ -75,7 +76,7 @@ export function createOpeningTool(ctx: ToolContext, kind: OpeningKind): Tool {
     down(e) {
       update(e)
       if (!target) {
-        store.notify({ kind: 'error', text: `Click on a wall to put the ${kind} in it.` })
+        store.notify({ kind: 'error', text: kind === 'fireplace' ? 'Click on a wall to put the fireplace against it.' : `Click on a wall to put the ${kind} in it.` })
         return
       }
       const w = width()

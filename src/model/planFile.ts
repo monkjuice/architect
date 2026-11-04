@@ -52,6 +52,9 @@ export function serializePlan(plan: Plan): string {
     vertices: Object.fromEntries(Object.entries(layer.vertices).map(([id, v]) => [id, { x: round(v.x), y: round(v.y) }])),
     openings: Object.fromEntries(Object.entries(layer.openings).map(([id, o]) => [id, { ...o, offset: round(o.offset) }])),
     roofs: Object.fromEntries(Object.entries(layer.roofs).map(([id, r]) => [id, { ...r, outline: r.outline.map((p) => ({ x: round(p.x), y: round(p.y) })) }])),
+    furniture: Object.fromEntries(
+      Object.entries(layer.furniture).map(([id, f]) => [id, 'at' in f ? { ...f, at: { x: round(f.at.x), y: round(f.at.y) } } : { ...f, offset: round(f.offset) }]),
+    ),
   }))
   return `${JSON.stringify({ ...clean, layers }, null, 2)}\n`
 }
