@@ -255,7 +255,7 @@ function FurnitureDetails({ layerId, id }: { layerId: string; id: string }) {
         <div className="field-wide">
           <b>{f.kind === 'bed' || f.kind === 'bathtub' || f.kind === 'table' ? `${info.title} ${f.kind}` : info.title}</b>
         </div>
-        {styles.length > 1 && 'style' in f && (
+        {styles.length > 1 && 'style' in f && f.style && (
           <SelectField
             label="Style"
             value={f.style}

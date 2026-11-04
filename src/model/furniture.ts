@@ -25,6 +25,7 @@ export interface FurnitureInfo {
 /** The catalogue, in the order the library lists it. Beds are mattress sizes plus a frame and headboard. */
 export const FURNITURE: readonly FurnitureInfo[] = [
   { kind: 'counter', title: 'Counter', width: 2.4, depth: 0.6, height: 0.9, snap: 'wall' },
+  { kind: 'counter', style: 'island', title: 'Kitchen island', width: 2.0, depth: 1.0, height: 0.9, snap: 'none' },
   { kind: 'sink', style: 'outdoor', title: 'Outdoor sink', width: 0.7, depth: 0.5, height: 0.85, snap: 'wall' },
   { kind: 'sink', style: 'kitchen', title: 'Kitchen sink', width: 0.8, depth: 0.45, height: 0.9, snap: 'counter' },
   { kind: 'sink', style: 'bathroom', title: 'Bathroom sink', width: 0.6, depth: 0.45, height: 0.85, snap: 'wall' },
@@ -57,6 +58,14 @@ export const FURNITURE_REACH_M = 0.4
 
 /** How far a kitchen sink's centre stands in front of its counter's middle, in m: sinks sit to the front. */
 const SINK_FORWARD = 0.03
+
+/** How far a kitchen island's worktop overhangs its cabinets at the front, for stools, in m. */
+export const ISLAND_OVERHANG = 0.25
+
+export const isIsland = (f: Furniture): boolean => f.kind === 'counter' && f.style === 'island'
+
+/** Where a kitchen sink's centre sits across its counter, from the counter's middle: over an island's cabinets, not its overhang. */
+const sinkAcross = (counter: Furniture): number => (isIsland(counter) ? -ISLAND_OVERHANG / 2 : 0) + SINK_FORWARD
 
 /** Where a piece of furniture stands on the plan: its centre, its turn, its size, and its own axes. */
 export interface Placement {
@@ -93,7 +102,7 @@ export function placeFurniture(layer: Layer, f: Furniture): Placement | null {
   if (!counter || counter.kind !== 'counter') return null
   const c = placement(counter.at, counter.angle, counter.width, counter.depth)
   const x = -c.width / 2 + clamp(f.offset, Math.min(f.width, c.width) / 2, c.width - Math.min(f.width, c.width) / 2)
-  return placement(local(c, x, SINK_FORWARD), c.angle, f.width, f.depth)
+  return placement(local(c, x, sinkAcross(counter)), c.angle, f.width, f.depth)
 }
 
 /** Whether a plan point is on a piece (a round table is a disc, the rest rectangles). */
@@ -180,7 +189,7 @@ export function furnitureTarget(plan: Plan, p: Vec, opts: FurnitureOptions): Fur
       if (Math.abs(q.x) > c.width / 2 + opts.reach || Math.abs(q.y) > c.depth / 2 + opts.reach) continue
       if (c.width < opts.width) return { ...free, problem: `The counter is ${c.width.toFixed(2)} m, shorter than the sink.` }
       const offset = clamp(q.x + c.width / 2, opts.width / 2, c.width - opts.width / 2)
-      return { layer: layer.id, at: local(c, offset - c.width / 2, SINK_FORWARD), angle: c.angle, counter: id, offset }
+      return { layer: layer.id, at: local(c, offset - c.width / 2, sinkAcross(f)), angle: c.angle, counter: id, offset }
     }
     return { ...free, problem: 'A kitchen sink goes in a counter: put a counter down first.' }
   }
@@ -244,7 +253,8 @@ export function furnitureFor(kind: FurnitureKind, style: string | undefined, t: 
   // a shower head starts at a tub's left end (a corner tub's, along its left wall by the corner), a shower's back
   if (kind === 'bathtub') return { kind, style: style as 'alcove', ...standing, shower: style === 'corner' ? 3.85 : 3.5 }
   if (kind === 'shower') return { kind, ...standing, shower: 0.5 }
-  if (kind === 'counter' || kind === 'chair' || kind === 'toilet' || kind === 'bidet') return { kind, ...standing }
+  if (kind === 'counter') return style === 'island' ? { kind, style, ...standing } : { kind, ...standing }
+  if (kind === 'chair' || kind === 'toilet' || kind === 'bidet') return { kind, ...standing }
   return { kind, style, ...standing } as Furniture
 }
 
@@ -345,6 +355,8 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
   const drain = (x: number, y: number): SymbolPart => ({ c: local(pl, x, y), r: 0.025, role: 'detail' })
   switch (f.kind) {
     case 'counter':
+      // an island shows where its cabinets end under the worktop's overhang
+      if (f.style === 'island') return [outline, { pts: [local(pl, -hw, hd - ISLAND_OVERHANG), local(pl, hw, hd - ISLAND_OVERHANG)], closed: false, role: 'soft' }]
       return [outline, { pts: [local(pl, -hw, hd - 0.04), local(pl, hw, hd - 0.04)], closed: false, role: 'detail' }]
     case 'sink': {
       if (f.style === 'bathroom') return [outline, { pts: ellipse(pl, -hw + 0.07, -hd + 0.1, hw - 0.07, hd - 0.05), closed: true, role: 'detail' }, drain(0, 0.03), { c: local(pl, 0, -hd + 0.05), r: 0.02, role: 'soft' }]

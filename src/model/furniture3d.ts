@@ -1,6 +1,6 @@
 import { prismFaces, ring, smoothSides, type Face } from './faces'
 import type { Vec } from './geometry'
-import { ellipse, local, quarterDisc, rounded, showerPoint, type Placement } from './furniture'
+import { ellipse, ISLAND_OVERHANG, local, quarterDisc, rounded, showerPoint, type Placement } from './furniture'
 import type { Furniture } from './plan'
 import type { SolidMaterial } from './solids'
 
@@ -44,8 +44,15 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
 
   switch (f.kind) {
     case 'counter':
-      put(box(-hw, -hd, hw, hd - 0.07), 0, 0.1, 'soot')
-      put(box(-hw, -hd, hw, hd - 0.02), 0.1, WORKTOP - 0.04, 'wood')
+      if (f.style === 'island') {
+        // cabinets with a toe kick all round, under a worktop that overhangs the front for stools
+        const front = hd - ISLAND_OVERHANG
+        put(box(-hw + 0.07, -hd + 0.07, hw - 0.07, front - 0.07), 0, 0.1, 'soot')
+        put(box(-hw + 0.02, -hd + 0.02, hw - 0.02, front), 0.1, WORKTOP - 0.04, 'wood')
+      } else {
+        put(box(-hw, -hd, hw, hd - 0.07), 0, 0.1, 'soot')
+        put(box(-hw, -hd, hw, hd - 0.02), 0.1, WORKTOP - 0.04, 'wood')
+      }
       put(box(-hw, -hd, hw, hd), WORKTOP - 0.04, WORKTOP, 'stone')
       break
     case 'sink':

@@ -103,6 +103,26 @@ describe('furniture', () => {
     expect(parsePlan(raw).ok).toBe(false)
   })
 
+  it('stands a kitchen island free, even by a wall, and takes a kitchen sink over its cabinets', () => {
+    let plan = put(room(), 'counter', 'island', { x: 3, y: 0.7 }, { angle: 0 })
+    const island = plan.layers[0].furniture.f1 as Extract<Furniture, { kind: 'counter' }>
+    expect(island).toMatchObject({ kind: 'counter', style: 'island', at: { x: 3, y: 0.7 }, angle: 0, width: 2, depth: 1 })
+    plan = put(plan, 'sink', 'kitchen', { x: 3.2, y: 0.7 })
+    const sink = plan.layers[0].furniture.f2
+    expect(sink).toMatchObject({ kind: 'sink', counter: 'f1' })
+    // across the island, centred over its cabinets (1 m less the 0.25 m overhang at the front)
+    expect(placeFurniture(plan.layers[0], sink)!.at.y).toBeCloseTo(0.7 - 0.125 + 0.03, 6)
+    const solids = houseSolids(plan).filter((x) => x.kind === 'furniture' && x.ref.id === 'f1')
+    const front = Math.max(...solids.filter((x) => x.material === 'wood').flatMap((x) => x.faces.flatMap((q) => q.pts.map((r) => r.y))))
+    expect(front).toBeCloseTo(0.7 + 0.5 - 0.25, 6)
+    // a counter saved before islands has no style and is a counter against a wall
+    const raw = JSON.parse(serializePlan(plan))
+    expect(parsePlan(raw).ok).toBe(true)
+    delete raw.layers[0].furniture.f1.style
+    const parsed = parsePlan(raw)
+    expect(parsed.ok && parsed.plan.layers[0].furniture.f1).not.toHaveProperty('style')
+  })
+
   it('turns a chair to face the table it is put by', () => {
     let plan = put(room(), 'table', 'circle', { x: 3, y: 2 }, { snap: false })
     plan = put(plan, 'chair', undefined, { x: 3, y: 2.9 })

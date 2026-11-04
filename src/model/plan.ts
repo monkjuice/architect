@@ -121,7 +121,8 @@ const Standing = {
   depth: Positive,
 }
 
-export const CounterSchema = z.strictObject({ kind: z.literal('counter'), ...Standing })
+/** A counter against a wall, or (style `island`) a kitchen island standing free; files from before islands have no style. */
+export const CounterSchema = z.strictObject({ kind: z.literal('counter'), style: z.literal('island').optional(), ...Standing })
 
 /** A kitchen sink sits in a counter, `offset` m from the counter's left end to its own centre. */
 export const KitchenSinkSchema = z.strictObject({
