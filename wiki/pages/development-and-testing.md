@@ -1,10 +1,10 @@
 ---
 title: Development and testing
 type: guide
-summary: "npm scripts, the GitHub repository, the 147 Vitest model tests and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow and a 26-check roof and elevations flow on the user's plan, the last two with software WebGL), plus reading live derived values from the dev server."
+summary: "npm scripts, the GitHub repository, the 159 Vitest model tests and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow and a 19-check colonnade and fireplace flow on the user's plan, the last three with software WebGL), plus reading live derived values from the dev server."
 tags: [guide, testing, vitest, playwright, webgl, git]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Development and testing
@@ -23,13 +23,18 @@ You need Node 20.19+ or 22.12+. Run `npm install` first.
 | `npm run preview` | Serves the build |
 
 The code is in git, pushed to https://github.com/monkjuice/architect (branch `main`) on 2026-11-02 with one initial
-commit; the roof plan and elevations work came after that commit and was not yet committed when it was recorded.
+commit. The roof plan and elevations work was committed as `5e2f614`; the colonnades and fireplaces (2026-11-04)
+were not yet committed when they were recorded.
 
 ## Model tests
 
-On 2026-11-02, after the Roof and Elevations tabs, there were 147 Vitest tests in `src/model/*.test.ts`: `edit` 27,
-`openings` 26, `regions` 13, `walls` 13, `solids` 12, `roofs` 10, `baseImage` 9, `sun` 9, `geometry` 8, `pick` 6,
-`planFile` 6, `snap` 5 and `elevations` 3 (counted from the `it(` calls). `solids.test.ts` covers the rules in
+On 2026-11-04, after colonnades and fireplaces, there were 159 Vitest tests in `src/model/*.test.ts`: `openings` 30,
+`edit` 27, `solids` 15, `regions` 13, `walls` 13, `roofs` 10, `baseImage` 9, `sun` 9, `geometry` 8, `pick` 6,
+`planFile` 6, `snap` 5, `colonnades` 4 and `elevations` 4 (counted from the `it(` calls). The new ones cover
+column spots, ends a wall holds and a colonnade surviving a split, a kind switch and the file
+([Colonnades](colonnades.md)); fireplaces (no wall gap, a side but no hinge, walls only, picked on the surround,
+the file; [Fireplaces](fireplaces.md)); colonnade beams with and without a roof and a fireplace's chimney; and
+smooth, shaded column facets in the elevations. `solids.test.ts` covers the rules in
 [House solids](house-solids.md): no roof until one is drawn, closed faces facing out, a flat roof's parapet, gable
 infills, door and window cuts, gates, a gallery's beam and columns, a beam sloping under a shed, an open pool,
 facade vs interior walls and hidden layers. `roofs.test.ts` covers `normalized`, offsets, the union of rooms, each
@@ -158,6 +163,14 @@ Principal; a pitch edit; *Turn the ridge*; hip warns on that non-convex outline;
 drawn on the Quincho layer; a corner drag and its undo; switching tabs resets tools and selection; the Exterior has
 roof and infill solids; four elevations with their compass names; the layer toggle; *Save SVG* standalone. All
 eight older flows passed with it (138 checks).
+
+The colonnade and fireplace flow (19 checks, 2026-11-04) runs on the user's plan: the library groups; a fireplace on
+Estudio's 7.34 m wall `s31`, and refused on an open edge; a Roman colonnade on the 17.35 m Galeria front `s6` (9
+columns), spacing 1.2 (16 columns), a swap to metal, refused on a wall; undo steps; the chimney mark on the roof plan
+after *Roof the house* (flat); in the Exterior 9 stone columns and the chimney 1 m above the roof + 0.30 m parapet +
+0.06 m cap; elevation screenshots; no console errors. The tabs, roof and eight older flows passed after two checks
+followed the UI: the areas flow now finds two active segmented buttons for an open edge (Type, and Columns: None),
+and the styles flow counts 12 opening icons.
 
 **Inspecting live derived values:** in a Playwright `page.evaluate` on the Vite dev server,
 `await import('/src/state/derived.ts')` and `await import('/src/state/store.ts')` return the app's own module

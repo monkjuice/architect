@@ -1,10 +1,10 @@
 ---
 title: Elevations tab
 type: component
-summary: "Four facades drawn automatically from the house solids, view only: src/model/elevations.ts (main direction from the walls, four views square to it named by compass bearing through site.north, back-face culling on explicit normals, painter's sort by each face's nearest point, level marks) and src/ui/ElevationsTab.tsx (All four or one, layer visibility checkboxes, Save SVG as a standalone drawing)."
+summary: "Four facades drawn automatically from the house solids, view only: src/model/elevations.ts (main direction from the walls, four views square to it named by compass bearing through site.north, back-face culling on explicit normals, painter's sort by each face's nearest point, facing and smooth per polygon, level marks) and src/ui/ElevationsTab.tsx (fills shaded by facing, smooth facets without outlines, All four or one, layer visibility checkboxes, Save SVG as a standalone drawing)."
 tags: [ui, model, elevations, svg, 3d]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Elevations tab
@@ -14,7 +14,7 @@ the Floor tab (walls, [Walls](walls.md)) and the [Roof tab](roof-tab.md). The dr
 `getSolids(plan)` as the [Exterior tab](exterior-tab.md) ([House solids](house-solids.md)), so they follow every
 edit. No three.js: the tab is not lazy-loaded.
 
-## Model (`src/model/elevations.ts`, 3 tests)
+## Model (`src/model/elevations.ts`, 4 tests)
 
 - `mainDirection`: the length-weighted circular mean of 4θ over the visible walls, divided by 4: the walls'
   direction modulo a quarter turn.
@@ -25,6 +25,8 @@ edit. No three.js: the tab is not lazy-loaded.
   not face the viewer are culled. The rest are painted farthest first, ordered by each face's **nearest** point:
   ordering by centroid let a wall's top overdraw the eave that overhangs it. This assumes faces do not
   interpenetrate. Levels: the ground, wall tops, roof bottoms and tops, parapet tops, merged within 15 cm.
+- Each drawn polygon carries `facing` (how squarely its normal faces the viewer, 0.01 to 1) and `smooth` (from
+  `Face.smooth`, the side facets of round columns, [House solids](house-solids.md)).
 
 ## UI (`src/ui/ElevationsTab.tsx`)
 
@@ -32,6 +34,9 @@ edit. No three.js: the tab is not lazy-loaded.
   through `updateLayer`, an undoable plan edit that hides the layer on every tab, so the boundary wall can be left
   out; *Save SVG* (one facade only) downloads `<file>-<facade>-elevation.svg`.
 - Paper colours (`FILL` per material, `INK`, `PAPER`) are SVG attributes, not CSS, so the saved SVG is standalone.
+  `shade` darkens a fill as its face turns away (0.72 + 0.28 × facing), so a round column reads round.
+- Smooth facets are stroked in their own fill colour instead of `INK`. When every facet was outlined, Roman columns
+  (20 facets each) drew as black bars.
 - Level marks sit on the right; a label closer than about 1.3 text heights to the one below is dropped. The overall
   width is dimensioned underneath.
 

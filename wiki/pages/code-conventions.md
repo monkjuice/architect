@@ -1,10 +1,10 @@
 ---
 title: Code conventions
 type: convention
-summary: "Rules inherited from the Forge H1 planner: pure model layer, state never imports ui, three.js only in src/render, explicit face normals in 3-D, immutable edits through layer drafts (same plan = no undo step), derived data cached by object identity, saved data in the plan, UI state in the store and view settings in prefs, foldable panel sections with Box ids, erasable-only TypeScript, tools without React refs, compound .opening.<kind> CSS selectors, oxlint rules, ids and rounding."
+summary: "Rules inherited from the Forge H1 planner: pure model layer with no import cycles, state never imports ui, three.js only in src/render, explicit face normals in 3-D, immutable edits through layer drafts (same plan = no undo step), derived data cached by object identity, saved data in the plan, UI state in the store and view settings in prefs, foldable panel sections with Box ids, erasable-only TypeScript, tools without React refs, compound .opening.<kind> CSS selectors, oxlint rules (helpers out of component files), ids and rounding."
 tags: [convention, model, state, ui, lint, typescript, css]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Code conventions
@@ -27,8 +27,11 @@ repo), adapted to this codebase ([Stack adapted from the Forge H1 planner](forge
   renderer, the elevations' culling) use them and never infer facing from winding, because plan x, y (down) with z
   up is left-handed.
 - Dependencies point `src/ui` → `src/state` → `src/model`, never back. Logic that a tool and a panel share goes in
-  `actions.ts` (`placeOpeningAt`, `dropOpening`); an early version of the doors work had state import it from a
-  tool, which was fixed.
+  `actions.ts` (`placeOpeningAt`, `dropOpening`, `applyColonnade`); an early version of the doors work had state
+  import it from a tool, which was fixed.
+- Model modules must not import in a cycle. `regions.ts` imports `walls.ts`, which imports `openings.ts`, so
+  `openings.ts` keeps its own small point-in-polygon test instead of importing `regions.ts`
+  ([Fireplaces](fireplaces.md)).
 - What is saved goes in `Plan`. Editor state (active layer, tool, line kind, view, selection, prompt) goes in the
   store ([Editor store and state](editor-store.md)). View settings a user plays with and expects to find again in
   this browser (grid, opening widths, folded sections, the sun's season, time and clouds) go in prefs; facts about
@@ -39,7 +42,8 @@ repo), adapted to this codebase ([Stack adapted from the Forge H1 planner](forge
 
 A panel section is a `Box` (`src/ui/fields.tsx`). Give it a stable `id`: its title then folds it, the id is stored
 in `prefs.collapsed` and set as `data-box` on the `<section>` (ids so far: `view`, `base-plan`, `layers`,
-`selection`, `areas`, `sun`, `library-lines`, `library-door`, `library-window`, `library-gate`, `roofs`). A folded `Box` does
+`selection`, `areas`, `sun`, `library-lines`, `library-door`, `library-window`, `library-gate`, `library-fireplace`,
+`library-colonnade`, `roofs`). A folded `Box` does
 not render its children, so their local state (a half-typed field) is dropped. Tests should find sections by
 `[data-box="<id>"]`, not by position: adding `view` first shifted every index
 ([Playwright flow-check pitfalls](playwright-flow-checks.md)).
@@ -88,7 +92,8 @@ and comes later, so selection still wins. Per App.css, 0,3,0 also beats the libr
 
 `.oxlintrc.json` enables the `react`, `typescript` and `oxc` plugins. `react/rules-of-hooks` is an error;
 `react/only-export-components` is a warning, with `allowConstantExport`, which covers literal constants only: a
-table such as `ROOF_TITLES` goes in the model (`src/model/roofs.ts`), not in a component file. `npm run lint` prints
+table such as `ROOF_TITLES` goes in the model (`src/model/roofs.ts`), not in a component file. A drawing helper
+two components share goes in a plain module, such as `flueMark` in `src/ui/canvas/symbols.ts`. `npm run lint` prints
 nothing when the code is clean.
 
 ## Numbers and ids

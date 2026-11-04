@@ -1,16 +1,17 @@
 ---
 title: Doors, windows and gates
 type: component
-summary: "Openings hosted by a segment (src/model/openings.ts): layout, wall gaps, placement targets with middle and 5 cm snapping, edits that keep them on their walls, the Door/Window/Gate tools, the library's Doors, Windows and Gates groups, dragging, drawing and the Selection panel. Styles have their own page."
-tags: [model, openings, doors, windows, gates, ui]
+summary: "Openings hosted by a segment (src/model/openings.ts): layout, wall gaps (fireplaces cut none), placement targets with middle and 5 cm snapping, edits that keep them on their walls, the Door/Window/Gate/Fireplace tools, the library's Doors, Windows, Gates and Fireplaces groups, dragging, drawing and the Selection panel. Styles and fireplaces have their own pages."
+tags: [model, openings, doors, windows, gates, fireplace, ui]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Doors, windows and gates
 
 Why they are hosted by a segment: [Doors and windows are hosted by a segment](openings-hosted-by-segment.md). Styles
-and their symbols: [Door, window and gate styles](opening-styles.md).
+and their symbols: [Door, window and gate styles](opening-styles.md). Since 2026-11-04 a fourth kind, `fireplace`,
+shares all of this but stands against a wall instead of opening it ([Fireplaces](fireplaces.md)).
 
 ## Model
 
@@ -18,7 +19,8 @@ and their symbols: [Door, window and gate styles](opening-styles.md).
   `'window'` or `'gate'` (fifth session). `offset` is the centre's distance from the segment's `a` end. `hinge`
   (`'a'`/`'b'`) is the end a single leaf hangs from, or the end a sliding gate slides towards. `swing`
   (`'left'`/`'right'`) is the side it opens or slides to, looking from `a` to `b`.
-- Any segment can host any opening kind, whatever its own kind (wall, open edge or outline; not checked). Gates usually go in fences, which are drawn as open edges.
+- Any segment can host a door, window or gate, whatever its own kind (wall, open edge or outline; not checked).
+  Gates usually go in fences, which are drawn as open edges. Fireplaces go on walls only (`TargetOptions.kind`).
 - Coordinates are y-down, so the left of a→b is `(dir.y, -dir.x)` (`PlacedOpening.left`).
 - Type names avoid the DOM global `Window`: `Opening`, `OpeningKind`, `OpeningStyle`.
 
@@ -28,7 +30,8 @@ and their symbols: [Door, window and gate styles](opening-styles.md).
   changing the stored offset. `fits` is false when the wall is shorter than the opening (drawn as `.misfit`).
 - `openingParts` gives the plan symbol, and `parkingRoom` a sliding gate's clear wall to slide along
   ([Door, window and gate styles](opening-styles.md)).
-- `openingSpans` gives the stretches the wall is drawn around, and `overlappingOpening` checks for overlaps.
+- `openingSpans` gives the stretches the wall is drawn around (only openings that `cutsWall`), and
+  `overlappingOpening` checks for overlaps along the segment, on either side.
 - `openingTarget` decides where a new or dragged opening goes:
   - the nearest segment within `reach` on editable layers (the active layer wins ties; `layer` restricts a drag to
     its own layer); an optional `halfWidth(layer, segment)` adds a thick wall's half thickness to the reach;
@@ -36,8 +39,9 @@ and their symbols: [Door, window and gate styles](opening-styles.md).
   - `side` comes from the cursor, and the default hinge is at the end nearer the closer corner (a sliding gate
     takes the other end: `openingFor`);
   - `problem` holds the text for a wall that is too short or an overlap (`ignore` skips the dragged opening).
-- `openingFor(kind, style, target, width, otherHinge)` builds the opening. `openingAt` hits an opening by its stretch
-  of wall or by any of its leaves.
+- `openingFor(kind, style, target, width, otherHinge)` builds the opening. `openingAt(plan, p, reach, half?)` hits an
+  opening by its stretch of wall, any of its leaves or a fireplace's surround; `half` gives the host's half
+  thickness, which the fireplace's box needs ([Fireplaces](fireplaces.md)).
 
 ## Edits (`src/model/edit.ts`)
 
@@ -55,17 +59,18 @@ and their symbols: [Door, window and gate styles](opening-styles.md).
 - **Door (`D`), Window (`W`) and Gate** share `createOpeningTool` (`src/ui/canvas/tools/opening.ts`) and place the
   store's `openingStyle[kind]`: the style last picked in the library, single door, sliding window and single gate at
   start ([Editor store and state](editor-store.md)). The Gate tool has no shortcut, because `G` toggles the grid; it
-  is armed from the library.
+  is armed from the library, as is the Fireplace tool (`createOpeningTool(ctx, 'fireplace')`, no key).
   - A preview labels the free wall on each side.
   - Typed digits set the width, which is remembered per style in prefs `widths` after placing.
   - `X` swaps a single leaf's hinge or a sliding gate's direction, and Alt turns snapping off.
   - Walls are picked within `WALL_REACH_PX` (14).
 - **Library panel** (`src/ui/panels/LibraryPanel.tsx`): after the Line types box come a Doors group (3 styles), a
-  Windows group (5), headed `D` and `W`, and a Gates group (3, no key; `GROUPS`).
+  Windows group (5), headed `D` and `W`, a Gates group (3, no key) and a Fireplaces group (1; all through `GROUPS`),
+  then the Colonnades box ([Colonnades](colonnades.md)).
   - Each item shows its icon, its count on the visible layers and the width the next one gets.
   - A click sets `openingStyle` and the tool.
-  - A drag carries `"kind:style"` under `OPENING_DRAG_TYPE`. `Canvas`'s `onDrop` checks it with `isStyleOf`, then
-    calls `dropOpening`.
+  - A drag carries `"kind:style"` under `OPENING_DRAG_TYPE` (`LibraryItem.drag` is `{type, data}`). `Canvas`'s
+    `onDrop` checks it with `isStyleOf`, then calls `dropOpening`, which passes the kind to `openingTarget`.
 - Placing goes through `placeOpeningAt` and `dropOpening` in `src/state/actions.ts`. They refuse with a notice when
   the target has a `problem`, and select the new opening.
 - **Select tool**: a lone selected opening drags along its wall or onto another wall of its layer. Where it cannot
@@ -84,8 +89,8 @@ and their symbols: [Door, window and gate styles](opening-styles.md).
   - *Flip side* and *Flip hinge*, only when `hasSide` / `hasHinge` apply (*Flip direction* for a sliding gate);
   - for a sliding gate, its parking room, as a warning when it is short.
 
-  A change that would overlap another opening is refused with a notice. The selection summary counts doors, windows
-  and gates.
+  A change that would overlap another opening is refused with a notice. The selection summary counts doors, windows,
+  gates and fireplaces.
 
 ## Known limits (2026-11-02)
 

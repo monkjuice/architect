@@ -2,9 +2,9 @@
 title: Open edges and outlines are segment kinds, not layers
 type: decision
 summary: "A segment is a wall, an open edge (porch front, colonnade) or an outline (ground-level edge with no height: pool, paving, deck, planter): one attribute (kind: 'open' | 'outline', absent = wall), not separate layers, because topology and regions exist only within a layer; drawn by drafting convention (walls heavy, open edges dashed, outlines thin), all three bound areas, only walls cast shadows."
-tags: [decision, model, segments, areas, sun]
+tags: [decision, model, segments, areas, sun, colonnades]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Open edges and outlines are segment kinds, not layers
@@ -23,7 +23,8 @@ area". That needed a third kind for things at ground level.
   `SEGMENT_KINDS` lists them in that order, and `segmentKind(s)` reads the kind.
 - What each kind means:
   - **wall**: stands up. It is the only kind that casts shadows ([Sun and shadows](sun.md)).
-  - **open edge**: the limit of a covered space that has no wall (porch front, colonnade).
+  - **open edge**: the limit of a covered space that has no wall (porch front, colonnade). Since 2026-11-04 it can
+    carry a `colonnade` (columns under a beam, [Colonnades](colonnades.md)).
   - **outline** (seventh session): an edge at ground level with no height (pool, paving, deck, planter).
 - The drawing follows drafting convention: cut walls are heavy (filled at their thickness, or 2 px lines with
   *Thick walls* off, see [Walls](walls.md)), things overhead are dashed (open edges, 1.75 px), and things below
@@ -35,7 +36,7 @@ area". That needed a third kind for things at ground level.
   - `splitSegment` gives both pieces the kind, and `moveSegments` keeps it (both copy the whole segment through
     `addSegment`'s `like`, thickness and height included).
   - `setSegmentKind` keeps a wall's `thickness` and `height` while it is another kind, so turning it back into a
-    wall restores them.
+    wall restores them; an open edge's `colonnade` is kept the same way.
   - When `mergeVertices` makes a wall and any other kind the same segment, the wall stays. Between an open edge
     and an outline, the segment already kept stays. The overlap rule in regions works the same way.
 - `setSegmentKind(plan, refs, kind)` backs the Selection panel's Type control (Wall, Open edge, Outline).
@@ -61,7 +62,8 @@ area". That needed a third kind for things at ground level.
 - Open edges and outlines decide which rooms are indoor: the outside reaches across them, not across walls
   ([Indoor means unreachable from outside](indoor-reachability-rule.md)).
 - Only an open edge gets a dashed preview in the line tool. An outline previews solid, like a wall.
-- Doors, windows and gates can sit on a segment of any kind. `openings.ts` does not check the kind.
+- Doors, windows and gates can sit on a segment of any kind; `openings.ts` checks the kind only for fireplaces,
+  which need a wall ([Fireplaces](fireplaces.md)).
 - The format change is additive, so `schemaVersion` stayed 1 ([Plan model and file format](plan-model.md)).
 - Area kinds (covered, semi-covered, pool) were not added. The covered total comes from the indoor rule instead
   ([Areas](areas.md)); a semi-covered total is still open ([Overview](../overview.md)).

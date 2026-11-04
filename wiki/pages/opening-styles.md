@@ -1,10 +1,10 @@
 ---
 title: Door, window and gate styles
 type: component
-summary: "Door styles (single, double, sliding), window styles (fixed, sliding, double-hung, awning, casement) and gate styles (single, double, sliding): the style field and its defaults, the STYLES table with usual widths, hasSide/hasHinge/slides, sliding-gate direction and parkingRoom, and openingParts, the one source of symbol geometry for both the plan and the library icons."
-tags: [model, openings, doors, windows, gates, ui]
+summary: "Door styles (single, double, sliding), window styles (fixed, sliding, double-hung, awning, casement), gate styles (single, double, sliding) and the masonry fireplace: the style field and its defaults, the STYLES table with usual widths, hasSide/hasHinge/slides/cutsWall, sliding-gate direction and parkingRoom, and openingParts, the one source of symbol geometry for both the plan and the library icons (the fireplace's icon excepted)."
+tags: [model, openings, doors, windows, gates, fireplace, ui]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Door, window and gate styles
@@ -42,12 +42,14 @@ Placement, edits and the tools are in [Doors, windows and gates](doors-and-windo
 | gate | `single` | 1.00 | posts, one heavy leaf, dashed arc (pedestrian) |
 | gate | `double` | 3.00 | posts, a pair of leaves meeting in the middle (driveway) |
 | gate | `sliding` | 4.00 | posts, a panel across the opening, and a dashed outline of the panel parked beyond the end it slides towards |
+| fireplace | `masonry` | 1.20 | `parts.fireplace` (`fireplaceShape`): box, firebox, dashed hearth, crossed flue; no gap ([Fireplaces](fireplaces.md)) |
 
 - `styleKey` gives `"door:double"`. It keys the width prefs, the library counts and the drag data. `styleInfo` looks
   up a style, and `isStyleOf` checks that a style belongs to a kind.
-- `hasSide` is false only for fixed and double-hung windows. `hasHinge` is per kind: single doors, casements narrower
-  than 1.0 m (`CASEMENT_PAIR`), and single or sliding gates. Sliding *doors* have none (an intermediate version of
-  the gate change offered one by mistake). `slides(o)` is true for sliding gates only. *Flip side*, *Flip hinge* (or
+- `hasSide` is false only for fixed and double-hung windows. `hasHinge` is explicit per kind: single doors,
+  casements narrower than 1.0 m (`CASEMENT_PAIR`), and single or sliding gates; never a fireplace. Sliding *doors*
+  have none (an intermediate version of the gate change offered one by mistake). `slides(o)` is true for sliding
+  gates only, and `cutsWall(o)` false for fireplaces only. *Flip side*, *Flip hinge* (or
   *Flip direction*) and the tool's `X` hint appear only when these apply. Resizing a casement across 1.0 m switches
   between one and two leaves.
 - `updateOpening` accepts `style` and keeps the width. A style of the other kind returns the same plan, so no undo
@@ -71,7 +73,8 @@ arcs, `dashed` outlines (an awning sash or a parked sliding gate; called `sashes
 squares at a gate's ends; gates have no jambs), for a wall `half` thick on each side of its line. `OpeningShape` in
 `src/ui/canvas/Openings.tsx` renders these parts both for the plan (`OpeningSymbol`, half = max(0.075 m, 3 px)) and for
 the library (`OpeningIcon`: a 32×24 box, a fake `PlacedOpening`, half 3.5; a sliding gate parks to the right). This way
-the icons always match the plan. `openingAt` also hit-tests every leaf from these parts. Arc sweep flag 1 means
+the icons always match the plan. The exception is the fireplace, whose icon is drawn by hand because its real depths
+vanish at icon scale. `openingAt` also hit-tests every leaf from these parts. Arc sweep flag 1 means
 clockwise on screen, which in y-down coordinates is a positive cross product (tip − hinge) × (jamb − hinge).
 
 CSS (`src/App.css`): casement leaves draw lighter than door leaves (1.25 px against 2 px) and casement arcs dashed

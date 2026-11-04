@@ -1,10 +1,10 @@
 ---
 title: Plan model and file format
 type: component
-summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds and optional wall thickness and height, named areas, styled doors/windows/gates hosted by segments and drawn roofs, embedded base image), with parsing, migrations and serialization in planFile.ts."
-tags: [model, file-format, schema, site, walls, roof]
+summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds, optional wall thickness and height and open-edge colonnades, named areas, styled doors/windows/gates/fireplaces hosted by segments, drawn roofs and free-standing furniture with kitchen sinks kept in counters, embedded base image), with parsing, migrations and serialization in planFile.ts."
+tags: [model, file-format, schema, site, walls, roof, colonnades, fireplace, furniture]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Plan model and file format
@@ -13,7 +13,8 @@ updated: 2026-11-02
 
 - `src/model/plan.ts`: the zod schemas (`PlanSchema`, `LayerSchema`, `SegmentSchema`, `AreaSchema`,
   `OpeningSchema`, `BaseImageSchema`, …), the types inferred from them, `createPlan`, `createLayer`, `segmentKind`,
-  `SEGMENT_KINDS`, `ROOF_TYPES`, `RoofSchema`, `Ref` (a selectable segment, vertex, area, opening or roof),
+  `SEGMENT_KINDS`, `ROOF_TYPES`, `RoofSchema`, `FurnitureSchema`, `Ref` (a selectable segment, vertex, area,
+  opening, roof or piece of furniture),
   `refExists` (used by the store to prune the selection) and `checkIntegrity`.
 - `src/model/planFile.ts`: `parsePlanText` / `parsePlan`, `MIGRATIONS` and `serializePlan`.
 - `src/model/edit.ts`: the immutable edits ([Code conventions](code-conventions.md)).
@@ -34,23 +35,30 @@ updated: 2026-11-02
 - A segment may also carry a positive `thickness` and `height` in meters, used only while it is a wall. Vertices
   are wall centrelines. Absent thickness is automatic (0.30 m facing outside, 0.15 m inside), absent height
   2.70 m; the automatic value is never stored ([Walls](walls.md)).
+- A segment may carry `colonnade: {style, spacing}` (`COLUMN_STYLES`: `roman`, `metal`), used only while it is an
+  open edge ([Colonnades](colonnades.md)).
 - `areas` (id → `{name, at}`): named points whose outline is computed from the layer's lines, never stored
   ([Areas](areas.md)).
-- `openings` (id → door, window or gate): a zod `discriminatedUnion` on `kind` (`DoorSchema`, `WindowSchema`,
-  `GateSchema`). Each has a `style` from `DOOR_STYLES` / `WINDOW_STYLES` / `GATE_STYLES` and the common fields
-  `segment`, a centre `offset` from the segment's `a` end, `width`, `hinge` (for a sliding gate: the end it slides
-  towards) and `swing` ([Doors, windows and gates](doors-and-windows.md),
-  [Door, window and gate styles](opening-styles.md), [hosted by a segment](openings-hosted-by-segment.md)).
+- `openings` (id → door, window, gate or fireplace): a zod `discriminatedUnion` on `kind` (`DoorSchema`,
+  `WindowSchema`, `GateSchema`, `FireplaceSchema`). Each has a `style` from `DOOR_STYLES` / `WINDOW_STYLES` /
+  `GATE_STYLES` / `FIREPLACE_STYLES` and the common fields `segment`, a centre `offset` from the segment's `a` end,
+  `width`, `hinge` (for a sliding gate: the end it slides towards) and `swing` (for a fireplace: the side it stands
+  on) ([Doors, windows and gates](doors-and-windows.md), [Door, window and gate styles](opening-styles.md),
+  [hosted by a segment](openings-hosted-by-segment.md)). A fireplace cuts no gap ([Fireplaces](fireplaces.md)).
 - `roofs` (id → `RoofSchema`: `outline`, `type`, `pitch`, `height`, `overhang`, `edge`, `parapet`): outlines drawn
   on the Roof tab, independent of the lines, so they do not follow moved walls
   ([Roofs: model and geometry](roofs.md)).
-- Ids: `v1`, `v2`…, `s1`, `s2`…, `a1`, `a2`…, `o1`, `o2`… and `r1`, `r2`… within each layer (`nextId` in `edit.ts`), and `L1`,
+- `furniture` (id → `FurnitureSchema`, a union on `kind`: counter, sink, bathtub, bed, table, chair, with sinks a
+  nested union on `style`): standing pieces have `at`, `angle`, `width`, `depth`; a kitchen sink has `counter` and
+  `offset` instead of a position ([Furniture and fixtures](furniture.md),
+  [Furniture stands free](furniture-free-standing.md)).
+- Ids: `v1`, `v2`…, `s1`, `s2`…, `a1`, `a2`…, `o1`, `o2`…, `r1`, `r2`… and `f1`, `f2`… within each layer (`nextId` in `edit.ts`), and `L1`,
   `L2`… for layers (`addLayer`). A new plan has one layer, `L1` "Walls".
 - `image`: `src` must be a `data:image/` URL, because the photo is embedded so that the file is self-contained. It
   also holds the natural `width`/`height`, the placement (`cx`, `cy`, `rotation` in radians, `scale` in m/px), an
   optional `crop` in image pixels, `opacity`, `visible`, `locked` and `calibration` (known lengths, with ends in image
   pixels). See [Base image placement and calibration](base-image-calibration.md).
-- Not in the plan: the open tab, active layer, tool, line kind to draw, opening style to place, roof type to draw,
+- Not in the plan: the open tab, active layer, tool, line kind to draw, opening style or furniture to place, roof type to draw,
   view, selection and prompt (editor state), and the sun's season, time, cloudiness and shadows, the View section's
   toggles and the Exterior's roof toggle (per-browser prefs). See [Editor store and state](editor-store.md). The 3-D
   Exterior and the Elevations are derived from the plan; roofs are the only 3-D data it stores
@@ -65,7 +73,7 @@ updated: 2026-11-02
 3. Each `MIGRATIONS[v]` step from v to v+1.
 4. `PlanSchema.safeParse`.
 5. `checkIntegrity`: duplicate layer ids, segments that point at missing vertices, segments whose two ends are
-   the same vertex, and openings on missing segments.
+   the same vertex, openings on missing segments, and kitchen sinks whose counter is missing.
 
 Errors name the exact field, with the ids of list items (`layers[0] (L1).vertices.v3.x: …`). The UI shows up to 12 of
 them.
@@ -73,7 +81,8 @@ them.
 ## Saving
 
 `serializePlan` runs the plan through `PlanSchema.parse` again. This puts keys in schema order, and an invalid plan
-throws, which `savePlan` reports and does not save. Vertex coordinates, opening offsets and roof outline points are rounded to 0.1 mm
+throws, which `savePlan` reports and does not save. Vertex coordinates, opening offsets, roof outline points,
+furniture `at` and kitchen-sink `offset` are rounded to 0.1 mm
 (1e-4 m) only here; edits keep full precision, and so do the image transform values. The output is 2-space JSON with a trailing newline.
 The autosaved draft stores the same text.
 
@@ -97,3 +106,6 @@ value in the optional `kind` enum) came in the seventh session, also at version 
 (optional segment keys) came after it, still at version 1: older files load with every wall automatic and 2.70 m
 tall. Layer `roofs` (`.default({})`) came in the eighth session, also at version 1: older files load unroofed,
 since the automatic roof was removed at the same time ([Roofs are drawn outlines](roofs-drawn-outlines.md)).
+On 2026-11-04 the optional segment `colonnade` and the `fireplace` opening kind came, still at version 1
+([Colonnades are an open-edge setting; fireplaces are an opening kind](colonnade-setting-fireplace-opening.md)).
+Later that day layer `furniture` (`.default({})`) came, also at version 1.

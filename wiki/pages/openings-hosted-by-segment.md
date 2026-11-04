@@ -4,7 +4,7 @@ type: decision
 summary: "A door or window is an opening in layer.openings hosted by one segment at a centre offset from its a end, not a segment kind between two vertices on the wall line (which would fragment the wall and not follow a moved corner); when the wall's length changes it keeps its distance to the nearer end."
 tags: [decision, model, openings, doors, windows]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Doors and windows are hosted by a segment
@@ -21,6 +21,8 @@ the rooms around them ([Areas](areas.md)).
 - The wall stays one segment. The gap exists only in the drawing (`openingSpans`). Regions ignore openings, so a room
   stays closed through its doors ([Regions](regions.md)).
 - Gates (fifth session) are a third kind of the same record, hosted by any segment, usually an open-edge fence.
+- Fireplaces (2026-11-04) are a fourth kind, hosted by walls only and cutting no gap, chosen to reuse this upkeep
+  ([Colonnades are an open-edge setting; fireplaces are an opening kind](colonnade-setting-fireplace-opening.md)).
 
 ## Alternative rejected
 

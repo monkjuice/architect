@@ -1,10 +1,10 @@
 ---
 title: Roof tab (roof plan)
 type: component
-summary: "The Roof tab: src/ui/RoofTab.tsx (Select V / Roof R / Pan H, the New roofs type = EditorState.roofType, Roof the house, Snap) over the shared Canvas in roof mode (floor plan faded, Roofs.tsx draws slopes shaded by aspect, eaves, dashed outline under an overhang, downhill arrows, labels), the roof and roofSelect tools, RoofPanel (Box roofs), and the actions openTab, addRoofOutline and roofTheHouse."
-tags: [ui, roof, canvas, tools, tabs]
+summary: "The Roof tab: src/ui/RoofTab.tsx (Select V / Roof R / Pan H, the New roofs type = EditorState.roofType, Roof the house, Snap) over the shared Canvas in roof mode (floor plan faded, Roofs.tsx draws slopes shaded by aspect, eaves, dashed outline under an overhang, downhill arrows, labels, fireplaces' chimneys), the roof and roofSelect tools, RoofPanel (Box roofs), and the actions openTab, addRoofOutline and roofTheHouse."
+tags: [ui, roof, canvas, tools, tabs, fireplace]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Roof tab (roof plan)
@@ -22,7 +22,8 @@ roof plan over the floor plan ([Roofs are drawn outlines](roofs-drawn-outlines.m
   labels, sun, calibration or selection marks, or welcome card. `RoofLayer` is drawn per visible layer.
 - `src/ui/canvas/Roofs.tsx`: slopes filled with an opacity by aspect (light from the top left), eaves solid, the
   outline dashed when there is an overhang, a downhill arrow per slope, a label (type and pitch; `top +x.xx` or
-  "not convex"), corner handles when selected.
+  "not convex"), corner handles when selected. Since 2026-11-04 it also marks each fireplace's chimney: the flue
+  from `fireplaceShape`, crossed (`flueMark`, class `.roof-chimney`; [Fireplaces](fireplaces.md)).
 - `src/ui/canvas/tools/roof.ts`: click corners (snap, Shift 45°, the first corner is an extra snap point); click
   the first corner or press Enter to close (a right click also closes), Backspace drops a corner, Esc cancels.
 - `src/ui/canvas/tools/roofSelect.ts`: a click inside the eaves or outline picks the smallest roof on an editable

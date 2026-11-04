@@ -1,10 +1,10 @@
 ---
 title: Canvas and tools
 type: component
-summary: "The SVG canvas of the Floor and Roof tabs in src/ui/canvas/ (mode floor or roof): Canvas.tsx routes pointer and key events to plain tool controllers in tools/ that return OverlayData; Scene.tsx draws the plan (walls filled at their thickness unless Thick walls is off, area labels with the lines the View section shows), Sun.tsx the sun dial and wall shadows, Roofs.tsx the roof plan, and Overlay.tsx the tool feedback, at constant screen size."
-tags: [ui, canvas, svg, tools, sun, walls, tabs, roof]
+summary: "The SVG canvas of the Floor and Roof tabs in src/ui/canvas/ (mode floor or roof): Canvas.tsx routes pointer and key events to plain tool controllers in tools/ that return OverlayData and takes library drops (openings and colonnades); Scene.tsx draws the plan (walls filled at their thickness unless Thick walls is off, area labels with the lines the View section shows), Columns.tsx the colonnades, Sun.tsx the sun dial and wall shadows, Roofs.tsx the roof plan, and Overlay.tsx the tool feedback, at constant screen size."
+tags: [ui, canvas, svg, tools, sun, walls, tabs, roof, colonnades]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Canvas and tools
@@ -13,9 +13,9 @@ updated: 2026-11-02
 
 - `Canvas.tsx`: the `<svg>`, whose `viewBox` is the stored view in world meters. It handles the resize observer and
   the wheel zoom (registered natively because React's wheel listener is passive). It also handles panning (Space,
-  the middle button or the `pan` tool), the tool shortcuts, file drops and doors, windows or gates dragged from the
-  Library panel (`OPENING_DRAG_TYPE` data `"kind:style"`, checked with `isStyleOf` → `dropOpening`), the scale bar
-  and the status line. It fits the view only
+  the middle button or the `pan` tool), the tool shortcuts, file drops and the two kinds of Library drag: doors,
+  windows, gates and fireplaces (`OPENING_DRAG_TYPE` data `"kind:style"`, checked with `isStyleOf` → `dropOpening`)
+  and colonnades (`COLONNADE_DRAG_TYPE` data: the column style → `dropColonnade`), the scale bar and the status line. It fits the view only
   once ([View fitted once and stored](view-fitted-once.md)). On an empty plan it shows the `.empty-state` welcome
   card, only while Select or Pan is active, and the card lets clicks through
   ([Welcome card swallowed canvas clicks](welcome-card-swallowed-clicks.md)). It is mounted by `src/ui/FloorTab.tsx`
@@ -34,8 +34,10 @@ updated: 2026-11-02
     at their thickness ([Walls](walls.md)). Each segment is drawn in pieces
     around its doors and windows (`openingSpans`). Vertices are drawn only on the active layer, and open ends are hollow. Locked layers
     fade (opacity 0.6) and are not dashed, because dashes mean open edges.
-  - `OpeningLayer` (`Openings.tsx`, memoized, per layer): door, window and gate symbols
-    ([Doors, windows and gates](doors-and-windows.md)); a sliding gate short of parking room gets class `cramped`.
+  - `OpeningLayer` (`Openings.tsx`, memoized, per layer): door, window, gate and fireplace symbols
+    ([Doors, windows and gates](doors-and-windows.md), [Fireplaces](fireplaces.md)); a sliding gate short of parking
+    room gets class `cramped`.
+  - `ColonnadeLayer` (`Columns.tsx`, memoized, per visible layer): columns at real size ([Colonnades](colonnades.md)).
     The selected ids are passed as one space-separated string, so `memo` compares by value. `OpeningShape` renders
     `openingParts`, both here and in the library's `OpeningIcon` ([Door, window and gate styles](opening-styles.md)).
   - `AreaLabels`: name and m² pills, dashed warning style when not enclosed. Each line shows only when the View
@@ -50,7 +52,10 @@ updated: 2026-11-02
 - `areas.ts`: area label text, screen-size label boxes (`areaLabelSize(placed, lines)`: one line gives a shorter
   box, none no label) and their hit test (`areaLabelAt(..., lines)`), and `regionPath`. The select tool passes the
   current prefs, so a hidden label cannot be grabbed.
-- `tools/`: `select.ts`, `line.ts`, `area.ts`, `opening.ts` (Door, Window and Gate), `measure.ts`, `image.ts`
+- `symbols.ts`: drawing helpers shared by component files (`flueMark`, used by `Openings.tsx` and `Roofs.tsx`);
+  helpers live here because component files may export only components ([Code conventions](code-conventions.md)).
+- `tools/`: `select.ts`, `line.ts`, `area.ts`, `opening.ts` (Door, Window, Gate and Fireplace), `colonnade.ts`
+  (Colonnade: click an open edge), `measure.ts`, `image.ts`
   (move, level, crop, calibrate) and `north.ts` (North: two clicks along the survey's north arrow set
   `plan.site.north`; no key, not an image tool, so it works with a locked or missing image), and the Roof tab's
   `roof.ts` (draw an outline) and `roofSelect.ts` (pick, move, reshape) ([Roof tab](roof-tab.md)).
@@ -62,7 +67,7 @@ updated: 2026-11-02
 The line tool draws the store's `lineKind` (`O` cycles wall → open edge → outline, or pick the line type in the
 Library panel). The Area
 tool (`A`) and how the select tool picks and drags areas are described in [Areas](areas.md), the Door (`D`),
-Window (`W`) and Gate (no key: `G` is the grid) tools and opening drags in [Doors, windows and gates](doors-and-windows.md). The select tool hits, in order:
+Window (`W`) and Gate (no key: `G` is the grid) tools and opening drags in [Doors, windows and gates](doors-and-windows.md); the Fireplace and Colonnade tools have no key either. The select tool hits, in order:
 area labels, vertices, openings, segments. Segment hits and wall picking for openings measure from a thick wall's
 faces, through the `drawnHalfWidth` callback ([Walls](walls.md)). `Overlay` and `OpeningLayer` take `thick` too.
 

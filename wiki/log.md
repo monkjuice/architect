@@ -150,3 +150,22 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/playwright-flow-checks.md (stale HMR module copies, vite child keeping port 5180, layer-name inputs, newline before tool keys; summary, tags)
 - updated: overview.md (summary, tabs, roofs.ts/elevations.ts, RoofTab/ElevationsTab, roof decision, GitHub, reading order, open items for roofs and elevations)
 - updated: index.md
+
+## [2026-11-04] update | Colonnades on open edges; fireplaces with chimneys
+- created: pages/colonnades.md (segment colonnade field, colonnades.ts sizes/columnSpots/layerColonnades/heldByWall, setColonnade, tool, library box, ColonnadeLayer, ColonnadeFields, 3-D beam and columns)
+- created: pages/fireplaces.md (FireplaceSchema, cutsWall, besideWall/fireplaceShape, wall-only targets, openingAt half thickness gotcha, local point-in-polygon, symbol, roof-plan chimney, 3-D masonry and chimney height)
+- created: pages/colonnade-setting-fireplace-opening.md (decision: open-edge attribute and opening kind; hosted collections rejected)
+- updated: pages/plan-model.md (colonnade field, FireplaceSchema in the union, additive at schemaVersion 1; summary, tags)
+- updated: pages/doors-and-windows.md (fireplace kind, wall-only targets, cutsWall spans, overlaps on either side, openingAt half, tool, Fireplaces group, LibraryItem.drag; summary, tags)
+- updated: pages/opening-styles.md (masonry row, hasHinge explicit, cutsWall, hand-drawn icon; summary, tags)
+- updated: pages/openings-hosted-by-segment.md (fireplaces hosted too)
+- updated: pages/segment-kind-not-layer.md (open edges carry colonnades, kept across kind switches; fireplaces need walls)
+- updated: pages/house-solids.md (fireplace/chimney kinds, stone/metal/brick/soot, round builders and smooth faces, colonnade beams and columns, plain open edges skip colonnade ends, fireplaces after roofs; 15 tests; summary, tags)
+- updated: pages/elevations.md (facing and smooth per polygon, shading, smooth facets stroked in their fill and the black-bar columns; 4 tests; summary)
+- updated: pages/roof-tab.md (chimney marks; summary, tags)
+- updated: pages/canvas-and-tools.md (two drag types, ColonnadeLayer, symbols.ts, colonnade tool; summary, tags)
+- updated: pages/editor-store.md (fireplace/colonnade ToolIds, openingStyle.fireplace, columnStyle, colonnade actions; summary, tags)
+- updated: pages/code-conventions.md (library-fireplace/library-colonnade Box ids, no model import cycles, helpers in symbols.ts; summary)
+- updated: pages/development-and-testing.md (159 tests by file, 5e2f614 committed and this batch not, 19-check flow, two older checks updated; summary)
+- updated: overview.md (summary, what it does, colonnades.ts, Library groups, decision link, open items)
+- updated: index.md
