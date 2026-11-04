@@ -1,7 +1,7 @@
 ---
 title: Development and testing
 type: guide
-summary: "npm scripts, the GitHub repository, the 169 Vitest model tests and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 24-check furniture flow on the user's plan, the exterior, roof and colonnade ones with software WebGL; older ones now need a pinned copy of that plan), plus reading live derived values from the dev server."
+summary: "npm scripts, the GitHub repository, the 170 Vitest model tests and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 26-check furniture flow on the user's plan, the exterior, roof and colonnade ones with software WebGL; older ones now need a pinned copy of that plan), plus reading live derived values from the dev server."
 tags: [guide, testing, vitest, playwright, webgl, git]
 sources: []
 updated: 2026-11-04
@@ -24,18 +24,20 @@ You need Node 20.19+ or 22.12+. Run `npm install` first.
 
 The code is in git, pushed to https://github.com/monkjuice/architect (branch `main`) on 2026-11-02 with one initial
 commit. The roof plan and elevations work was committed as `5e2f614`, and the colonnades, fireplaces and furniture
-together as `8b0cc2d` (2026-11-04), the toilet, bidet, shower and corner tub as `3014137`, all on `main`; the user wants each finished batch committed there, and pushes
+together as `8b0cc2d` (2026-11-04), the toilet, bidet, shower and corner tub as `3014137`, the kitchen island as `0acdce9`, all on `main`; the user wants each finished batch committed there, and pushes
 only on request.
 
 ## Model tests
 
-On 2026-11-04, after the bathroom fixtures, there were 169 Vitest tests in `src/model/*.test.ts`: `openings` 30,
-`edit` 27, `solids` 15, `regions` 13, `walls` 13, `roofs` 10, `furniture` 10, `baseImage` 9, `sun` 9, `geometry` 8,
+On 2026-11-04, after the kitchen island, there were 170 Vitest tests in `src/model/*.test.ts`: `openings` 30,
+`edit` 27, `solids` 15, `regions` 13, `walls` 13, `furniture` 11, `roofs` 10, `baseImage` 9, `sun` 9, `geometry` 8,
 `pick` 6, `planFile` 6, `snap` 5, `colonnades` 4 and `elevations` 4 (counted from the `it(` calls). `furniture.test.ts`
 covers placement and angle, backing up to a wall face, the kitchen sink only in a counter (and kept there as the
 counter moves or goes), a chair facing a table, the shower head round the rim, picking the smaller piece first,
 3-D parts plus the file round trip, toilet and bidet snap and heights, a shower's tray, screen and head (rim round
-trip), and a corner tub's head on its arc and quarter-disc outline ([Furniture and fixtures](furniture.md)). The colonnade and fireplace tests cover
+trip), a corner tub's head on its arc and quarter-disc outline, and a kitchen island (free by a wall, a sink centred
+over its cabinets, cabinets 0.25 m short of the front, a style-less counter loading as a wall counter)
+([Furniture and fixtures](furniture.md)). The colonnade and fireplace tests cover
 column spots, ends a wall holds and a colonnade surviving a split, a kind switch and the file
 ([Colonnades](colonnades.md)); fireplaces (no wall gap, a side but no hinge, walls only, picked on the surround,
 the file; [Fireplaces](fireplaces.md)); colonnade beams with and without a roof and a fireplace's chimney; and
@@ -185,7 +187,8 @@ sink; deleting it takes the sink, and undo; a square table dropped from the libr
 (HTML5 library drags work that way); 31 `furniture` solids in 3-D; no console errors. With the bathroom fixtures
 it grew to 24 checks: library counts per box, a corner tub in Baño Suite with its head dragged to the middle of its
 curve, a toilet and a bidet in Toilette, a shower in Lavadero with its head dragged; it, the tabs flow and the older
-flows (on the cleaned fixture where needed) passed.
+flows (on the cleaned fixture where needed) passed. With the kitchen island it has 26 checks (the Counters box lists
+Counter and Kitchen island; an island stands free in the kitchen; a kitchen sink goes in it), passing.
 
 On the same day four older flows that inject the user's saved plan failed on stale expectations, because the user
 had kept editing it (a shed roof, their own fireplace and a 4 m colonnade, Estudio on its own layer, the Pileta area

@@ -1,7 +1,7 @@
 ---
 title: Furniture and fixtures
 type: component
-summary: "Free-standing pieces in layer.furniture (ids f<n>): counters, sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), square and round tables, chairs; src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters and tables, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
+summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), square and round tables, chairs; src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters and tables, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
 tags: [model, furniture, ui, canvas, 3d]
 sources: []
 updated: 2026-11-04
@@ -12,7 +12,8 @@ updated: 2026-11-04
 Added on 2026-11-04 for the user's request: counters, sinks (the kitchen one "can only be placed over a counter"),
 bathtubs ("allow me to move the shower head"), beds, tables and chairs. Why pieces stand free and only the kitchen
 sink is hosted: [Furniture stands free; a kitchen sink is hosted by its counter](furniture-free-standing.md).
-The same day (`3014137`) the user asked for a toilet and a bidet, then a simple shower and a corner bathtub.
+The same day (`3014137`) the user asked for a toilet and a bidet, then a simple shower and a corner bathtub, and
+then (`0acdce9`) a kitchen island.
 
 ## Model
 
@@ -28,6 +29,11 @@ The same day (`3014137`) the user asked for a toilet and a bidet, then a simple 
   - `placement(at, angle, width, depth)` is a piece's frame (`u` across the front, `v` back to front), with
     `local`/`toLocal`/`corners`. **Always get a piece's position from `placeFurniture(layer, f)`**: it lays a kitchen
     sink out from its counter (offset clamped inside it, 3 cm forward) and returns null when the counter is gone.
+  - **Kitchen island**: a counter with `style: 'island'` (`isIsland`; a counter without a style, as in every older
+    file, stands against a wall). Catalogue 2.00 × 1.00 m, 0.90 m high, snap `none`, so it stays where it is put.
+    Its worktop overhangs the front by `ISLAND_OVERHANG` (0.25 m) for stools, so `sinkAcross` centres a kitchen sink
+    over the cabinets (−overhang/2 from the middle, plus the 3 cm) in both `placeFurniture` and `furnitureTarget`;
+    the plan symbol adds a `soft` line where the cabinets end.
   - `furnitureTarget`: `wall` pieces back up to the nearest wall face (not open edges or outlines) within
     `depth + FURNITURE_REACH_M` (0.4 m),
     facing into the room and kept from hanging past the wall's ends; a chair faces a nearby table (round: radially;
@@ -62,12 +68,15 @@ The same day (`3014137`) the user asked for a toilet and a bidet, then a simple 
   spot keeps it put and shows the problem); in a multi-selection pieces move by the drag's delta; box select and
   Ctrl+A include furniture; `R` turns the selected pieces ([Canvas and tools](canvas-and-tools.md)).
 - **Selection panel** (`FurnitureDetails`): Style among the kind's styles with the same `snap` (a new style takes
-  its catalogue size; a kitchen sink has none), width and depth (or diameter), *Turned*, hints, *Turn*.
+  its catalogue size; a kitchen sink has none), width and depth (or diameter), *Turned*, hints, *Turn*. The field
+  shows only when the piece has a style (a counter's is optional); a counter and an island differ in `snap`, so it
+  never switches one into the other.
 
 ## In 3-D
 
 `furnitureParts` (`src/model/furniture3d.ts`) gives `furniture` solids ([House solids](house-solids.md)): counter
-(toe kick, wood cabinets, stone worktop at `WORKTOP` 0.90 m, where the kitchen sink's steel rim sits), basins and
+(toe kick, wood cabinets, stone worktop at `WORKTOP` 0.90 m, where the kitchen sink's steel rim sits; an island's
+toe kick is recessed all round and its cabinets stop at the overhang, under a worktop over the whole footprint), basins and
 tubs with real holes (a corner tub: quarter-disc rim and basin, smooth), a shower riser (shared `riser` helper) from
 the rim or tray to 1.95 m, a shower's 0.05 m tray and 2.0 m glass screen with a metal edge post, a toilet (pedestal,
 bowl ring at 0.30–0.40 m, cistern to 0.78 m), a bidet with its tap, beds, tables and chairs, in the new `ceramic`,

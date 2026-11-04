@@ -192,3 +192,11 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/canvas-and-tools.md (shower mark hit on showers too)
 - updated: overview.md (summary, what it does, Library groups)
 - updated: index.md
+
+## [2026-11-04] update | Kitchen island
+- updated: pages/furniture.md (island = counter style island, snap none, ISLAND_OVERHANG, sinkAcross, plan symbol, Style field guard, 3-D cabinets and toe kick; summary)
+- updated: pages/furniture-free-standing.md (island as a counter style; new island kind rejected; summary)
+- updated: pages/plan-model.md (CounterSchema's optional style)
+- updated: pages/development-and-testing.md (170 tests, furniture 11, island tests, 26-check furniture flow, 0acdce9; summary)
+- updated: overview.md (what it does, Library groups)
+- updated: index.md

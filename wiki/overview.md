@@ -17,7 +17,7 @@ on layers over it, each a wall, an open edge (porch front, colonnade) or an outl
 deck), name the areas they enclose (rooms, the porch, the pool), put doors and windows of several styles in the
 walls, gates in the fences and fireplaces against walls (their chimneys go up through the roof,
 [Fireplaces](pages/fireplaces.md)), stand Roman or metal columns along open edges
-([Colonnades](pages/colonnades.md)), furnish the rooms (counters with kitchen sinks, bathroom and outdoor sinks,
+([Colonnades](pages/colonnades.md)), furnish the rooms (counters and kitchen islands with kitchen sinks, bathroom and outdoor sinks,
 bathtubs (corner ones too) and showers with a movable shower head, toilets, bidets, beds, tables, chairs; [Furniture and fixtures](pages/furniture.md)), and
 measure lengths and areas. Walls are drawn at their thickness (automatic by
 whether they face outside, or set by hand) and have heights; areas show floor area inside the walls, with a
@@ -65,7 +65,7 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   and stays folded per browser ([Code conventions](pages/code-conventions.md)). The Library lists line types (Wall, Open edge, Outline),
   then a Doors group (single, double, sliding), a Windows group (fixed, sliding, double hung, awning, casement), a
   Gates group (single, double, sliding) ([Door, window and gate styles](pages/opening-styles.md)), a Fireplaces group
-  (masonry), Colonnades (Roman, metal), then Counters, Sinks, Bathtubs, Showers, Toilets (toilet, bidet), Beds, Tables and Chairs. Click an item to
+  (masonry), Colonnades (Roman, metal), then Counters (counter, kitchen island), Sinks, Bathtubs, Showers, Toilets (toilet, bidet), Beds, Tables and Chairs. Click an item to
   arm its tool, or drag it onto a wall, fence or open edge (furniture: anywhere on the plan).
 - `src/main.tsx` restores the draft before the first render. `src/App.tsx` switches tabs (lazy-loading the
   Exterior, so three.js is its own chunk) and runs the autosave, the Ctrl shortcuts and image paste (Floor only).
