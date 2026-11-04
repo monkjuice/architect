@@ -6,7 +6,7 @@ import { isEditable, segmentKind, type Furniture, type FurnitureKind, type Layer
  * at a point turned to an angle, its back up the sheet at 0, and is `width` across its front and `depth` from back
  * to front. Things that stand against a wall (all but tables, chairs and islands) snap with their back to the nearest
  * wall face when they are put down; a kitchen sink only goes in a counter and is kept there, relative to it;
- * a chair snaps to face a table it is put next to.
+ * a chair snaps to face a table it is put next to, and a coffee table to stand in front of a sofa.
  */
 
 export interface FurnitureInfo {
@@ -19,7 +19,7 @@ export interface FurnitureInfo {
   depth: number
   height: number
   /** What it lines up with when it is put down. */
-  snap: 'wall' | 'counter' | 'table' | 'none'
+  snap: 'wall' | 'counter' | 'table' | 'sofa' | 'none'
 }
 
 /** The catalogue, in the order the library lists it. Beds are mattress sizes plus a frame and headboard. */
@@ -46,6 +46,7 @@ export const FURNITURE: readonly FurnitureInfo[] = [
   { kind: 'sofa', style: 'sectional', title: 'Sectional', width: 2.8, depth: 1.7, height: 0.85, snap: 'wall' },
   { kind: 'table', style: 'square', title: 'Square', width: 0.9, depth: 0.9, height: 0.75, snap: 'none' },
   { kind: 'table', style: 'circle', title: 'Circle', width: 1.1, depth: 1.1, height: 0.75, snap: 'none' },
+  { kind: 'table', style: 'coffee', title: 'Coffee', width: 1.2, depth: 0.6, height: 0.42, snap: 'sofa' },
   { kind: 'chair', title: 'Chair', width: 0.45, depth: 0.5, height: 0.9, snap: 'table' },
 ]
 
@@ -222,9 +223,26 @@ export function furnitureTarget(plan: Plan, p: Vec, opts: FurnitureOptions): Fur
     return best ? { layer: layer.id, at: best.at, angle: best.angle } : free
   }
 
+  if (info.snap === 'sofa') {
+    for (const f of Object.values(layer.furniture)) {
+      if (f.kind !== 'sofa') continue
+      const s = placement(f.at, f.angle, f.width, f.depth)
+      const q = toLocal(s, p)
+      // in front of its main seat: a sectional's seat stops short of its return, and is shallower
+      const m = f.mirror ? -1 : 1
+      const sectional = f.style === 'sectional'
+      const [x0, x1] = sectional ? [-s.width / 2, s.width / 2 - SOFA.chaise].map((x) => m * x).sort((a, b) => a - b) : [-s.width / 2, s.width / 2]
+      const front = sectional ? Math.min(-s.depth / 2 + SOFA.seat, s.depth / 2) : s.depth / 2
+      if (q.x < x0 - opts.reach || q.x > x1 + opts.reach || q.y < front - opts.reach || q.y > front + COFFEE_GAP + opts.depth + opts.reach) continue
+      return { layer: layer.id, at: local(s, (x0 + x1) / 2, front + COFFEE_GAP + opts.depth / 2), angle: s.angle }
+    }
+    return free
+  }
+
   if (info.snap === 'table') {
     for (const [id, f] of Object.entries(layer.furniture)) {
-      if (f.kind !== 'table' || id === opts.ignore) continue
+      // chairs gather round dining tables, not coffee tables
+      if (f.kind !== 'table' || f.style === 'coffee' || id === opts.ignore) continue
       const t = placement(f.at, f.angle, f.width, f.depth)
       const q = toLocal(t, p)
       if (f.style === 'circle') {
@@ -299,6 +317,9 @@ export function sofaOutline(pl: Placement, style: string, mirror = false): Vec[]
   ]
   return pts.map(([x, y]) => local(pl, m * x, y))
 }
+
+/** How far in front of a sofa's seat a coffee table stands, in m: room for the legs. */
+export const COFFEE_GAP = 0.4
 
 /** Whether a piece has a shower head that can be moved round its rim. */
 export const hasShower = (f: Furniture): f is Extract<Furniture, { shower: number }> => f.kind === 'bathtub' || f.kind === 'shower'
@@ -448,6 +469,7 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
       return parts
     }
     case 'table':
+      if (f.style === 'coffee') return [{ pts: rounded(pl, -hw, -hd, hw, hd, 0.06), closed: true, role: 'outline' }, { pts: rounded(pl, -hw + 0.06, -hd + 0.06, hw - 0.06, hd - 0.06, 0.04), closed: true, role: 'soft' }]
       return f.style === 'circle' ? [{ pts: ellipse(pl, -hw, -hd, hw, hd, 48), closed: true, role: 'outline' }] : [outline]
     case 'shower':
       // a tray with its drain, the head on its edge, and the glass screen along its front

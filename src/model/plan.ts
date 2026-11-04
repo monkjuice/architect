@@ -110,7 +110,7 @@ export const SINK_STYLES = ['outdoor', 'kitchen', 'bathroom'] as const
 export const BATHTUB_STYLES = ['alcove', 'clawfoot', 'drop-in', 'corner'] as const
 export const BED_STYLES = ['single', 'double', 'queen', 'king'] as const
 export const SOFA_STYLES = ['armchair', 'loveseat', 'three-seater', 'sectional'] as const
-export const TABLE_STYLES = ['square', 'circle'] as const
+export const TABLE_STYLES = ['square', 'circle', 'coffee'] as const
 
 const Standing = {
   /** Its centre on the plan, in m. */

@@ -164,7 +164,19 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
       break
     }
     case 'table':
-      if (f.style === 'circle') {
+      if (f.style === 'coffee') {
+        // a low top on four legs, a shelf between them
+        put(rounded(pl, -hw, -hd, hw, hd, 0.06), 0.38, 0.42, 'wood')
+        put(box(-hw + 0.05, -hd + 0.05, hw - 0.05, hd - 0.05), 0.1, 0.12, 'wood')
+        for (const [x, y] of [
+          [-hw + 0.05, -hd + 0.05],
+          [hw - 0.05, -hd + 0.05],
+          [hw - 0.05, hd - 0.05],
+          [-hw + 0.05, hd - 0.05],
+        ]) {
+          put(box(x - 0.02, y - 0.02, x + 0.02, y + 0.02), 0, 0.38, 'wood')
+        }
+      } else if (f.style === 'circle') {
         put(ellipse(pl, -hw, -hd, hw, hd, 48), 0.71, 0.75, 'wood', [], true)
         post(0, 0, 0.05, 0.04, 0.71, 'wood')
         post(0, 0, Math.min(0.28, hw * 0.5), 0, 0.04, 'wood')

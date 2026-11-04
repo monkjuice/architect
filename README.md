@@ -179,8 +179,8 @@ Furniture and fixtures go where you click (pick one in the library, or drag it o
 | **Toilets** | *Toilet* 0.40 × 0.70 m, its cistern to the wall; *Bidet* 0.38 × 0.55 m | back up to a wall |
 | **Beds** | *Single* 0.95 × 2.00, *Double* 1.45 × 2.00, *Queen* 1.65 × 2.10, *King* 1.85 × 2.10 m (mattress and frame) | head to a wall |
 | **Sofas** | *Armchair* 0.90 × 0.90 m, *Loveseat* 1.60 × 0.90 m, *Three-seater* 2.20 × 0.95 m, *Sectional* 2.80 × 1.70 m (an L whose return, at its right end, *Flip* moves to its left), 0.85 m high | back up to a wall |
-| **Tables** | *Square* 0.90 × 0.90 m, *Circle* Ø 1.10 m, 0.75 m high | stand where they are put |
-| **Chairs** | 0.45 × 0.50 m | turn to face a table they are put by |
+| **Tables** | *Square* 0.90 × 0.90 m, *Circle* Ø 1.10 m, 0.75 m high; *Coffee* (mesa ratona) 1.20 × 0.60 m, 0.42 m high, with a shelf | stand where they are put; a coffee table stands centred 0.40 m in front of a sofa it is put by (a sectional's main seat), squared to it |
+| **Chairs** | 0.45 × 0.50 m | turn to face a dining table they are put by |
 
 Near a wall, a piece that goes against one turns its back to the wall and stands flush with its face (`Alt`
 keeps it from snapping); `R` turns it a quarter turn, while placing or with it selected. A **kitchen sink** sits in
@@ -325,7 +325,7 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   `furniture` (id → `{kind, style, at, angle, width, depth}`: `kind` is `counter` (style `island` for a kitchen island, none against a wall), `sink` (`outdoor`, `kitchen`,
   `bathroom`), `bathtub` (`alcove`, `clawfoot`, `drop-in`, `corner`, with `shower`, the shower head's place
   round the rim from 0 to 4), `shower` (with `shower` too), `toilet`, `bidet`, `bed` (`single`, `double`, `queen`, `king`), `sofa`
-  (`armchair`, `loveseat`, `three-seater`, `sectional`, with `mirror` for a sectional's return on its left), `table` (`square`, `circle`) or `chair`; `at` is its
+  (`armchair`, `loveseat`, `three-seater`, `sectional`, with `mirror` for a sectional's return on its left), `table` (`square`, `circle`, `coffee`) or `chair`; `at` is its
   centre and `angle` its turn in degrees, clockwise; a kitchen sink has `counter` and `offset` (its centre's
   distance from the counter's left end) instead of `at` and `angle`). Files saved before areas, openings,
   styles, wall thicknesses, roofs or furniture existed open unchanged (older openings read as single doors and fixed windows, older walls as automatic).

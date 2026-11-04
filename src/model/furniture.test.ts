@@ -150,6 +150,27 @@ describe('furniture', () => {
     expect(parsed.ok && parsed.plan.layers[0].furniture.f1).toMatchObject({ kind: 'sofa', style: 'sectional', mirror: true })
   })
 
+  it('stands a coffee table in front of a sofa, squared to it', () => {
+    let plan = put(room(), 'sofa', 'three-seater', { x: 3, y: 0.6 })
+    plan = put(plan, 'table', 'coffee', { x: 3.4, y: 1.9 })
+    const table = plan.layers[0].furniture.f2 as Extract<Furniture, { kind: 'table' }>
+    // centred on the sofa, its front 0.95 m from the wall face, then the gap and half the table's depth
+    expect(table.angle).toBeCloseTo(0, 6)
+    near(table.at, { x: 3, y: 0.15 + 0.95 + 0.4 + 0.3 })
+    // in front of a sectional's main seat, not its return
+    let l = put(room(), 'sofa', 'sectional', { x: 3, y: 0.6 })
+    l = put(l, 'table', 'coffee', { x: 2.5, y: 1.9 })
+    const t = l.layers[0].furniture.f2 as Extract<Furniture, { kind: 'table' }>
+    expect(t.at.x).toBeCloseTo(3 - 0.95 / 2, 6)
+    // away from sofas it stands where it is put; chairs do not gather round it
+    const free = put(room(), 'table', 'coffee', { x: 3, y: 2 })
+    expect(free.layers[0].furniture.f1).toMatchObject({ at: { x: 3, y: 2 } })
+    const chair = furnitureTarget(free, { x: 3, y: 2.5 }, opts('chair', undefined))!
+    expect(chair).toMatchObject({ at: { x: 3, y: 2.5 }, angle: 0 })
+    const solids = houseSolids(plan).filter((x) => x.ref.id === 'f2')
+    expect(Math.max(...solids.map((x) => x.top))).toBeCloseTo(0.42)
+  })
+
   it('turns a chair to face the table it is put by', () => {
     let plan = put(room(), 'table', 'circle', { x: 3, y: 2 }, { snap: false })
     plan = put(plan, 'chair', undefined, { x: 3, y: 2.9 })
