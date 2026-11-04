@@ -1,0 +1,63 @@
+---
+title: Materials and finishes
+type: component
+summary: "A materials catalogue (src/model/materials.ts: 28 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors; suits, materialGroups, findMaterial) and finishes on wall sides and area floors (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is indoor, finishProblem; segment.finish and area.floor in the plan), set by the Material tool, library drags or the Selection panel, drawn in plan (Finishes.tsx, tinted AreaFills), in 3-D and in the elevations."
+tags: [model, materials, finishes, walls, areas, ui, 3d, library]
+sources: []
+updated: 2026-11-04
+---
+
+# Materials and finishes
+
+Added on 2026-11-04 (`839dce5`). It replaces the "no materials in the plan" part of
+[Exterior kept basic](exterior-kept-basic.md) and answers the user's fourth-session points: a table of what each
+material can go on, and materials shown in groups.
+
+## Catalogue (`src/model/materials.ts`)
+
+- `MATERIALS`: 28 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
+  concrete, wood, ceramic, metal, glass, roofing, ground and garden. Each has `surfaces` (`wall`, `floor`,
+  `ceiling`, `roof`, `door`, `frame`), `indoor`/`outdoor` flags, and `color`, `roughness`, `metalness`, `clear` for
+  the renderers. Only `wall` and `floor` are used so far.
+- `pattern` is drawn only in the library swatch (`MaterialIcon`); 3-D and the elevations use the flat colour.
+- `suits(material, surface, outdoor)`; `materialGroups(surface, outdoor?)` lists what suits, by family, and treats
+  an omitted `outdoor` as "either" (the library lists everything for the surface; the Selection panel passes
+  the side's or floor's actual outdoor flag); `findMaterial(id)`.
+
+## Sides and outdoor (`src/model/finishes.ts`)
+
+- A wall's sides are `left`/`right` looking from segment `a` to `b`, as door swings are. `sideNormal`: the left of
+  a→b is (d.y, −d.x), because +y is down. `sideOf(a, b, p)` picks the side a point is on.
+- `wallSide(layer, regions, half, segment, side)` samples the region 5 cm past the face at the wall's midpoint. A
+  side is **outdoor unless that region is indoor**, so the outside, a gallery and a pool all count as outdoor
+  ([Indoor means unreachable from outside](indoor-reachability-rule.md)). A floor is outdoor when its region is not
+  indoor.
+- `finishProblem(material, surface, outdoor)` gives the refusal text.
+
+## In the plan
+
+`segment.finish` `{left?, right?}` and `area.floor`, both material ids. They are additive at schemaVersion 1
+([Plan model and file format](plan-model.md)). Ids are not checked against the catalogue: an unknown id is kept in
+the file but drawn plain. Edits in `edit.ts`: `setWallFinish` (walls only; `null` clears a side) and
+`setAreaFloor(refs)`. A split keeps a→b, so finishes survive splits and wall → open edge → wall switches.
+
+Suitability is checked only when a finish is applied. If the plan changes later (for example, a room becomes a
+gallery), the finish stays, and the Selection panel lists it as "(does not suit it)".
+
+## Editor
+
+- **Material tool** (`canvas/tools/material.ts`, ToolId `material`, no key) applies `EditorState.materialPick`
+  `{id, surface}` (default white plaster, wall), set by the library. Hovering highlights the face line or the floor
+  region and tags any problem.
+- `actions.ts`: `finishTarget(surface, p, reach)` is either the wall within reach (through `hitTest`) and the side
+  `p` is on, or the smallest named area around `p` on an editable layer. `applyFinish` refuses with a notice, then
+  edits and selects. `dropMaterial` handles `MATERIAL_DRAG_TYPE` data `"wall:<id>"` / `"floor:<id>"`.
+- Plan: `FinishLayer` (`canvas/Finishes.tsx`) draws a line in the material's colour just inside each finished face,
+  broken at openings. `AreaFills` tints floors in their material (class `finished`).
+- Selection panel: one `MaterialField` per wall side, labelled by screen side and what it faces ("Top side, facing
+  Cocina"), plus a floor field on areas.
+- Library: the Materials group, with Walls and Floors boxes (family subheadings and a count of wall sides or floors
+  per material) ([Code conventions](code-conventions.md)).
+
+3-D and elevations: [House solids](house-solids.md) (face tagging and the reveal split),
+[Exterior tab](exterior-tab.md), [Elevations tab](elevations.md).

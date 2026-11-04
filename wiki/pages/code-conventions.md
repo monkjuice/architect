@@ -44,10 +44,14 @@ repo), adapted to this codebase ([Stack adapted from the Forge H1 planner](forge
 
 A panel section is a `Box` (`src/ui/fields.tsx`). Give it a stable `id`: its title then folds it, the id is stored
 in `prefs.collapsed` and set as `data-box` on the `<section>` (ids so far: `view`, `base-plan`, `layers`,
-`selection`, `areas`, `sun`, `library-lines`, `library-door`, `library-window`, `library-gate`, `library-fireplace`,
-`library-colonnade`, `library-counter`, `library-sink`, `library-bathtub`, `library-shower`, `library-toilet`,
-`library-bed`, `library-sofa`, `library-table`, `library-chair`, `roofs`; a furniture box's id is its first kind). A folded `Box` does
-not render its children, so their local state (a half-typed field) is dropped. Tests should find sections by
+`selection`, `areas`, `sun`, `roofs`, and in the Library the groups `library-drawing` (formerly `library-lines`),
+`library-materials` and `library-objects`, with nested `library-material-wall`, `library-material-floor`,
+`library-door`, `library-window`, `library-gate`, `library-fireplace`, `library-colonnade`, `library-counter`,
+`library-sink`, `library-bathtub`, `library-shower`, `library-toilet`, `library-bed`, `library-sofa`,
+`library-table`, `library-chair`; a furniture box's id is its first kind). `Box`'s `className` is `group` for a
+top-level Library group and `nested` for a box inside one. Boxes nest, so a `.box` matched by its text also matches
+its enclosing group. A folded `Box` does not render its children, so their local state (a half-typed field) is
+dropped. Tests should find sections by
 `[data-box="<id>"]`, not by position: adding `view` first shifted every index
 ([Playwright flow-check pitfalls](playwright-flow-checks.md)).
 

@@ -4,7 +4,7 @@ type: concept
 summary: "An area is a named point ({name, at} in layer.areas) whose outline is the region of its layer's lines enclosing the point, Revit-room style; sizes shown are floor areas inside the wall faces, and coveredArea totals indoor rooms with their walls; regions and placed areas are cached per object in src/state/derived.ts; one area per region, \"not enclosed\" when the lines open; Area tool and label dragging."
 tags: [model, areas, regions, state, ui]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Areas
@@ -17,6 +17,8 @@ updated: 2026-11-02
   ([Open edges and outlines are segment kinds](segment-kind-not-layer.md)), so a pool drawn with outlines is an
   area. Doors and windows do not open it: a room stays
   closed through its doors ([Doors and windows](doors-and-windows.md)).
+- An area may also carry `floor`, a material id. Only named areas take floor finishes, as only they get floors in
+  3-D ([Materials and finishes](materials-and-finishes.md)).
 - When nothing encloses `at` (walls deleted or opened), the area stays. Its label turns into a dashed "not
   enclosed" warning at `at`, and it counts 0 in the Areas panel total. Deleting walls never deletes areas; only
   selecting an area and deleting it does (`deleteItems`).

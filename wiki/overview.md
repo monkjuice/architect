@@ -1,7 +1,7 @@
 ---
 title: Overview
 type: overview
-summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman or metal colonnades, ground-level outlines, named areas with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable and hip roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
+summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman or metal colonnades, ground-level outlines, named areas with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs; wall-side and floor finishes from a materials catalogue) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable and hip roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
 tags: [overview]
 sources: []
 updated: 2026-11-04
@@ -18,8 +18,9 @@ deck), name the areas they enclose (rooms, the porch, the pool), put doors and w
 walls, gates in the fences and fireplaces against walls (their chimneys go up through the roof,
 [Fireplaces](pages/fireplaces.md)), stand Roman or metal columns along open edges
 ([Colonnades](pages/colonnades.md)), furnish the rooms (counters and kitchen islands with kitchen sinks, bathroom and outdoor sinks,
-bathtubs (corner ones too) and showers with a movable shower head, toilets, bidets, beds, sofas, tables, chairs; [Furniture and fixtures](pages/furniture.md)), and
-measure lengths and areas. Walls are drawn at their thickness (automatic by
+bathtubs (corner ones too) and showers with a movable shower head, toilets, bidets, beds, sofas, tables, chairs; [Furniture and fixtures](pages/furniture.md)),
+finish each side of a wall and each named floor with a material that suits it indoors or outdoors
+([Materials and finishes](pages/materials-and-finishes.md)), and measure lengths and areas. Walls are drawn at their thickness (automatic by
 whether they face outside, or set by hand) and have heights; areas show floor area inside the walls, with a
 covered total ([Walls](pages/walls.md)).
 The sun can be shown over the plan for a season and time of day, with the walls' shadows
@@ -46,7 +47,8 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   [Regions](pages/regions.md)), wall thickness, joins and footprints (`walls.ts`, [Walls](pages/walls.md)), doors, windows, gates and fireplaces on their walls (`openings.ts`,
   [Doors, windows and gates](pages/doors-and-windows.md)), columns along open edges (`colonnades.ts`,
   [Colonnades](pages/colonnades.md)), furniture, its snapping and plan symbols (`furniture.ts`, with
-  `furniture3d.ts` for 3-D, [Furniture and fixtures](pages/furniture.md)), hit tests and loop areas (`pick.ts`), the base image math
+  `furniture3d.ts` for 3-D, [Furniture and fixtures](pages/furniture.md)), the materials catalogue and wall/floor
+  finishes (`materials.ts`, `finishes.ts`, [Materials and finishes](pages/materials-and-finishes.md)), hit tests and loop areas (`pick.ts`), the base image math
   ([Base image placement and calibration](pages/base-image-calibration.md)), the solar math (`sun.ts`, kept
   independent of the plan's geometry for reuse, [Sun and shadows](pages/sun.md)), roof geometry (`roofs.ts`,
   [Roofs: model and geometry](pages/roofs.md)), the house as 3-D solids made of faces with explicit normals
@@ -62,11 +64,13 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   Areas and Sun panels on the right, around the SVG canvas and its tool controllers,
   [Canvas and tools](pages/canvas-and-tools.md)), `RoofTab.tsx` (the same canvas in roof mode, roof tools and the
   Roofs panel), `ElevationsTab.tsx` and `exterior/ExteriorTab.tsx`. Every panel section folds from its title
-  and stays folded per browser ([Code conventions](pages/code-conventions.md)). The Library lists line types (Wall, Open edge, Outline),
-  then a Doors group (single, double, sliding), a Windows group (fixed, sliding, double hung, awning, casement), a
-  Gates group (single, double, sliding) ([Door, window and gate styles](pages/opening-styles.md)), a Fireplaces group
-  (masonry), Colonnades (Roman, metal), then Counters (counter, kitchen island), Sinks, Bathtubs, Showers, Toilets (toilet, bidet), Beds, Sofas, Tables and Chairs. Click an item to
-  arm its tool, or drag it onto a wall, fence or open edge (furniture: anywhere on the plan).
+  and stays folded per browser ([Code conventions](pages/code-conventions.md)). The Library has three groups, in the user's order:
+  Drawing (Wall, Outline, Open edge); Materials (Walls and Floors boxes, by family); Objects, with boxes for Doors
+  (single, double, sliding), Windows (fixed, sliding, double hung, awning, casement), Gates (single, double, sliding)
+  ([Door, window and gate styles](pages/opening-styles.md)), Fireplaces (masonry), Colonnades (Roman, metal), then
+  Counters (counter, kitchen island), Sinks, Bathtubs, Showers, Toilets (toilet, bidet), Beds, Sofas, Tables and
+  Chairs. Click an item to arm its tool, or drag it onto a wall, fence or open edge (furniture: anywhere on the plan;
+  a material: a wall's side or a named area).
 - `src/main.tsx` restores the draft before the first render. `src/App.tsx` switches tabs (lazy-loading the
   Exterior, so three.js is its own chunk) and runs the autosave, the Ctrl shortcuts and image paste (Floor only).
 
@@ -77,8 +81,8 @@ The stack and much of the code were adapted from the Forge H1 planner
 a layer ([Open edges and outlines are segment kinds](pages/segment-kind-not-layer.md)), doors and windows are hosted by a segment
 ([Doors and windows are hosted by a segment](pages/openings-hosted-by-segment.md)), and a room is indoor unless the
 outside reaches it across open edges or outlines ([Indoor means unreachable from outside](pages/indoor-reachability-rule.md)).
-The Exterior is kept basic while roof design and elevations come first
-([Exterior kept basic; roof and elevations first](pages/exterior-kept-basic.md)), and roofs are drawn outlines
+The Exterior was kept basic while roof design and elevations came first; wall and floor finishes later replaced
+part of that decision ([Exterior kept basic; roof and elevations first](pages/exterior-kept-basic.md)). Roofs are drawn outlines
 whose slopes are planes, not one roof per area
 ([Roofs are drawn outlines; slopes are planes](pages/roofs-drawn-outlines.md)). A colonnade is a setting on an
 open edge and a fireplace an opening kind that cuts no gap, not new objects
@@ -112,7 +116,7 @@ Run `npm install`, then `npm run dev` (http://localhost:5173). The checks are `n
 5. For roofs and 3-D: `src/model/roofs.ts`, `src/model/solids.ts`, `src/model/elevations.ts`, then
    `src/render/engine.ts`.
 
-## Open items (as of 2026-11-04, after furniture)
+## Open items (as of 2026-11-04, after materials)
 
 Roofs and elevations ([Roof tab](pages/roof-tab.md), [Elevations tab](pages/elevations.md)):
 
@@ -131,11 +135,9 @@ Other candidates:
 - A semi-covered total (galleries, porches). The covered total exists ([Areas](pages/areas.md)); area kinds
   (covered, semi-covered, pool) were not added
   ([Open edges and outlines are segment kinds](pages/segment-kind-not-layer.md)).
-- Materials: deferred to the Materials tab (not built). A draft catalogue was removed in the eighth session
-  ([Exterior kept basic](pages/exterior-kept-basic.md)). The user's points from the fourth session, not decisions:
-  - a compatibility table saying what each material can go on (e.g. wood on walls, doors, window frames and
-    ceilings; marble on floors and walls);
-  - materials shown in groups.
+- Materials: walls and floors take finishes since 2026-11-04 (the catalogue has a compatibility table and shows in
+  groups); ceilings, roofs, doors and frames are in the table but not finishable yet, patterns show only in library
+  swatches, and the Materials tab is still not built ([Materials and finishes](pages/materials-and-finishes.md)).
 - The other tabs (Foundation, Interior, Plumbing, Electricity, Gas) exist only as disabled buttons.
 - Plan shadows: each wall casts by its own height, but from its centreline, with no roofs and door gaps ignored
   ([Sun and shadows](pages/sun.md)); the Exterior's 3-D shadows include roofs and openings.

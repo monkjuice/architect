@@ -1,10 +1,10 @@
 ---
 title: "Exterior kept basic; roof and elevations first"
 type: decision
-summary: "At the user's direction the Exterior tab stays basic (fixed palette, a roof on/off toggle, no materials UI or materials fields in the plan); a drafted materials catalogue with a surfaces × indoor/outdoor compatibility table and exterior/facade/floor schema fields was removed; the Roof tab and Elevations came next and were built the same day, replacing the automatic flat roof with drawn roofs."
+summary: "At the user's direction the Exterior tab stays basic (fixed palette, a roof on/off toggle, no materials UI or materials fields in the plan); a drafted materials catalogue with a surfaces × indoor/outdoor compatibility table and exterior/facade/floor schema fields was removed; the Roof tab and Elevations came next and were built the same day, replacing the automatic flat roof with drawn roofs; superseded in part on 2026-11-04 by wall and floor finishes from a materials catalogue, the palette staying as the base."
 tags: [decision, exterior, materials, roof, roadmap]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Exterior kept basic; roof and elevations first
@@ -36,4 +36,11 @@ reasons.
 
 - The Roof tab ([Roof tab](roof-tab.md)) and Elevations ([Elevations tab](elevations.md)) were built next, in the
   same session ([Tabs over one plan](tabs-over-one-plan.md)).
-- Materials stay open and belong to the Materials tab; the open points are in the [Overview](../overview.md).
+- Materials stayed open until 2026-11-04, when wall and floor finishes came (below).
+
+## Superseded in part (2026-11-04)
+
+Commit `839dce5` added a materials catalogue with a surfaces × indoor/outdoor table and finishes saved in the plan
+(`segment.finish`, `area.floor`), picked from the Floor tab's library and Selection panel, not a Materials tab
+([Materials and finishes](materials-and-finishes.md)). The fixed palette remains the base material for every
+unfinished surface. The Roof toggle is unchanged.

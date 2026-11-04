@@ -2,16 +2,17 @@
 title: Exterior tab (3-D view)
 type: component
 summary: "The Exterior tab: src/ui/exterior/ExteriorTab.tsx (camera presets, Roof toggle for the drawn roofs and parapets, sun season and time, Save image) over a three.js view in src/render/ (house.ts triangulates each solid face in its own plane and winds it to the face's explicit normal, plan y as three z; engine.ts, adapted from the Forge H1 planner, lights it with the plan's sun and real shadows, draws on demand and keeps the camera pose across tab switches); three.js is a separate chunk loaded only when the tab opens."
-tags: [ui, 3d, three, render, sun, exterior, roof]
+tags: [ui, 3d, three, render, sun, exterior, roof, finishes]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Exterior tab (3-D view)
 
 Added in the eighth session (2026-11-02). It shows the [House solids](house-solids.md), rebuilt on every plan
 change, and edits nothing ([Tabs over one plan](tabs-over-one-plan.md)); the [Elevations tab](elevations.md) draws
-the same solids in 2-D. It is kept basic on purpose ([Exterior kept basic](exterior-kept-basic.md)).
+the same solids in 2-D. It is kept basic on purpose ([Exterior kept basic](exterior-kept-basic.md)), apart from
+the wall and floor finishes it draws.
 
 ## Files
 
@@ -25,7 +26,9 @@ the same solids in 2-D. It is kept basic on purpose ([Exterior kept basic](exter
   agree with the face's explicit normal, flat-shaded. Plan x → three x, plan y → three z, heights → y, so the Top
   view matches the plan. Since plan (x, y down) with z up is left-handed and three's (x, height, plan y) is not,
   nothing may depend on winding; `ExtrudeGeometry` was dropped with the switch to faces. A fixed `PALETTE` per
-  `SolidMaterial` (`roof` terracotta, `slab` grey). Glass casts no shadow. Roofs receive none: the old per-room slabs
+  `SolidMaterial` (`roof` terracotta, `slab` grey). Since 2026-11-04 a solid's faces are grouped by material key, one
+  mesh each: the palette name, or `"finish:<id>"` for a finished face or floor, built by `finishMaterial` from the
+  catalogue's colour, roughness, metalness and `clear` (transparency) ([Materials and finishes](materials-and-finishes.md)). Glass casts no shadow. Roofs receive none: the old per-room slabs
   drew dark seams where they met.
 - `src/render/engine.ts`: `createExteriorEngine(host, pose)`, adapted from `../forge-h1/planner/src/render/engine.ts`
   ([Stack adapted from the Forge H1 planner](forge-h1-stack.md)): renderer with soft shadows, `RoomEnvironment`, a

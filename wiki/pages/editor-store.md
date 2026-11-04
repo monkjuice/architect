@@ -1,8 +1,8 @@
 ---
 title: Editor store and state
 type: component
-summary: "src/state/: the EditorStore (immutable plan, undo via edit/preview/endGesture, editor-only state such as the open tab, active layer, tool, line kind, door/window/gate/fireplace style to place, column style, furniture pick, roof type to draw, view and prompt), user-level actions (openTab, roofTheHouse, applyColonnade, placeFurnitureAt among them), derived data cached per object (derived.ts: regions, wall thicknesses and shapes, covered area, 3-D solids), files (File System Access API, IndexedDB draft, image import) and per-browser prefs (per-style opening widths, folded panel sections, sun view settings, the View section's toggles, the Exterior's roof toggle)."
-tags: [state, undo, files, autosave, derived, prefs, tabs, roof, colonnades, fireplace, furniture]
+summary: "src/state/: the EditorStore (immutable plan, undo via edit/preview/endGesture, editor-only state such as the open tab, active layer, tool, line kind, door/window/gate/fireplace style to place, column style, furniture and material picks, roof type to draw, view and prompt), user-level actions (openTab, roofTheHouse, applyColonnade, placeFurnitureAt, applyFinish among them), derived data cached per object (derived.ts: regions, wall thicknesses and shapes, covered area, 3-D solids), files (File System Access API, IndexedDB draft, image import) and per-browser prefs (per-style opening widths, folded panel sections, sun view settings, the View section's toggles, the Exterior's roof toggle)."
+tags: [state, undo, files, autosave, derived, prefs, tabs, roof, colonnades, fireplace, furniture, finishes]
 sources: []
 updated: 2026-11-04
 ---
@@ -14,13 +14,13 @@ updated: 2026-11-04
 - There is one instance. `initStore` sets it in `src/main.tsx`. Code calls `getStore()`, and components use
   `useEditor(selector)` (`useSyncExternalStore`), whose selector must return existing references.
 - State: `plan`, `past`/`future` (undo history, capped at 200), `tab`, `selection`, `activeLayer`, `tool`,
-  `lineKind`, `openingStyle`, `columnStyle`, `furniturePick`, `roofType`, `view`, `file` (`name`, an optional handle and the `saved` plan), `notice`
+  `lineKind`, `openingStyle`, `columnStyle`, `furniturePick`, `materialPick`, `roofType`, `view`, `file` (`name`, an optional handle and the `saved` plan), `notice`
   and `prompt`.
 - These live in the store, not in the plan:
   - `tab` (`Tab`, default `'floor'`, set by the `openTab` action; `setTab` was removed): the open tab; every tab
     shares the plan and the undo history ([Tabs over one plan](tabs-over-one-plan.md));
   - `activeLayer`;
-  - `tool` (`ToolId`, including `door`, `window`, `gate`, `fireplace`, `colonnade`, `furniture`, `north`, and the Roof tab's
+  - `tool` (`ToolId`, including `door`, `window`, `gate`, `fireplace`, `colonnade`, `furniture`, `material`, `north`, and the Roof tab's
     `roof` and `roof-select`);
   - `roofType` (`RoofType`, default gable): what the Roof tool and *Roof the house* make ([Roof tab](roof-tab.md));
   - `lineKind` (`SegmentKind`): what the line tool draws (wall, open edge or outline), set by `O` or the Library
@@ -32,10 +32,13 @@ updated: 2026-11-04
     ([Colonnades](colonnades.md));
   - `furniturePick` (`{kind, style?}`, default counter): the piece the Furniture tool puts down, set by the library
     ([Furniture and fixtures](furniture.md));
+  - `materialPick` (`{id, surface}`, default white plaster on walls): what the Material tool applies, set by the
+    library ([Materials and finishes](materials-and-finishes.md));
   - `view` and `prompt`.
 
   Switching layers or zooming is therefore not an undo step and is not saved in the file. The draft keeps
-  `activeLayer` and `view` but not `tab`, `lineKind`, `openingStyle`, `columnStyle`, `furniturePick` or `roofType`.
+  `activeLayer` and `view` but not `tab`, `lineKind`, `openingStyle`, `columnStyle`, `furniturePick`, `materialPick`
+or `roofType`.
   Those start as wall, single door, sliding window, single gate, masonry fireplace, Roman columns and a counter (the
   editor's default window is sliding, while a file's missing window style reads as fixed).
 - `edit(change)` makes one undo step. If `change` returns the same plan, no step is recorded.
@@ -62,7 +65,10 @@ floor set and `ROOF_TOOLS` and filters the selection), `addRoofOutline` and `roo
 Since 2026-11-04: `applyColonnade`, `colonnadeTarget` and `dropColonnade` with `COLONNADE_DRAG_TYPE`, shared by the
 Colonnade tool and the library ([Colonnades](colonnades.md)); `placeFurnitureAt` (refuses a target with a
 problem by a notice, adds and selects the piece) and `dropFurniture` with `FURNITURE_DRAG_TYPE` (data
-`"kind:style"` or a bare kind), shared by the Furniture tool and the library ([Furniture and fixtures](furniture.md)).
+`"kind:style"` or a bare kind), shared by the Furniture tool and the library ([Furniture and fixtures](furniture.md));
+`finishTarget`, `applyFinish` (refuses an unsuitable material by a notice, then edits and selects the wall or area)
+and `dropMaterial` with `MATERIAL_DRAG_TYPE` (data `"wall:<id>"` / `"floor:<id>"`)
+([Materials and finishes](materials-and-finishes.md)).
 They live here, not in `src/ui`, because state never imports from ui ([Code conventions](code-conventions.md)).
 
 ## Derived data (`src/state/derived.ts`)

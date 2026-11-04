@@ -1,8 +1,8 @@
 ---
 title: Plan model and file format
 type: component
-summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds, optional wall thickness and height and open-edge colonnades, named areas, styled doors/windows/gates/fireplaces hosted by segments, drawn roofs and free-standing furniture with kitchen sinks kept in counters, embedded base image), with parsing, migrations and serialization in planFile.ts."
-tags: [model, file-format, schema, site, walls, roof, colonnades, fireplace, furniture]
+summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds, optional wall thickness and height, wall-side finishes and open-edge colonnades, named areas with optional floor finishes, styled doors/windows/gates/fireplaces hosted by segments, drawn roofs and free-standing furniture with kitchen sinks kept in counters, embedded base image), with parsing, migrations and serialization in planFile.ts."
+tags: [model, file-format, schema, site, walls, roof, colonnades, fireplace, furniture, finishes]
 sources: []
 updated: 2026-11-04
 ---
@@ -37,7 +37,10 @@ updated: 2026-11-04
   2.70 m; the automatic value is never stored ([Walls](walls.md)).
 - A segment may carry `colonnade: {style, spacing}` (`COLUMN_STYLES`: `roman`, `metal`), used only while it is an
   open edge ([Colonnades](colonnades.md)).
-- `areas` (id → `{name, at}`): named points whose outline is computed from the layer's lines, never stored
+- A segment may carry `finish: {left?, right?}`, material ids for its two sides named looking from `a` to `b`, used
+  only while it is a wall; an area may carry `floor`, a material id. Ids are not checked against the catalogue
+  ([Materials and finishes](materials-and-finishes.md)).
+- `areas` (id → `{name, at, floor?}`): named points whose outline is computed from the layer's lines, never stored
   ([Areas](areas.md)).
 - `openings` (id → door, window, gate or fireplace): a zod `discriminatedUnion` on `kind` (`DoorSchema`,
   `WindowSchema`, `GateSchema`, `FireplaceSchema`). Each has a `style` from `DOOR_STYLES` / `WINDOW_STYLES` /
@@ -60,11 +63,10 @@ updated: 2026-11-04
   also holds the natural `width`/`height`, the placement (`cx`, `cy`, `rotation` in radians, `scale` in m/px), an
   optional `crop` in image pixels, `opacity`, `visible`, `locked` and `calibration` (known lengths, with ends in image
   pixels). See [Base image placement and calibration](base-image-calibration.md).
-- Not in the plan: the open tab, active layer, tool, line kind to draw, opening style or furniture to place, roof type to draw,
+- Not in the plan: the open tab, active layer, tool, line kind to draw, opening style, furniture or material to place, roof type to draw,
   view, selection and prompt (editor state), and the sun's season, time, cloudiness and shadows, the View section's
   toggles and the Exterior's roof toggle (per-browser prefs). See [Editor store and state](editor-store.md). The 3-D
-  Exterior and the Elevations are derived from the plan; roofs are the only 3-D data it stores
-  ([Exterior kept basic](exterior-kept-basic.md)).
+  Exterior and the Elevations are derived from the plan; roofs and finishes are the only 3-D data it stores.
 
 ## Loading
 
@@ -110,4 +112,5 @@ tall. Layer `roofs` (`.default({})`) came in the eighth session, also at version
 since the automatic roof was removed at the same time ([Roofs are drawn outlines](roofs-drawn-outlines.md)).
 On 2026-11-04 the optional segment `colonnade` and the `fireplace` opening kind came, still at version 1
 ([Colonnades are an open-edge setting; fireplaces are an opening kind](colonnade-setting-fireplace-opening.md)).
-Later that day layer `furniture` (`.default({})`) came, also at version 1.
+Later that day layer `furniture` (`.default({})`) came, also at version 1, and then the optional segment `finish`
+and area `floor`, still at version 1.

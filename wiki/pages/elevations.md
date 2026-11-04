@@ -1,7 +1,7 @@
 ---
 title: Elevations tab
 type: component
-summary: "Four facades drawn automatically from the house solids, view only: src/model/elevations.ts (main direction from the walls, four views square to it named by compass bearing through site.north, back-face culling on explicit normals, painter's sort by each face's nearest point, facing and smooth per polygon, level marks) and src/ui/ElevationsTab.tsx (fills shaded by facing, smooth facets without outlines, All four or one, layer visibility checkboxes, Save SVG as a standalone drawing)."
+summary: "Four facades drawn automatically from the house solids, view only: src/model/elevations.ts (main direction from the walls, four views square to it named by compass bearing through site.north, back-face culling on explicit normals, painter's sort by each face's nearest point, facing and smooth per polygon, level marks) and src/ui/ElevationsTab.tsx (fills shaded by facing, in a finish's colour where there is one, smooth facets without outlines, All four or one, layer visibility checkboxes, Save SVG as a standalone drawing)."
 tags: [ui, model, elevations, svg, 3d]
 sources: []
 updated: 2026-11-04
@@ -34,6 +34,8 @@ edit. No three.js: the tab is not lazy-loaded.
   through `updateLayer`, an undoable plan edit that hides the layer on every tab, so the boundary wall can be left
   out; *Save SVG* (one facade only) downloads `<file>-<facade>-elevation.svg`.
 - Paper colours (`FILL` per material, `INK`, `PAPER`) are SVG attributes, not CSS, so the saved SVG is standalone.
+  A polygon with a `finish` (from its face or solid) is filled in that catalogue colour instead of `FILL`
+  ([Materials and finishes](materials-and-finishes.md)).
   `shade` darkens a fill as its face turns away (0.72 + 0.28 × facing), so a round column reads round.
 - Smooth facets are stroked in their own fill colour instead of `INK`. When every facet was outlined, Roman columns
   (20 facets each) drew as black bars.

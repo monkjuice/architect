@@ -1,7 +1,7 @@
 ---
 title: Playwright flow-check pitfalls
 type: gotcha
-summary: "Python Playwright against the SVG canvas: <text> has no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft hides its photo and keeps changing, folded sections render nothing, panel sections must be found by data-box not position, WebGL needs SwiftShader flags and reads back blank (measure screenshots), Ctrl+Z is ignored while a checkbox has focus, a long-running dev server serves stale HMR module copies, a stopped background vite can keep its port, layer names are inputs, tool buttons' text has a newline before the key, flows on the user's live plan need a pinned fixture, and bash heredocs mangle escapes in inline Python."
+summary: "Python Playwright against the SVG canvas: SVG elements have no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft hides its photo and keeps changing, folded sections render nothing, panel sections must be found by data-box not position or text (Library boxes nest), a role name "Wall" also matches the "Walls" toggle, WebGL needs SwiftShader flags and reads back blank (measure screenshots), Ctrl+Z is ignored while a checkbox has focus, a long-running dev server serves stale HMR module copies, a stopped background vite can keep its port, layer names are inputs, tool buttons' text has a newline before the key, flows on the user's live plan need a pinned fixture, and bash heredocs mangle escapes in inline Python."
 tags: [gotcha, testing, playwright, python, webgl, vite]
 sources: []
 updated: 2026-11-04
@@ -11,8 +11,9 @@ updated: 2026-11-04
 
 Found while writing the browser flow checks on Windows, 2026-11-02 ([Development and testing](development-and-testing.md)):
 
-- **SVG `<text>` has no `innerText`.** Length labels, tags and calibration labels are SVG text
-  ([Canvas and tools](canvas-and-tools.md)). Read them with `text_content()` or `all_text_contents()`.
+- **SVG elements have no `innerText`.** Length labels, tags and calibration labels are SVG text
+  ([Canvas and tools](canvas-and-tools.md)). Read any SVG tag with `text_content()` or `all_text_contents()`, never
+  `inner_text()`.
 - **`python -I` ignores `PYTHONIOENCODING`.** Isolated mode skips `PYTHON*` environment variables. The labels contain
   non-ASCII characters (`²`, `°`, `▏`, `↵`), so printing them can fail on the Windows console. Call
   `sys.stdout.reconfigure(encoding="utf-8")` at the top of the script instead.
@@ -82,3 +83,13 @@ Found on 2026-11-04, with the furniture flow ([Furniture and fixtures](furniture
   scripts to files and run the files, as for the
   [Bash hook](bash-hook-key-paths.md).
 - Playwright's `drag_to` does perform the library's HTML5 drag-and-drop onto the SVG canvas.
+
+Found on 2026-11-04, with the Library split into Drawing, Materials and Objects groups
+([Materials and finishes](materials-and-finishes.md)):
+
+- **Library boxes nest**, so a `.box` filtered with `has_text` also matches the group box around it. Select boxes
+  by `[data-box="<id>"]` ([Code conventions](code-conventions.md)).
+- **`get_by_role('button', name='Wall')` also matches the "Walls" fold toggle** of the Materials group, because
+  role names match by substring. Scope to `[data-box="library-drawing"]` or match exactly.
+- **The user's plan keeps drifting** (they furnished the house and resized the pool), so the furniture flow now also
+  runs on the cleaned fixture.

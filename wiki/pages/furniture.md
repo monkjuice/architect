@@ -70,7 +70,8 @@ the Argentine *mesa ratona*).
 - **Furniture tool** (`tools/furniture.ts`, ToolId `furniture`, no key) places `EditorState.furniturePick`, set by the
   library: a ghost through `OverlayData.furniture` (red with the problem as tag), `R` a quarter turn, Alt no snap; a
   click calls `placeFurnitureAt`, which refuses a target with a problem by a notice.
-- **Library**: `FURNITURE_GROUPS` in `LibraryPanel.tsx` lists the `kinds` of each box, whose id comes from the
+- **Library**: `FURNITURE_GROUPS` in `LibraryPanel.tsx` lists the `kinds` of each box. The boxes are nested in the
+  Objects group (after Drawing and Materials) with the opening and colonnade boxes, and each box's id comes from the
   first kind: `library-counter`, `library-sink`, `library-bathtub`, `library-shower`, `library-toilet` (Toilet and
   Bidet), `library-bed`, `library-sofa`, `library-table`, `library-chair`, with counts and sizes; `FurnitureIcon` scales the symbol into the 32×24 icon. Dragging carries
   `FURNITURE_DRAG_TYPE` (`"kind:style"`) to `dropFurniture`.

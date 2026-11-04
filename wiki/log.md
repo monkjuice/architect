@@ -213,3 +213,20 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/furniture.md (table style coffee, snap sofa, COFFEE_GAP and the sectional's main seat, chairs skip it, Style field grouping and title, 3-D top/shelf/legs, limit; summary)
 - updated: pages/development-and-testing.md (172 tests, furniture 13, coffee table tests, 29-check furniture flow, round table looked up by style, 4cf872f; summary)
 - updated: index.md
+
+## [2026-11-04] update | Wall and floor materials; Library in three groups
+- created: pages/materials-and-finishes.md (MATERIALS catalogue and helpers, pattern only in swatches, left/right sides and sideNormal, outdoor unless indoor, finish/floor fields, edits surviving splits, suitability checked only on apply, Material tool, finishTarget/applyFinish/dropMaterial, FinishLayer, Selection fields, Library group)
+- updated: pages/house-solids.md (Face.finish/Solid.finish, per-material meshes, finishing pass with the 0.99 normal test, reveals split by clipFace and the pale-stripe reason, tops/bottoms in base material; summary, tags)
+- updated: pages/plan-model.md (segment finish, area floor, ids unchecked, additive at schemaVersion 1, materialPick not saved; summary, tags)
+- updated: pages/exterior-kept-basic.md (superseded in part by 839dce5; palette stays as base; summary)
+- updated: pages/canvas-and-tools.md (fourth drag type, Finishes.tsx, tinted AreaFills, material tool; summary, tags)
+- updated: pages/editor-store.md (materialPick, material ToolId, not in the draft, finish actions; summary, tags)
+- updated: pages/exterior-tab.md (meshes per material key, finishMaterial; tags)
+- updated: pages/elevations.md (finish colour fills; summary)
+- updated: pages/areas.md (area floor finish)
+- updated: pages/furniture.md (boxes nested in the Objects group)
+- updated: pages/code-conventions.md (library-drawing replaces library-lines, group and nested Box ids, Box className, nested boxes)
+- updated: pages/playwright-flow-checks.md (nested .box has_text, "Wall" matching the "Walls" toggle, any SVG tag needs text_content, furniture flow on the fixture; summary)
+- updated: pages/development-and-testing.md (184 tests, finishes 12, 839dce5, furniture flow on the cleaned fixture; summary)
+- updated: overview.md (summary, what it does, materials.ts/finishes.ts, Library groups, decision wording, open items)
+- updated: index.md

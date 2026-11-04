@@ -1,7 +1,7 @@
 ---
 title: Development and testing
 type: guide
-summary: "npm scripts, the GitHub repository, the 172 Vitest model tests (and their spurious \"no tests\" run beside the dev server) and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 29-check furniture flow on the user's plan, the exterior, roof and colonnade ones with software WebGL; older ones now need a pinned copy of that plan), plus reading live derived values from the dev server."
+summary: "npm scripts, the GitHub repository, the 184 Vitest model tests (and their spurious \"no tests\" run beside the dev server) and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 29-check furniture flow, the exterior, roof and colonnade ones with software WebGL; flows on the user's plan now need a pinned copy of it, the furniture flow included), plus reading live derived values from the dev server."
 tags: [guide, testing, vitest, playwright, webgl, git]
 sources: []
 updated: 2026-11-04
@@ -24,13 +24,13 @@ You need Node 20.19+ or 22.12+. Run `npm install` first.
 
 The code is in git, pushed to https://github.com/monkjuice/architect (branch `main`) on 2026-11-02 with one initial
 commit. The roof plan and elevations work was committed as `5e2f614`, and the colonnades, fireplaces and furniture
-together as `8b0cc2d` (2026-11-04), the toilet, bidet, shower and corner tub as `3014137`, the kitchen island as `0acdce9`, sofas as `3657510`, the coffee table as `4cf872f`, all on `main`; the user wants each finished batch committed there, and pushes
+together as `8b0cc2d` (2026-11-04), the toilet, bidet, shower and corner tub as `3014137`, the kitchen island as `0acdce9`, sofas as `3657510`, the coffee table as `4cf872f`, wall and floor materials as `839dce5`, all on `main`; the user wants each finished batch committed there, and pushes
 only on request.
 
 ## Model tests
 
-On 2026-11-04, after the coffee table, there were 172 Vitest tests in `src/model/*.test.ts`: `openings` 30,
-`edit` 27, `solids` 15, `regions` 13, `walls` 13, `furniture` 13, `roofs` 10, `baseImage` 9, `sun` 9, `geometry` 8,
+On 2026-11-04, after the materials, there were 184 Vitest tests in `src/model/*.test.ts`: `openings` 30,
+`edit` 27, `solids` 15, `regions` 13, `walls` 13, `furniture` 13, `finishes` 12, `roofs` 10, `baseImage` 9, `sun` 9, `geometry` 8,
 `pick` 6, `planFile` 6, `snap` 5, `colonnades` 4 and `elevations` 4 (counted from the `it(` calls). `furniture.test.ts`
 covers placement and angle, backing up to a wall face, the kitchen sink only in a counter (and kept there as the
 counter moves or goes), a chair facing a table, the shower head round the rim, picking the smaller piece first,
@@ -40,7 +40,10 @@ over its cabinets, cabinets 0.25 m short of the front, a style-less counter load
 three-seater backed to a wall with five open symbol lines and a 0.85 m fabric top, a sectional's return at the right
 end and at the left when mirrored, `mirror` kept in the file), and a coffee table (centred and squared in front of a
 three-seater and of a sectional's main seat, free away from sofas, no chair snapping to it, a 0.42 m top)
-([Furniture and fixtures](furniture.md)). The colonnade and fireplace tests cover
+([Furniture and fixtures](furniture.md)). `finishes.test.ts` covers the catalogue (unique ids, groups, refusal
+texts), side naming and what each side faces, the edits (walls only; kept through a split and a wall → open edge →
+wall switch; the file round trip) and finished faces in 3-D and the elevations, unknown ids ignored
+([Materials and finishes](materials-and-finishes.md)). The colonnade and fireplace tests cover
 column spots, ends a wall holds and a colonnade surviving a split, a kind switch and the file
 ([Colonnades](colonnades.md)); fireplaces (no wall gap, a side but no hinge, walls only, picked on the surround,
 the file; [Fireplaces](fireplaces.md)); colonnade beams with and without a roof and a fireplace's chimney; and
@@ -197,7 +200,9 @@ Counter and Kitchen island; an island stands free in the kitchen; a kitchen sink
 (the Sofas box lists 4 items; a three-seater backs up to a living-room wall; *Flip* sets `mirror`), passing. With
 the coffee table it has 29 (the Tables box lists 3 items; a coffee table put in front of the living-room sofa takes
 its angle), passing; an earlier check that picked "the" table had to look up the round one by `style`, since a
-coffee table is a `table` too.
+coffee table is a `table` too. With the materials (`839dce5`) the user had furnished their plan and resized the
+pool, so the furniture flow now also runs on the cleaned fixture; Library selectors must use `data-box` now that the boxes
+nest in groups ([Playwright flow-check pitfalls](playwright-flow-checks.md)).
 
 On the same day four older flows that inject the user's saved plan failed on stale expectations, because the user
 had kept editing it (a shed roof, their own fireplace and a 4 m colonnade, Estudio on its own layer, the Pileta area
