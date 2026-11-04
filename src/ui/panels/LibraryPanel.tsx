@@ -2,9 +2,10 @@ import type { ReactNode } from 'react'
 import { COLUMNS } from '../../model/colonnades'
 import { FURNITURE, furnitureKey, infoOf, type FurnitureInfo } from '../../model/furniture'
 import { dist } from '../../model/geometry'
+import { materialGroups, type Material, type Pattern } from '../../model/materials'
 import { STYLES, styleKey, type StyleInfo } from '../../model/openings'
 import { COLUMN_STYLES, segmentKind, type ColumnStyle, type FurnitureKind, type OpeningKind, type SegmentKind } from '../../model/plan'
-import { chooseTool, COLONNADE_DRAG_TYPE, FURNITURE_DRAG_TYPE, OPENING_DRAG_TYPE } from '../../state/actions'
+import { chooseTool, COLONNADE_DRAG_TYPE, FURNITURE_DRAG_TYPE, MATERIAL_DRAG_TYPE, OPENING_DRAG_TYPE } from '../../state/actions'
 import { openingWidth, usePrefs } from '../../state/prefs'
 import { getStore, useEditor } from '../../state/store'
 import { FurnitureIcon } from '../canvas/Furniture'
@@ -32,10 +33,11 @@ const FURNITURE_GROUPS: { kinds: FurnitureKind[]; title: string }[] = [
 ]
 
 /**
- * The library: what can be drawn or placed. Line types arm the Line tool with that kind; door, window, gate and
- * fireplace styles arm their tool with that style, or can be dragged straight onto a wall; colonnades go on open
- * edges the same way. Each shows how much of it the visible layers hold; openings also show the width the next
- * one gets, colonnades the most their columns stand apart.
+ * The library, in three groups. Drawing: the line types, which arm the Line tool with that kind. Materials: what
+ * walls (each side) and floors can be finished in, by family. Objects: door, window, gate and fireplace styles,
+ * which arm their tool or can be dragged straight onto a wall, colonnades for open edges, and furniture. Each item
+ * shows how much of it the visible layers hold; openings also show the width the next one gets, colonnades the
+ * most their columns stand apart, furniture its size.
  */
 export function LibraryPanel() {
   const store = getStore()
@@ -45,17 +47,23 @@ export function LibraryPanel() {
   const openingStyle = useEditor((s) => s.openingStyle)
   const columnStyle = useEditor((s) => s.columnStyle)
   const furniturePick = useEditor((s) => s.furniturePick)
+  const materialPick = useEditor((s) => s.materialPick)
   const prefs = usePrefs()
 
   const length: Record<SegmentKind, number> = { wall: 0, open: 0, outline: 0 }
   const count = new Map<string, number>()
   const colonnades: Record<ColumnStyle, number> = { roman: 0, metal: 0 }
+  // wall sides and floors finished in each material
+  const finished = new Map<string, number>()
+  const tally = (key: string) => finished.set(key, (finished.get(key) ?? 0) + 1)
   for (const layer of plan.layers) {
     if (!layer.visible) continue
     for (const s of Object.values(layer.segments)) {
       length[segmentKind(s)] += dist(layer.vertices[s.a], layer.vertices[s.b])
       if (segmentKind(s) === 'open' && s.colonnade) colonnades[s.colonnade.style]++
+      if (segmentKind(s) === 'wall' && s.finish) for (const m of [s.finish.left, s.finish.right]) if (m) tally(`wall:${m}`)
     }
+    for (const a of Object.values(layer.areas)) if (a.floor) tally(`floor:${a.floor}`)
     for (const f of Object.values(layer.furniture)) {
       const key = furnitureKey(f.kind, infoOf(f).style)
       count.set(key, (count.get(key) ?? 0) + 1)
@@ -75,6 +83,10 @@ export function LibraryPanel() {
     store.update({ furniturePick: { kind: info.kind, style: info.style } })
     chooseTool('furniture')
   }
+  const finish = (surface: 'wall' | 'floor', id: string) => () => {
+    store.update({ materialPick: { id, surface } })
+    chooseTool('material')
+  }
   const columns = (style: ColumnStyle) => () => {
     store.update({ columnStyle: style })
     chooseTool('colonnade')
@@ -82,7 +94,7 @@ export function LibraryPanel() {
 
   return (
     <aside className="sidebar sidebar-left">
-      <Box id="library-lines" title="Line types" actions={<kbd>L</kbd>}>
+      <Box id="library-drawing" title="Drawing" className="group" actions={<kbd title="Line">L</kbd>}>
         <div className="library-list">
           <LibraryItem
             icon={<line x1="3" y1="12" x2="29" y2="12" strokeWidth="2.5" />}
@@ -93,14 +105,6 @@ export function LibraryPanel() {
             onClick={line('wall')}
           />
           <LibraryItem
-            icon={<line x1="3" y1="12" x2="29" y2="12" strokeWidth="1.75" strokeDasharray="4 3" />}
-            name="Open edge"
-            detail={`${length.open.toFixed(1)} m`}
-            title="The limit of a covered space with no wall: porch fronts, colonnades (O cycles the line type while drawing)"
-            active={tool === 'line' && lineKind === 'open'}
-            onClick={line('open')}
-          />
-          <LibraryItem
             icon={<line x1="3" y1="12" x2="29" y2="12" strokeWidth="1" />}
             name="Outline"
             detail={`${length.outline.toFixed(1)} m`}
@@ -108,10 +112,52 @@ export function LibraryPanel() {
             active={tool === 'line' && lineKind === 'outline'}
             onClick={line('outline')}
           />
+          <LibraryItem
+            icon={<line x1="3" y1="12" x2="29" y2="12" strokeWidth="1.75" strokeDasharray="4 3" />}
+            name="Open edge"
+            detail={`${length.open.toFixed(1)} m`}
+            title="The limit of a covered space with no wall: porch fronts, colonnades (O cycles the line type while drawing)"
+            active={tool === 'line' && lineKind === 'open'}
+            onClick={line('open')}
+          />
         </div>
       </Box>
+      <Box id="library-materials" title="Materials" className="group">
+        {(['wall', 'floor'] as const).map((surface) => (
+          <Box key={surface} id={`library-material-${surface}`} title={surface === 'wall' ? 'Walls' : 'Floors'} className="nested">
+            {materialGroups(surface).map(({ group, materials }) => (
+              <div key={group} className="library-family">
+                <h3>{group}</h3>
+                <div className="library-list">
+                  {materials.map((m) => (
+                    <LibraryItem
+                      key={m.id}
+                      icon={<MaterialIcon material={m} />}
+                      name={m.title}
+                      detail={`${finished.get(`${surface}:${m.id}`) ?? 0}`}
+                      drag={{ type: MATERIAL_DRAG_TYPE, data: `${surface}:${m.id}` }}
+                      title={`${m.title}${m.indoor && m.outdoor ? '' : m.indoor ? ', indoors only' : ', outdoors only'}: click, then click ${
+                        surface === 'wall' ? 'the side of a wall it goes on' : 'inside a named area'
+                      }, or drag it there. The number is how many ${surface === 'wall' ? 'wall sides' : 'floors'} have it`}
+                      active={tool === 'material' && materialPick.surface === surface && materialPick.id === m.id}
+                      onClick={finish(surface, m.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </Box>
+        ))}
+      </Box>
+      <Box id="library-objects" title="Objects" className="group">
       {GROUPS.map((group) => (
-        <Box key={group.kind} id={`library-${group.kind}`} title={group.title} actions={group.key && <kbd title={`${group.title}: the last style picked`}>{group.key}</kbd>}>
+        <Box
+          key={group.kind}
+          id={`library-${group.kind}`}
+          title={group.title}
+          className="nested"
+          actions={group.key && <kbd title={`${group.title}: the last style picked`}>{group.key}</kbd>}
+        >
           <div className="library-list">
             {STYLES.filter((s) => s.kind === group.kind).map((s) => (
               <LibraryItem
@@ -127,7 +173,7 @@ export function LibraryPanel() {
           </div>
         </Box>
       ))}
-      <Box id="library-colonnade" title="Colonnades">
+      <Box id="library-colonnade" title="Colonnades" className="nested">
         <div className="library-list">
           {COLUMN_STYLES.map((style) => (
             <LibraryItem
@@ -144,7 +190,7 @@ export function LibraryPanel() {
         </div>
       </Box>
       {FURNITURE_GROUPS.map((group) => (
-        <Box key={group.kinds[0]} id={`library-${group.kinds[0]}`} title={group.title}>
+        <Box key={group.kinds[0]} id={`library-${group.kinds[0]}`} title={group.title} className="nested">
           <div className="library-list">
             {FURNITURE.filter((i) => group.kinds.includes(i.kind)).map((i) => {
               const key = furnitureKey(i.kind, i.style)
@@ -168,8 +214,9 @@ export function LibraryPanel() {
           </div>
         </Box>
       ))}
+      </Box>
       <p className="hint library-hint">
-        Pick a door, window, gate or fireplace and click a wall (gates also fences), or drag it there; type a number while placing to change its width. Colonnades go on open
+        Wall materials go on the side of a wall you click, floor materials inside a named area. Pick a door, window, gate or fireplace and click a wall (gates also fences), or drag it there; type a number while placing to change its width. Colonnades go on open
         edges. Furniture goes where you click; R turns it.
       </p>
     </aside>
@@ -228,5 +275,23 @@ function ColumnIcon({ style }: { style: ColumnStyle }) {
         </g>
       ))}
     </>
+  )
+}
+
+/** A swatch of a material in its colour, with a hint of its pattern (courses of brick, planks, tiles). */
+function MaterialIcon({ material }: { material: Material }) {
+  const lines: Record<Pattern, string> = {
+    brick: 'M4 9.3H28M4 14.7H28M10 4V9.3M22 4V9.3M16 9.3V14.7M10 14.7V20M22 14.7V20',
+    planks: 'M4 8H28M4 12H28M4 16H28M12 4V8M20 8V12M9 12V16M24 16V20',
+    tiles: 'M4 12H28M12 4V20M20 4V20',
+    stone: 'M4 10L11 8L14 13L21 11L28 13M9 20L11 8M21 11L19 4',
+    grass: 'M7 20L8 15M12 20L11 14M17 20L18 15M22 20L21 14M26 20L27 16',
+    gravel: 'M8 8h.1M14 11h.1M20 7h.1M24 13h.1M10 15h.1M17 17h.1',
+  }
+  return (
+    <g className="material-icon">
+      <rect x="4" y="4" width="24" height="16" rx="2" fill={material.color} />
+      {material.pattern && <path d={lines[material.pattern]} />}
+    </g>
   )
 }

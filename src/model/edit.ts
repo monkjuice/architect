@@ -352,6 +352,21 @@ export function setColonnade(plan: Plan, refs: readonly Ref[], colonnade: Colonn
   return next
 }
 
+/** Finishes one side of a wall with a material (an id), or clears it with null; the same plan when nothing changes. */
+export function setWallFinish(plan: Plan, layerId: string, segmentId: string, side: 'left' | 'right', material: string | null): Plan {
+  return editLayer(plan, layerId, (d) => {
+    const s = d.segments[segmentId]
+    if (!s || segmentKind(s) !== 'wall' || (s.finish?.[side] ?? null) === material) return false
+    const finish = { ...s.finish }
+    if (material === null) delete finish[side]
+    else finish[side] = material
+    const next = { ...s }
+    if (finish.left || finish.right) next.finish = finish
+    else delete next.finish
+    d.segments[segmentId] = next
+  })
+}
+
 // ---- areas: they only touch a layer's area map, so its lines (and the regions worked out from them) stay the same
 
 function withAreas(plan: Plan, layerId: string, change: (areas: Record<string, Area>) => boolean | void): Plan {
@@ -377,6 +392,27 @@ export function updateArea(plan: Plan, layerId: string, id: string, patch: Parti
     if (!area || (patch.name ?? area.name) === area.name && (!patch.at || (patch.at.x === area.at.x && patch.at.y === area.at.y))) return false
     areas[id] = { ...area, ...patch }
   })
+}
+
+/** Finishes the floor of the areas among `refs` with a material (an id), or clears it with null; the same plan when nothing changes. */
+export function setAreaFloor(plan: Plan, refs: readonly Ref[], material: string | null): Plan {
+  let next = plan
+  for (const layerId of new Set(refs.filter((r) => r.kind === 'area').map((r) => r.layer))) {
+    next = withAreas(next, layerId, (areas) => {
+      let changed = false
+      for (const ref of refs) {
+        const area = ref.layer === layerId && ref.kind === 'area' ? areas[ref.id] : undefined
+        if (!area || (area.floor ?? null) === material) continue
+        const a = { ...area }
+        if (material === null) delete a.floor
+        else a.floor = material
+        areas[ref.id] = a
+        changed = true
+      }
+      return changed
+    })
+  }
+  return next
 }
 
 /** Sets area anchor points, grouped by layer (they move with the walls of a selection being dragged). */

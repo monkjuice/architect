@@ -63,6 +63,8 @@ export interface ElevationPolygon {
   /** How squarely it faces the viewer, 0 (edge on) to 1, for shading; a facet of a round surface is drawn without lines. */
   facing: number
   smooth: boolean
+  /** The material it is finished in (an id, see materials.ts), when it is. */
+  finish?: string
 }
 
 export interface Elevation {
@@ -87,7 +89,7 @@ export function elevation(solids: readonly Solid[], view: ElevationView): Elevat
       const pts = face.pts.map((p) => ({ x: p.x * r.x + p.y * r.y, y: p.z }))
       // the nearest point orders faces: a roof's eaves stand in front of the wall they overhang
       const depth = Math.min(...face.pts.map((p) => p.x * d.x + p.y * d.y))
-      drawn.push({ pts, kind: solid.kind, material: solid.material, facing, smooth: !!face.smooth, depth })
+      drawn.push({ pts, kind: solid.kind, material: solid.material, facing, smooth: !!face.smooth, finish: face.finish ?? solid.finish, depth })
     }
   }
   drawn.sort((a, b) => b.depth - a.depth)

@@ -313,6 +313,56 @@ kbd {
   margin-top: 8px;
 }
 
+/* the library's three groups (Drawing, Materials, Objects); a group's sections fold on their own, drawn flat */
+.box.group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.box.group > .box-header {
+  margin-bottom: 2px;
+}
+
+.box.group > .box-header h2 {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.box.nested {
+  padding: 6px 0 2px;
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+}
+
+.box.nested > .box-header {
+  margin-bottom: 4px;
+}
+
+/* a family of materials (Wood, Ceramic) under Walls or Floors */
+.library-family + .library-family {
+  margin-top: 6px;
+}
+
+.library-family h3 {
+  margin: 0 6px 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.library-icon .material-icon rect {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.library-icon .material-icon path {
+  stroke: rgba(0, 0, 0, 0.28);
+  stroke-width: 1;
+}
+
 .box {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1430,6 +1480,14 @@ button.icon {
   stroke-dasharray: 3 3;
 }
 
+/* the wall face a material would go on */
+.overlay-line.face {
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
 .overlay-point {
   stroke-width: 1.5;
 }
@@ -1491,6 +1549,31 @@ button.icon {
 .area-fill.selected {
   fill: var(--selection);
   fill-opacity: 0.24;
+}
+
+/* a floor in its material's colour (set inline), strong enough to read over the base plan */
+.area-fill.finished {
+  fill-opacity: 0.45;
+}
+
+.area-fill.finished.hovered {
+  fill-opacity: 0.55;
+}
+
+.area-fill.finished.selected {
+  fill-opacity: 0.6;
+}
+
+/* each finished side of a wall, a line in its material's colour just inside that face */
+.finishes {
+  pointer-events: none;
+}
+
+.wall-finish {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: butt;
+  vector-effect: non-scaling-stroke;
 }
 
 .area-labels {

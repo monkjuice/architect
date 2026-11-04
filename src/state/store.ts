@@ -27,6 +27,7 @@ export type ToolId =
   | 'fireplace'
   | 'colonnade'
   | 'furniture'
+  | 'material'
   | 'measure'
   | 'pan'
   | 'image-move'
@@ -81,6 +82,8 @@ export interface EditorState {
   columnStyle: ColumnStyle
   /** The piece the furniture tool puts down (picked in the library). */
   furniturePick: { kind: FurnitureKind; style?: string }
+  /** The material the material tool puts on a wall's side or a floor (picked in the library's Walls or Floors). */
+  materialPick: { id: string; surface: 'wall' | 'floor' }
   /** The type new roofs get (the Roof tab's toolbar). */
   roofType: RoofType
   /** Zoom and pan; absent: the canvas fits the plan once and stores that fit (start, Fit, new plan or image). */
@@ -111,6 +114,7 @@ export class EditorStore {
       openingStyle: { door: 'single', window: 'sliding', gate: 'single', fireplace: 'masonry' },
       columnStyle: 'roman',
       furniturePick: { kind: 'counter' },
+      materialPick: { id: 'plaster-white', surface: 'wall' },
       roofType: 'gable',
       view: extra.view,
       file,

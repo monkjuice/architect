@@ -208,13 +208,16 @@ export function SliderField({
   )
 }
 
-/** A panel section; with an `id` its title folds it away and back, remembered per browser. */
-export function Box({ title, children, actions, id }: { title: ReactNode; children: ReactNode; actions?: ReactNode; id?: string }) {
+/**
+ * A panel section; with an `id` its title folds it away and back, remembered per browser. `className` styles it
+ * as a group of sections (`group`) or a section inside one.
+ */
+export function Box({ title, children, actions, id, className }: { title: ReactNode; children: ReactNode; actions?: ReactNode; id?: string; className?: string }) {
   const { collapsed } = usePrefs()
   const folded = !!id && collapsed.includes(id)
   const toggle = () => id && setPrefs({ collapsed: folded ? collapsed.filter((c) => c !== id) : [...collapsed, id] })
   return (
-    <section className={folded ? 'box collapsed' : 'box'} data-box={id}>
+    <section className={['box', className, folded && 'collapsed'].filter(Boolean).join(' ')} data-box={id}>
       <header className="box-header">
         {id ? (
           <button className="box-toggle" aria-expanded={!folded} onClick={toggle} title={folded ? 'Show' : 'Hide'}>

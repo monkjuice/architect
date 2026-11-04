@@ -1,11 +1,14 @@
+import { useId } from 'react'
 import { COLUMNS, layerColonnades, newColonnade } from '../../model/colonnades'
 import {
   moveAreas,
   moveSegments,
   segmentsAt,
+  setAreaFloor,
   setColonnade,
   setSegmentKind,
   setSegmentLength,
+  setWallFinish,
   turnFurniture,
   updateArea,
   updateFurniture,
@@ -13,14 +16,16 @@ import {
   updateWalls,
   type OpeningPatch,
 } from '../../model/edit'
+import { sideNormal, wallSide, type WallSide } from '../../model/finishes'
 import { FURNITURE, infoOf } from '../../model/furniture'
 import { fitOffset, hasHinge, hasSide, overlappingOpening, parkingRoom, placeOpening, slides, STYLES } from '../../model/openings'
 import { dist, screenAngleDeg } from '../../model/geometry'
+import { findMaterial, materialGroups } from '../../model/materials'
 import { measureSegments } from '../../model/pick'
 import { COLUMN_STYLES, findLayer, segmentKind, type ColumnStyle, type OpeningKind, type OpeningStyle, type Ref, type SegmentKind } from '../../model/plan'
 import { EXTERIOR_WALL, INTERIOR_WALL, wallHeight } from '../../model/walls'
 import { deleteSelection } from '../../state/actions'
-import { facesOutside, getPlacedAreas, getThickness } from '../../state/derived'
+import { facesOutside, getPlacedAreas, getRegions, getThickness } from '../../state/derived'
 import { getStore, useEditor } from '../../state/store'
 import { Box, NumberField, Segmented, SelectField, TextField } from '../fields'
 
@@ -113,6 +118,7 @@ export function SelectionPanel() {
       )}
       {kind === 'wall' && <WallFields refs={segments} />}
       {kind === 'open' && <ColonnadeFields refs={segments} />}
+      {kind === 'wall' && segments.length === 1 && selection.length === 1 && <WallFinishFields layerId={segments[0].layer} id={segments[0].id} />}
       {segments.length === 1 && selection.length === 1 && <SegmentDetails layerId={segments[0].layer} id={segments[0].id} />}
       {segments.length > 1 && segmentLayers.length === 1 && <Totals layerId={segmentLayers[0]} ids={segments.map((r) => r.id)} />}
       {segments.length > 1 && segmentLayers.length > 1 && <p className="muted">Lines on {segmentLayers.length} layers.</p>}
@@ -145,6 +151,13 @@ function AreaDetails({ layerId, id }: { layerId: string; id: string }) {
           <label>Floor, inside the walls</label>
           <span className="readout">{r ? `${r.floor.toFixed(2)} m²` : '—'}</span>
         </div>
+        <MaterialField
+          label="Floor material"
+          surface="floor"
+          outdoor={r ? !r.indoor : undefined}
+          value={placed.area.floor}
+          onChange={(m) => store.edit((p) => setAreaFloor(p, [{ layer: layerId, kind: 'area', id }], m))}
+        />
       </div>
       {r ? (
         <p className="hint">
@@ -401,6 +414,83 @@ function WallFields({ refs }: { refs: Ref[] }) {
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * What each side of a wall is finished in. The sides are named by where they are on screen and what they face (a
+ * room, the outside), and offer the materials that suit it there.
+ */
+function WallFinishFields({ layerId, id }: { layerId: string; id: string }) {
+  const store = getStore()
+  const layer = useEditor((s) => findLayer(s.plan, layerId))
+  const seg = layer?.segments[id]
+  if (!layer || !seg) return null
+  const [a, b] = [layer.vertices[seg.a], layer.vertices[seg.b]]
+  if (dist(a, b) < 1e-9) return null
+  const half = (getThickness(layer).get(id) ?? 0) / 2
+  const placed = getPlacedAreas(layer)
+  const sides = (['left', 'right'] as WallSide[]).map((side) => {
+    const { region, outdoor } = wallSide(layer, getRegions(layer), half, id, side)
+    const n = sideNormal(a, b, side)
+    const where = Math.abs(n.x) > Math.abs(n.y) ? (n.x > 0 ? 'Right' : 'Left') : n.y > 0 ? 'Bottom' : 'Top'
+    const facing = region ? (placed.find((p) => p.region === region)?.area.name ?? 'an unnamed area') : 'the outside'
+    return { side, outdoor, label: `${where} side, facing ${facing}` }
+  })
+  return (
+    <div className="fields">
+      {sides.map(({ side, outdoor, label }) => (
+        <MaterialField
+          key={side}
+          label={label}
+          surface="wall"
+          outdoor={outdoor}
+          value={seg.finish?.[side]}
+          onChange={(m) => store.edit((p) => setWallFinish(p, layerId, id, side, m))}
+        />
+      ))}
+    </div>
+  )
+}
+
+/**
+ * A finish to pick, by family: the materials that suit the surface where it is (outdoors or not; either when that
+ * is not known), and the one it has even when it does not, so it still shows.
+ */
+function MaterialField({
+  label,
+  surface,
+  outdoor,
+  value,
+  onChange,
+}: {
+  label: string
+  surface: 'wall' | 'floor'
+  outdoor: boolean | undefined
+  value: string | undefined
+  onChange: (material: string | null) => void
+}) {
+  const fieldId = useId()
+  const groups = materialGroups(surface, outdoor)
+  const current = findMaterial(value)
+  const listed = !current || groups.some((g) => g.materials.includes(current))
+  return (
+    <div className="field field-wide">
+      <label htmlFor={fieldId}>{label}</label>
+      <select id={fieldId} value={value ?? ''} onChange={(event) => onChange(event.target.value || null)}>
+        <option value="">None</option>
+        {!listed && current && <option value={current.id}>{current.title} (does not suit it)</option>}
+        {groups.map(({ group, materials }) => (
+          <optgroup key={group} label={group}>
+            {materials.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.title}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </div>
   )
 }
 

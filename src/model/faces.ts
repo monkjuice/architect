@@ -21,6 +21,8 @@ export interface Face {
   normal: Vec3
   /** One facet of a round surface (a column's shaft): drawings leave out the lines between such facets. */
   smooth?: boolean
+  /** A material id (see materials.ts) it is finished in, over its solid's own material: one side of a wall. */
+  finish?: string
 }
 
 export const v3 = (p: Vec, z: number): Vec3 => ({ x: p.x, y: p.y, z })
@@ -28,6 +30,24 @@ export const v3 = (p: Vec, z: number): Vec3 => ({ x: p.x, y: p.y, z })
 export const norm = (v: Vec3): Vec3 => {
   const l = Math.hypot(v.x, v.y, v.z)
   return { x: v.x / l, y: v.y / l, z: v.z / l }
+}
+
+/** The part of a face (without holes) where `d` is not negative, `d` being a distance to a plane; null when none of it is. */
+export function clipFace(face: Face, d: (p: Vec3) => number): Face | null {
+  const out: Vec3[] = []
+  const pts = face.pts
+  for (let i = 0; i < pts.length; i++) {
+    const [p, q] = [pts[i], pts[(i + 1) % pts.length]]
+    const [dp, dq] = [d(p), d(q)]
+    if (dp >= 0) out.push(p)
+    if ((dp >= 0) !== (dq >= 0)) {
+      const t = dp / (dp - dq)
+      out.push({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t, z: p.z + (q.z - p.z) * t })
+    }
+  }
+  const kept = out.filter((p, i) => Math.hypot(p.x - out.at(i - 1)!.x, p.y - out.at(i - 1)!.y, p.z - out.at(i - 1)!.z) > 1e-9)
+  // a face that only touches the plane leaves a sliver with no area
+  return kept.length >= 3 && kept.some((p) => d(p) > 1e-9) ? { ...face, pts: kept } : null
 }
 
 /** Running clockwise on screen (positive area), so a ring's outside is to the right of each edge. */

@@ -53,10 +53,14 @@ actions. Every tab works on the same plan, with one undo history and one file:
 7. **Put in doors, windows and gates** from the library on the left: pick one and click a wall (or a fence),
    or drag it there.
 
-The **library** (left panel) holds what can be drawn or placed: line types (wall, open edge, outline) with the length
-of each drawn so far, door, window, gate and fireplace styles with how many there are and the width the next one
-gets, colonnades with how many open edges have one and the most their columns stand apart, and furniture
-(counters, sinks, bathtubs, showers, toilets and bidets, beds, sofas, tables, chairs) with how many there are and their size.
+The **library** (left panel) holds what can be drawn or placed, in three groups that fold away like their sections:
+
+- **Drawing**: the line types (wall, outline, open edge) with the length of each drawn so far.
+- **Materials**: what walls and floors are finished in (see [Materials](#materials)), under *Walls* and *Floors*
+  by family, with how many wall sides or floors have each.
+- **Objects**: door, window, gate and fireplace styles with how many there are and the width the next one gets,
+  colonnades with how many open edges have one and the most their columns stand apart, and furniture (counters,
+  sinks, bathtubs, showers, toilets and bidets, beds, sofas, tables, chairs) with how many there are and their size.
 
 ### Walls, open edges, outlines and areas
 
@@ -195,6 +199,22 @@ comes with it), width and depth (a round table's diameter) and turn in the Selec
 the plan with the usual symbols (a basin and its drain, a bed's pillows and turned sheet, a chair's back), and in
 3-D and the elevations as simple blocks. It does not move with the walls.
 
+### Materials
+
+Each side of a wall and the floor of each named area can be finished in a material from the library's *Materials*
+group: plaster and paint, brick and stone, concrete, wood, ceramic tile, metal sheet, and for the ground gravel,
+lawn and pool water. Pick one under *Walls* and click the side of a wall it goes on (hovering marks that face and
+names what it faces: a room, or the outside), or pick one under *Floors* and click inside a named area; or drag
+it there. A material that does not suit the place is refused with the reason: a wall side or floor is outdoors
+unless it is in a room (so a gallery is outdoors), and stone cladding, decks, pavers and lawn are for outdoors
+only. For a selected wall the Selection panel has a material for each side, named by where it is on screen and
+what it faces, offering the materials that suit it; for an area, its floor material. *None* takes one off.
+
+The plan draws a finished side as a line in its material's colour just inside that face, and a floor tinted in
+its colour. The Exterior and the elevations draw them in their colours too: each side on every piece of its wall
+(over and under doors and windows, a gable end), the wall's ends and the reveals of its openings half in each
+side's material. A wall keeps its finishes when it is split, or turned into an open edge and back.
+
 ### Sun
 
 The **Sun** section (right panel, `S` shows and hides it) puts the sun over the plan: a dotted disc that travels
@@ -279,7 +299,8 @@ across tabs):
 Its toolbar has the camera (*Aerial*, *Top* as the plan, and the four facades by the plan's north), *Roof* to hide
 the roofs and look into the rooms, the sun's season and time (the same as the Floor tab's Sun section, with its site and
 cloudiness) and *Save image* (a PNG at twice the screen resolution). Drag to orbit, right-drag to pan, wheel to
-zoom. Colours are a fixed basic palette: materials are not picked yet. three.js loads only when the tab opens.
+zoom. Finished walls and floors are drawn in their materials' colours (see [Materials](#materials)); the rest is a
+fixed basic palette. three.js loads only when the tab opens.
 
 ## Tools and keys
 
@@ -299,9 +320,9 @@ zoom. Colours are a fixed basic palette: materials are not picked yet. three.js 
 | `Ctrl+S` / `Ctrl+Shift+S` / `Ctrl+O` | Save / save as / open. |
 
 These keys work on the Floor tab; on the Roof tab `V`, `R`, `M` and `H` pick its tools. The Selection panel shows a line's length (edit it to resize the line: the end with fewer other lines on it
-moves), its angle and type (wall, open edge or outline), a wall's thickness and height, for several lines their
-total length and, when they form one closed outline, its area, and for an area its name, floor area and
-boundary. A click on a thick wall's face picks it, not only on its centreline.
+moves), its angle and type (wall, open edge or outline), a wall's thickness and height and the material of each
+side, for several lines their total length and, when they form one closed outline, its area, and for an area its
+name, floor area, floor material and boundary. A click on a thick wall's face picks it, not only on its centreline.
 
 ## Files
 
@@ -314,7 +335,9 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
 - `layers`: each with `vertices` (id → `{x, y}` in meters, +y down), `segments` (id → `{a, b}` vertex ids, plus
   `kind: "open"` for an open edge or `"outline"` for an outline, a wall's own `thickness` and `height` in
   meters when set (without them it is automatic and 2.70 m), and an open edge's `colonnade` (`{style, spacing}`,
-  `style` `roman` or `metal`, `spacing` the most its columns stand apart in m)), `areas` (id → `{name, at}`, `at` being a point inside the area) and
+  `style` `roman` or `metal`, `spacing` the most its columns stand apart in m), and a wall's `finish` (`{left,
+  right}`, the material ids of its two sides looking from `a` to `b`, either left out when unfinished)), `areas`
+  (id → `{name, at, floor}`, `at` being a point inside the area, `floor` its floor's material id when set) and
   `openings` (id → `{kind, style, segment, offset, width, hinge, swing}`: `kind` is `door` (styles `single`,
   `double`, `sliding`), `window` (`fixed`, `sliding`, `double-hung`, `awning`, `casement`), `gate`
   (`single`, `double`, `sliding`) or `fireplace` (`masonry`); `offset` is the centre's distance from the segment's `a` end, `hinge` the
@@ -327,8 +350,9 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   round the rim from 0 to 4), `shower` (with `shower` too), `toilet`, `bidet`, `bed` (`single`, `double`, `queen`, `king`), `sofa`
   (`armchair`, `loveseat`, `three-seater`, `sectional`, with `mirror` for a sectional's return on its left), `table` (`square`, `circle`, `coffee`) or `chair`; `at` is its
   centre and `angle` its turn in degrees, clockwise; a kitchen sink has `counter` and `offset` (its centre's
-  distance from the counter's left end) instead of `at` and `angle`). Files saved before areas, openings,
-  styles, wall thicknesses, roofs or furniture existed open unchanged (older openings read as single doors and fixed windows, older walls as automatic).
+  distance from the counter's left end) instead of `at` and `angle`). Material ids are those of the catalogue in
+  `src/model/materials.ts`; one it does not know is kept but drawn plain. Files saved before areas, openings,
+  styles, wall thicknesses, roofs, furniture or materials existed open unchanged (older openings read as single doors and fixed windows, older walls as automatic).
 
 In Chrome and Edge *Save* writes back to the file you opened; elsewhere it downloads. The latest state is also
 autosaved in the browser (IndexedDB), so a reload never loses work. Loading validates the file and reports the
@@ -342,8 +366,9 @@ changes.
   walls face outside, floor areas inside the walls, area label points), `walls.ts` (wall thickness and height,
   walls drawn at their thickness with their joints), `openings.ts` (doors, windows, gates and fireplaces laid out on their walls, where a new one goes),
   `colonnades.ts` (column styles and where columns stand), `furniture.ts` (the furniture catalogue, where pieces
-  stand and snap, their plan symbols), `furniture3d.ts` (furniture in 3-D), `faces.ts` (the flat faces solids
-  are made of),
+  stand and snap, their plan symbols), `furniture3d.ts` (furniture in 3-D), `materials.ts` (the materials
+  catalogue, which suit which surfaces, outdoors or in), `finishes.ts` (a wall's two sides, what each faces),
+  `faces.ts` (the flat faces solids are made of),
   `sun.ts` (sun position, sunrise and sunset, shadows), `roofs.ts` (roof slopes, faces, eaves and the house's
   outline), `solids.ts` (the house in 3-D as solids of flat faces), `elevations.ts` (the facades from the
   solids), `snap.ts`, `pick.ts` (hit tests, loops),

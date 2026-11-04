@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import type { Vec } from '../../model/geometry'
 import { isStyleOf } from '../../model/openings'
 import { FURNITURE } from '../../model/furniture'
+import { findMaterial } from '../../model/materials'
 import { COLUMN_STYLES, type ColumnStyle } from '../../model/plan'
 import {
   chooseTool,
@@ -9,15 +10,18 @@ import {
   dropColonnade,
   dropFile,
   dropFurniture,
+  dropMaterial,
   dropOpening,
   fitView,
   FURNITURE_DRAG_TYPE,
   IMAGE_TOOLS,
   loadBaseImage,
+  MATERIAL_DRAG_TYPE,
   OPENING_DRAG_TYPE,
   planBounds,
 } from '../../state/actions'
 import { ColonnadeLayer } from './Columns'
+import { FinishLayer } from './Finishes'
 import { FurnitureLayer } from './Furniture'
 import { getPrefs, setPrefs, setSun, usePrefs } from '../../state/prefs'
 import { getStore, useEditor, type ToolId, type Viewport } from '../../state/store'
@@ -204,7 +208,7 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
   }
 
   const onDragOver = (event: DragEvent) => {
-    if ([OPENING_DRAG_TYPE, COLONNADE_DRAG_TYPE, FURNITURE_DRAG_TYPE].some((t) => event.dataTransfer.types.includes(t))) {
+    if ([OPENING_DRAG_TYPE, COLONNADE_DRAG_TYPE, FURNITURE_DRAG_TYPE, MATERIAL_DRAG_TYPE].some((t) => event.dataTransfer.types.includes(t))) {
       event.preventDefault()
       event.dataTransfer.dropEffect = 'copy'
       return
@@ -232,6 +236,12 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
     if (COLUMN_STYLES.includes(columns as ColumnStyle) && view && svgRef.current) {
       event.preventDefault()
       dropColonnade(columns as ColumnStyle, at(), WALL_REACH_PX / view.zoom)
+      return
+    }
+    const [surface, materialId] = event.dataTransfer.getData(MATERIAL_DRAG_TYPE).split(':')
+    if ((surface === 'wall' || surface === 'floor') && findMaterial(materialId) && view && svgRef.current) {
+      event.preventDefault()
+      dropMaterial(surface, materialId, at(), WALL_REACH_PX / view.zoom)
       return
     }
     const [piece, pieceStyle] = event.dataTransfer.getData(FURNITURE_DRAG_TYPE).split(':')
@@ -304,6 +314,7 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
                 />
               ),
           )}
+          {!roofMode && plan.layers.map((layer) => layer.visible && <FinishLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} />)}
           {plan.layers.map((layer) => layer.visible && <ColonnadeLayer key={layer.id} layer={layer} />)}
           {plan.layers.map(
             (layer) => layer.visible && <FurnitureLayer key={layer.id} layer={layer} selected={refIds('furniture', layer.id)} hovered={hovered('furniture', layer.id)} />,

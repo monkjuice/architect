@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { findMaterial } from '../model/materials'
 import type { Face, Solid, SolidMaterial, Vec3 } from '../model/solids'
 
 /**
@@ -36,23 +37,42 @@ export interface HouseModel {
   dispose(): void
 }
 
+/** A finish's material: its catalogue colour, roughness and metalness, see-through when it is (water). */
+function finishMaterial(id: string): THREE.MeshStandardMaterialParameters {
+  const m = findMaterial(id)!
+  return { color: m.color, roughness: m.roughness, metalness: m.metalness, ...(m.clear ? { transparent: true, opacity: 1 - m.clear, depthWrite: false } : {}) }
+}
+
 export function buildHouse(solids: readonly Solid[]): HouseModel {
   const root = new THREE.Group()
-  const materials = new Map<SolidMaterial, THREE.Material>()
+  // by palette name, or "finish:<material id>"
+  const materials = new Map<string, THREE.Material>()
   const geometries: THREE.BufferGeometry[] = []
+  const material = (key: string) => {
+    let m = materials.get(key)
+    if (!m) materials.set(key, (m = new THREE.MeshStandardMaterial(key.startsWith('finish:') ? finishMaterial(key.slice(7)) : PALETTE[key as SolidMaterial])))
+    return m
+  }
   for (const solid of solids) {
-    const geometry = solidGeometry(solid)
-    if (!geometry) continue
-    geometries.push(geometry)
-    let material = materials.get(solid.material)
-    if (!material) materials.set(solid.material, (material = new THREE.MeshStandardMaterial(PALETTE[solid.material])))
-    const mesh = new THREE.Mesh(geometry, material)
-    // glass lets the sun through; nothing stands over a flat roof, and roofs that shadowed each other drew dark
-    // lines where the slabs of neighbouring rooms met
-    mesh.castShadow = solid.material !== 'glass'
-    mesh.receiveShadow = solid.kind !== 'roof'
-    mesh.userData.ref = solid.ref
-    root.add(mesh)
+    // one mesh per material the solid's faces are in: a wall finished on one side is two
+    const byKey = new Map<string, Face[]>()
+    for (const face of solid.faces) {
+      const finish = face.finish ?? solid.finish
+      const key = finish && findMaterial(finish) ? `finish:${finish}` : solid.material
+      byKey.set(key, [...(byKey.get(key) ?? []), face])
+    }
+    for (const [key, faces] of byKey) {
+      const geometry = facesGeometry(faces)
+      if (!geometry) continue
+      geometries.push(geometry)
+      const mesh = new THREE.Mesh(geometry, material(key))
+      // glass lets the sun through; nothing stands over a flat roof, and roofs that shadowed each other drew dark
+      // lines where the slabs of neighbouring rooms met
+      mesh.castShadow = solid.material !== 'glass'
+      mesh.receiveShadow = solid.kind !== 'roof'
+      mesh.userData.ref = solid.ref
+      root.add(mesh)
+    }
   }
   const box = new THREE.Box3().setFromObject(root)
   if (box.isEmpty()) box.set(new THREE.Vector3(-5, 0, -5), new THREE.Vector3(5, 3, 5))
@@ -69,11 +89,11 @@ export function buildHouse(solids: readonly Solid[]): HouseModel {
 /** Plan and height to three.js: x, height, plan y. */
 const world = (p: Vec3) => new THREE.Vector3(p.x, p.z, p.y)
 
-/** Every face of a solid, triangulated in its own plane, flat-shaded; null when it has no area. */
-function solidGeometry(solid: Solid): THREE.BufferGeometry | null {
+/** Faces triangulated each in its own plane, flat-shaded; null when they have no area. */
+function facesGeometry(faces: readonly Face[]): THREE.BufferGeometry | null {
   const positions: number[] = []
   const normals: number[] = []
-  for (const face of solid.faces) addFace(face, positions, normals)
+  for (const face of faces) addFace(face, positions, normals)
   if (!positions.length) return null
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))

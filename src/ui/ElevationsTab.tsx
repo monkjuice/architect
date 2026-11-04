@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type Ref } from 'react'
 import { updateLayer } from '../model/edit'
 import { elevation, elevationViews, type Elevation, type ElevationView } from '../model/elevations'
+import { findMaterial } from '../model/materials'
 import type { SolidMaterial } from '../model/solids'
 import { getSolids } from '../state/derived'
 import { downloadBlob } from '../state/files'
@@ -129,7 +130,7 @@ function ElevationDrawing({ view, elevation: e, svgRef }: { view: ElevationView;
         {title}
       </text>
       {e.polygons.map((p, i) => {
-        const fill = shade(FILL[p.material], p.facing)
+        const fill = shade(findMaterial(p.finish)?.color ?? FILL[p.material], p.facing)
         // facets of a round surface are drawn in their own colour: lines between them would merge into a dark bar
         return <polygon key={i} points={p.pts.map((q) => `${q.x},${-q.y}`).join(' ')} fill={fill} strokeLinejoin="round" {...line} stroke={p.smooth ? fill : INK} />
       })}

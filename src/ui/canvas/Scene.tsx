@@ -4,6 +4,7 @@ import { dist, lerp, type Vec } from '../../model/geometry'
 import { openingSpans } from '../../model/openings'
 import { segmentKind, type BaseImage, type Layer, type Plan, type Ref, type SegmentKind } from '../../model/plan'
 import { getPlacedAreas, getWalls, visibleAreas, type PlacedArea } from '../../state/derived'
+import { findMaterial } from '../../model/materials'
 import { areaLabelSize, areaText, regionPath, type LabelLines } from './areas'
 import type { Viewport } from '../../state/store'
 import { gridSteps } from './view'
@@ -196,7 +197,7 @@ export function CalibrationMarks({ image, zoom }: { image: BaseImage; zoom: numb
   )
 }
 
-/** The regions named by a layer's areas, tinted in the layer colour under its lines. */
+/** The regions named by a layer's areas, tinted in the layer colour under its lines, or in their floor's material. */
 export const AreaFills = memo(function AreaFills({ layer, selected, hovered }: { layer: Layer; selected: string; hovered?: string }) {
   const ids = new Set(selected.split(' '))
   return (
@@ -206,9 +207,10 @@ export const AreaFills = memo(function AreaFills({ layer, selected, hovered }: {
           a.region && (
             <path
               key={a.id}
-              className={ids.has(a.id) ? 'area-fill selected' : a.id === hovered ? 'area-fill hovered' : 'area-fill'}
+              className={[ids.has(a.id) ? 'area-fill selected' : a.id === hovered ? 'area-fill hovered' : 'area-fill', findMaterial(a.area.floor) && 'finished'].filter(Boolean).join(' ')}
               fillRule="evenodd"
               d={regionPath(a.region)}
+              style={findMaterial(a.area.floor) ? { fill: findMaterial(a.area.floor)!.color } : undefined}
             />
           ),
       )}

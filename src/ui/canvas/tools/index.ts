@@ -2,6 +2,7 @@ import type { ToolId } from '../../../state/store'
 import { createAreaTool } from './area'
 import { createColonnadeTool } from './colonnade'
 import { createFurnitureTool } from './furniture'
+import { createMaterialTool } from './material'
 import { createCalibrateTool, createCropTool, createImageMoveTool, createLevelTool } from './image'
 import { createNorthTool } from './north'
 import { createLineTool } from './line'
@@ -23,6 +24,7 @@ export function createTools(ctx: ToolContext): Record<ToolId, Tool> {
     fireplace: createOpeningTool(ctx, 'fireplace'),
     colonnade: createColonnadeTool(ctx),
     furniture: createFurnitureTool(ctx),
+    material: createMaterialTool(ctx),
     measure: createMeasureTool(ctx),
     // the canvas pans with a left drag while this tool is active
     pan: { cursor: () => 'grab', overlay: () => ({}) },
@@ -78,6 +80,10 @@ export const TOOL_INFO: Record<ToolId, { title: string; key?: string; hint: stri
   furniture: {
     title: 'Furniture',
     hint: 'Click to put the piece picked in the library down: near a wall it backs up to it, a kitchen sink goes in a counter, a chair faces a table · R: turn · Alt: no snap',
+  },
+  material: {
+    title: 'Material',
+    hint: 'Click the side of a wall (a wall material) or inside a named area (a floor material) to finish it with the material picked in the library',
   },
   measure: {
     title: 'Measure',

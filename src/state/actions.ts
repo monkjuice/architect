@@ -1,6 +1,9 @@
 import { createBaseImage, imageToWorld, visibleCorners } from '../model/baseImage'
 import { newColonnade } from '../model/colonnades'
-import { addFurniture, addOpening, addRoof, deleteItems, setColonnade } from '../model/edit'
+import { addFurniture, addOpening, addRoof, deleteItems, setAreaFloor, setColonnade, setWallFinish } from '../model/edit'
+import { faceLine, finishProblem, sideOf, wallSide, type WallSide } from '../model/finishes'
+import { findMaterial } from '../model/materials'
+import { pointInPolygon, type Region } from '../model/regions'
 import { FURNITURE_REACH_M, furnitureFor, furnitureInfo, furnitureTarget, type FurnitureTarget } from '../model/furniture'
 import { boundsOf, polygonArea, type Box, type Vec } from '../model/geometry'
 import { openingFor, openingTarget, type OpeningTarget } from '../model/openings'
@@ -25,7 +28,7 @@ import { newRoof, offsetPolygon, unionOutlines } from '../model/roofs'
 import { isCovered } from '../model/solids'
 import { EXTERIOR_WALL, WALL_HEIGHT, wallHeight } from '../model/walls'
 import { pickFile, pickPlanFile, readImageFile, savePlanFile } from './files'
-import { drawnHalfWidth, getPlacedAreas, hostThickness } from './derived'
+import { drawnHalfWidth, getPlacedAreas, getRegions, getThickness, hostThickness } from './derived'
 import { getPrefs, openingWidth } from './prefs'
 import { getStore, type EditorState, type Tab, type ToolId } from './store'
 
@@ -270,6 +273,73 @@ export function dropFurniture(kind: FurnitureKind, style: string | undefined, p:
   })
   if (!target) return store.notify({ kind: 'error', text: 'The active layer is hidden or locked: pick another one in the Layers section.' })
   placeFurnitureAt(furnitureFor(kind, style, target, info.width, info.depth), target)
+}
+
+/** Drag data of a material dragged from the library: "wall:brick-red" or "floor:tile-light". */
+export const MATERIAL_DRAG_TYPE = 'application/x-architect-material'
+
+/** Where a material goes: one side of a wall, or the floor of a named area; with what is there, to name it. */
+export type FinishTarget =
+  | { surface: 'wall'; layer: string; segment: string; side: WallSide; outdoor: boolean; face: [Vec, Vec]; facing: string }
+  | { surface: 'floor'; layer: string; area: string; region: Region; outdoor: boolean; name: string }
+
+/**
+ * The wall side or floor a material would go on at `p`: the wall within `reach` (m) and the side of it `p` is on,
+ * or the smallest named area around `p`, on editable layers.
+ */
+export function finishTarget(surface: 'wall' | 'floor', p: Vec, reach: number): FinishTarget | null {
+  const { plan, activeLayer } = getStore().getState()
+  if (surface === 'wall') {
+    const hit = hitTest(plan, p, activeLayer, 0, reach, drawnHalfWidth)
+    const layer = hit?.kind === 'segment' ? findLayer(plan, hit.layer) : undefined
+    const s = layer && hit ? layer.segments[hit.id] : undefined
+    if (!layer || !hit || !s || segmentKind(s) !== 'wall') return null
+    const side = sideOf(layer.vertices[s.a], layer.vertices[s.b], p)
+    const half = (getThickness(layer).get(hit.id) ?? 0) / 2
+    const { region, outdoor } = wallSide(layer, getRegions(layer), half, hit.id, side)
+    const named = region && getPlacedAreas(layer).find((a) => a.region === region)
+    return { surface, layer: layer.id, segment: hit.id, side, outdoor, face: faceLine(layer, hit.id, side, half), facing: named ? named.area.name : region ? 'an unnamed area' : 'the outside' }
+  }
+  let best: FinishTarget | null = null
+  for (const layer of plan.layers) {
+    if (!isEditable(layer)) continue
+    for (const a of getPlacedAreas(layer)) {
+      const r = a.region
+      if (!r || !pointInPolygon(p, r.outer) || r.holes.some((h) => pointInPolygon(p, h))) continue
+      if (!best || (best.surface === 'floor' && r.area < best.region.area)) best = { surface, layer: layer.id, area: a.id, region: r, outdoor: !r.indoor, name: a.area.name }
+    }
+  }
+  return best
+}
+
+/** Why a material cannot go on a target, or null. */
+export const finishTargetProblem = (t: FinishTarget, materialId: string): string | null => {
+  const material = findMaterial(materialId)
+  return material ? finishProblem(material, t.surface, t.outdoor) : 'That material is not in the catalogue.'
+}
+
+/** Puts a material on a wall's side or a floor, and selects that wall or area; says why when it does not suit it. */
+export function applyFinish(t: FinishTarget, materialId: string) {
+  const store = getStore()
+  const problem = finishTargetProblem(t, materialId)
+  if (problem) return store.notify({ kind: 'error', text: problem })
+  if (t.surface === 'wall') {
+    store.edit((plan) => setWallFinish(plan, t.layer, t.segment, t.side, materialId))
+    store.select([{ layer: t.layer, kind: 'segment', id: t.segment }])
+  } else {
+    store.edit((plan) => setAreaFloor(plan, [{ layer: t.layer, kind: 'area', id: t.area }], materialId))
+    store.select([{ layer: t.layer, kind: 'area', id: t.area }])
+  }
+  store.setActiveLayer(t.layer)
+}
+
+/** A material dropped from the library at world point `p` goes on the wall side or floor there. */
+export function dropMaterial(surface: 'wall' | 'floor', materialId: string, p: Vec, reach: number) {
+  const target = finishTarget(surface, p, reach)
+  if (!target) {
+    return getStore().notify({ kind: 'error', text: surface === 'wall' ? 'Drop a wall material on the side of a wall.' : 'Drop a floor material inside a named area (name it with Area first).' })
+  }
+  applyFinish(target, materialId)
 }
 
 /** Drag data of a colonnade dragged from the library: its column style. */

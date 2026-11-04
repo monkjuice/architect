@@ -31,7 +31,7 @@ export interface ToolContext {
   redraw: () => void
 }
 
-export type LineStyle = 'preview' | 'preview-open' | 'measure' | 'calibration' | 'level' | 'crop' | 'guide'
+export type LineStyle = 'preview' | 'preview-open' | 'measure' | 'calibration' | 'level' | 'crop' | 'guide' | 'face'
 export type PointStyle = 'anchor' | 'measure' | 'handle'
 export type LabelStyle = 'accent' | 'measure' | 'calibration' | 'warning'
 

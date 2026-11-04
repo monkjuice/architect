@@ -1,8 +1,10 @@
 import { add, closestOnSegment, dist, EPS, lerp, mul, sub, type Vec } from './geometry'
-import { band, frustumFaces, norm, prismFaces, profileFaces, ring, smoothSides, v3, type Face } from './faces'
+import { band, clipFace, frustumFaces, norm, prismFaces, profileFaces, ring, smoothSides, v3, type Face, type Vec3 } from './faces'
 import { COLUMNS, heldByWall, layerColonnades } from './colonnades'
 import { placeFurniture } from './furniture'
 import { furnitureParts } from './furniture3d'
+import { sideNormal } from './finishes'
+import { findMaterial } from './materials'
 import { besideWall, FIREPLACE_DEPTH, fireplaceShape, HEARTH, hasHinge, placeOpening, type PlacedOpening } from './openings'
 import { segmentKind, type ColumnStyle, type Layer, type Opening, type Plan, type Ref, type Roof } from './plan'
 import { layerFaces, pointInPolygon, regionAt, type LayerFaces, type Region } from './regions'
@@ -103,6 +105,8 @@ export interface Solid {
   bottom: number
   top: number
   material: SolidMaterial
+  /** A material id it is finished in all over, over `material`: an area's floor. */
+  finish?: string
   /** The plan item it is part of: a wall or an open edge, a door, window or gate, an area or a roof. */
   ref: Ref
 }
@@ -187,7 +191,10 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
 
   for (const [id, area] of Object.entries(layer.areas)) {
     const region = regionAt(faces.regions, area.at)
-    if (region) out.push(prism('floor', region.outer, region.holes, lift, lift + FLOOR, isCovered(region) ? 'floor' : 'paving', ref('area', id)))
+    if (!region) continue
+    const floor = prism('floor', region.outer, region.holes, lift, lift + FLOOR, isCovered(region) ? 'floor' : 'paving', ref('area', id))
+    if (findMaterial(area.floor)) floor.finish = area.floor
+    out.push(floor)
   }
 
   const walls = source.walls(layer)
@@ -292,6 +299,29 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
     const p = layer.vertices[v]
     const u = mul(c.dir, COLUMN / 2)
     out.push(prism('column', band(sub(p, u), add(p, u), COLUMN / 2), [], 0, c.h - BEAM_DEPTH, 'facade', c.ref))
+  }
+
+  // each side of a finished wall, on every piece of it (the wall itself, over and under openings, a gable end): the
+  // faces that face that side, told by their normals, and the side's half of the faces across the wall (its ends,
+  // the reveals of doors and windows), split at its centreline
+  for (const s of out) {
+    if (s.ref.layer !== layer.id || s.ref.kind !== 'segment' || !['wall', 'lintel', 'sill', 'infill'].includes(s.kind)) continue
+    const seg = layer.segments[s.ref.id]
+    const finish = seg?.finish
+    if (!finish || segmentKind(seg) !== 'wall') continue
+    const a = layer.vertices[seg.a]
+    const left = sideNormal(a, layer.vertices[seg.b], 'left')
+    const toLeft = (p: Vec3) => (p.x - a.x) * left.x + (p.y - a.y) * left.y
+    const tag = (f: Face, side: string | undefined): Face => (side && findMaterial(side) ? { ...f, finish: side } : f)
+    s.faces = s.faces.flatMap((f) => {
+      const along = f.normal.x * left.x + f.normal.y * left.y
+      if (along > 0.99) return [tag(f, finish.left)]
+      if (along < -0.99) return [tag(f, finish.right)]
+      // the top and bottom stay in the wall's own material
+      if (Math.abs(f.normal.z) > 0.01 || f.holes.length) return [f]
+      if (finish.left === finish.right) return [tag(f, finish.left)]
+      return [clipFace(f, toLeft), clipFace(f, (p) => -toLeft(p))].flatMap((half, i) => (half ? [tag(half, i ? finish.right : finish.left)] : []))
+    })
   }
 
   // fireplaces, each with a chimney up through the roof over it

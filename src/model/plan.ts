@@ -21,6 +21,8 @@ import { z } from 'zod'
  * A fireplace is hosted the same way, against one side of a wall, but leaves no gap; its chimney goes up through
  * the roof. An open edge can carry a colonnade: columns shared out along it under a beam.
  *
+ * Walls are finished on each side and areas on their floors with materials (see materials.ts and finishes.ts).
+ *
  * Furniture and fixtures (counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs) stand where they are put, turned to
  * an angle; a kitchen sink sits in a counter and goes where its counter goes (see furniture.ts).
  *
@@ -58,6 +60,11 @@ export const SegmentSchema = z.strictObject({
    * it, see colonnades.ts). Kept but unused while the segment is another kind.
    */
   colonnade: z.strictObject({ style: z.enum(COLUMN_STYLES), spacing: Positive }).optional(),
+  /**
+   * A wall's finish on each side, as material ids (see materials.ts), its sides named looking from `a` to `b`;
+   * kept but unused while the segment is another kind.
+   */
+  finish: z.strictObject({ left: z.string().min(1).optional(), right: z.string().min(1).optional() }).optional(),
 })
 
 export type SegmentKind = 'wall' | 'open' | 'outline'
@@ -68,6 +75,8 @@ export const AreaSchema = z.strictObject({
   name: z.string(),
   /** A point inside the area; the editor keeps it at the area's label position, well inside (see regionLabel). */
   at: VecSchema,
+  /** Its floor's finish, a material id (see materials.ts). */
+  floor: z.string().min(1).optional(),
 })
 
 export const DOOR_STYLES = ['single', 'double', 'sliding'] as const
