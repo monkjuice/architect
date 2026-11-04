@@ -1,7 +1,7 @@
 ---
 title: Overview
 type: overview
-summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman or metal colonnades, ground-level outlines, named areas with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, beds, tables, chairs) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable and hip roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
+summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman or metal colonnades, ground-level outlines, named areas with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, showers, toilets, bidets, beds, tables, chairs) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable and hip roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
 tags: [overview]
 sources: []
 updated: 2026-11-04
@@ -18,7 +18,7 @@ deck), name the areas they enclose (rooms, the porch, the pool), put doors and w
 walls, gates in the fences and fireplaces against walls (their chimneys go up through the roof,
 [Fireplaces](pages/fireplaces.md)), stand Roman or metal columns along open edges
 ([Colonnades](pages/colonnades.md)), furnish the rooms (counters with kitchen sinks, bathroom and outdoor sinks,
-bathtubs with a movable shower head, beds, tables, chairs; [Furniture and fixtures](pages/furniture.md)), and
+bathtubs (corner ones too) and showers with a movable shower head, toilets, bidets, beds, tables, chairs; [Furniture and fixtures](pages/furniture.md)), and
 measure lengths and areas. Walls are drawn at their thickness (automatic by
 whether they face outside, or set by hand) and have heights; areas show floor area inside the walls, with a
 covered total ([Walls](pages/walls.md)).
@@ -65,7 +65,7 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   and stays folded per browser ([Code conventions](pages/code-conventions.md)). The Library lists line types (Wall, Open edge, Outline),
   then a Doors group (single, double, sliding), a Windows group (fixed, sliding, double hung, awning, casement), a
   Gates group (single, double, sliding) ([Door, window and gate styles](pages/opening-styles.md)), a Fireplaces group
-  (masonry), Colonnades (Roman, metal), then Counters, Sinks, Bathtubs, Beds, Tables and Chairs. Click an item to
+  (masonry), Colonnades (Roman, metal), then Counters, Sinks, Bathtubs, Showers, Toilets (toilet, bidet), Beds, Tables and Chairs. Click an item to
   arm its tool, or drag it onto a wall, fence or open edge (furniture: anywhere on the plan).
 - `src/main.tsx` restores the draft before the first render. `src/App.tsx` switches tabs (lazy-loading the
   Exterior, so three.js is its own chunk) and runs the autosave, the Ctrl shortcuts and image paste (Floor only).

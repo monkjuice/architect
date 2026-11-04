@@ -73,7 +73,7 @@ The line tool draws the store's `lineKind` (`O` cycles wall → open edge → ou
 Library panel). The Area
 tool (`A`) and how the select tool picks and drags areas are described in [Areas](areas.md), the Door (`D`),
 Window (`W`) and Gate (no key: `G` is the grid) tools and opening drags in [Doors, windows and gates](doors-and-windows.md); the Fireplace, Colonnade and Furniture tools have no key either. The select tool hits, in order:
-a selected bathtub's shower mark, area labels, vertices, openings, furniture (smallest piece first), segments; on the
+a selected bathtub's or shower's shower mark, area labels, vertices, openings, furniture (smallest piece first), segments; on the
 Floor tab `R` turns selected furniture (on the Roof tab `R` is the Roof tool). Segment hits and wall picking for openings measure from a thick wall's
 faces, through the `drawnHalfWidth` callback ([Walls](walls.md)). `Overlay` and `OpeningLayer` take `thick` too.
 

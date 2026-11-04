@@ -183,3 +183,12 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/openings-hosted-by-segment.md (furniture deliberately not hosted)
 - updated: overview.md (summary, what it does, furniture.ts/furniture3d.ts/faces.ts, Library groups, decision link, open items)
 - updated: index.md
+
+## [2026-11-04] update | Toilet, bidet, shower and a corner bathtub
+- updated: pages/furniture.md (new schemas, hasShower/isCorner, corner tub's quarter disc and curved rim, showerAt steps, head defaults, symbols, 3-D riser/tray/screen/toilet/bidet, FURNITURE_GROUPS kinds and box ids, corner-snap limit; summary)
+- updated: pages/development-and-testing.md (169 tests, furniture 10, 24-check furniture flow, 3014137, "no tests" glitch again; summary)
+- updated: pages/plan-model.md (furniture kinds, shower field)
+- updated: pages/code-conventions.md (library-shower/library-toilet Box ids, id from first kind)
+- updated: pages/canvas-and-tools.md (shower mark hit on showers too)
+- updated: overview.md (summary, what it does, Library groups)
+- updated: index.md
