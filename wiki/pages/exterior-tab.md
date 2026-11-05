@@ -30,6 +30,10 @@ the wall and floor finishes it draws.
   mesh each: the palette name, or `"finish:<id>"` for a finished face or floor, built by `finishMaterial` from the
   catalogue's colour, roughness, metalness and `clear` (transparency) ([Materials and finishes](materials-and-finishes.md)). Glass casts no shadow. Roofs receive none: the old per-room slabs
   drew dark seams where they met.
+  - Checkered finishes (`64f59b7`): `checkerTexture` builds a 64 px `CanvasTexture` (`RepeatWrapping`, repeat
+    1/(2·tile), SRGB, `NearestFilter` for magnification) as the material's `map`. The map is disposed with the
+    material. For this, `facesGeometry`/`addFace` emit a `uv` attribute: each vertex's in-plane coordinates in
+    metres, in the same u/v basis used for triangulating, so a floor's UVs follow the plan axes.
 - `src/render/engine.ts`: `createExteriorEngine(host, pose)`, adapted from `../forge-h1/planner/src/render/engine.ts`
   ([Stack adapted from the Forge H1 planner](forge-h1-stack.md)): renderer with soft shadows, `RoomEnvironment`, a
   lawn, `OrbitControls` with frames drawn on demand, `fitDistance`, `snapshot`.

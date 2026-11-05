@@ -1,8 +1,8 @@
 ---
 title: Playwright flow-check pitfalls
 type: gotcha
-summary: "Python Playwright against the SVG canvas: SVG elements have no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft hides its photo and keeps changing, folded sections render nothing, panel sections must be found by data-box not position or text (Library boxes nest), a role name "Wall" also matches the "Walls" toggle, WebGL needs SwiftShader flags and reads back blank (measure screenshots), Ctrl+Z is ignored while a checkbox has focus, a long-running dev server serves stale HMR module copies, a stopped background vite can keep its port, layer names are inputs, tool buttons' text has a newline before the key, flows on the user's live plan need a pinned fixture, and bash heredocs mangle escapes in inline Python."
-tags: [gotcha, testing, playwright, python, webgl, vite]
+summary: "Python Playwright against the SVG canvas: SVG elements have no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft may show or hide its photo (shown, F frames the whole survey and area labels take clicks) and keeps changing, folded sections render nothing, panel sections must be found by data-box not position or text (Library boxes nest), a role name \"Wall\" also matches the \"Walls\" toggle, WebGL needs SwiftShader flags and reads back blank (measure screenshots), keyboard shortcuts are ignored while a checkbox has focus, React leaves an empty style=\"\" (check e.style.fill), a long-running dev server serves stale HMR module copies, a stopped background vite can keep its port, layer names are inputs, tool buttons' text has a newline before the key, flows on the user's live plan need a pinned fixture, and bash heredocs mangle escapes in inline Python."
+tags: [gotcha, testing, playwright, python, webgl, vite, react]
 sources: []
 updated: 2026-11-04
 ---
@@ -38,9 +38,10 @@ Found in the sixth session, with the sun flow on the user's real draft ([Sun and
 - **The empty start plan overwrites an injected draft.** On first load `App.tsx` autosaves the new plan ~400 ms
   later ([Editor store and state](editor-store.md)), so a draft written into IndexedDB right away is lost. Wait about
   1 s after the first load, then inject the draft and reload.
-- **The user's draft may hide the photo.** Their latest draft has the base image hidden, so waiting for
+- **The user's draft may hide the photo.** Their draft had the base image hidden then, so waiting for
   `.base-image image` hangs. Wait for `.layer-lines`, tick *Visible* in the Base plan section if the photo is needed,
-  then press `F` so its features are on screen.
+  then press `F` so its features are on screen. Since `64f59b7` the photo is visible again (see below), so set the
+  photo's visibility in the fixture rather than assuming either state.
 - **The user's draft keeps changing.** Checks tied to its content (the areas flow named its largest room,
   86.68 m²) break as the user edits it. Assert things that stay true. The outline flow turned the pool's walls into
   outlines, then the user saved the pool as outlines, so the flow now strips the pool's `kind` in its injected copy
@@ -58,14 +59,16 @@ Found in the eighth session, with the exterior flow ([Exterior tab](exterior-tab
 - **A WebGL canvas reads back blank** through `drawImage` (or similar) because the renderer has no
   `preserveDrawingBuffer`. To compare renders (night darker than noon), take Playwright screenshots and measure
   them with PIL.
-- **Ctrl+Z is ignored while a checkbox has focus**: `useShortcuts` in `src/App.tsx` skips keys aimed at inputs, by
-  design. After ticking a View box, click *Undo* instead.
+- **Keyboard shortcuts are ignored while a checkbox has focus**: `useShortcuts` in `src/App.tsx` skips keys aimed
+  at inputs, by design. This covers Ctrl+Z and the single-key tool shortcuts. After ticking a View box, blur it
+  first, or click *Undo* instead.
 
 Found later in the eighth session, with the roof flow ([Roof tab](roof-tab.md)):
 
 - **Restart the dev server before running flows.** One left running across many edits served the app a newer HMR
   copy (`?t=…`) of a module than a test's `await import('/src/state/store.ts')` got, so the test's copy threw "The
-  editor store is not initialised".
+  editor store is not initialised". It struck twice more on 2026-11-04 after modules were edited mid-session, and
+  restarting the server fixed it both times.
 - **Stopping a background `npx vite` task can leave its node child running**, still holding port 5180, so the next
   `--strictPort` start fails. Find the process by its port and kill it by PID.
 - **Layer names in the Layers panel are inputs**, so text matching finds nothing: find a row by the value of its
@@ -93,3 +96,14 @@ Found on 2026-11-04, with the Library split into Drawing, Materials and Objects 
   role names match by substring. Scope to `[data-box="library-drawing"]` or match exactly.
 - **The user's plan keeps drifting** (they furnished the house and resized the pool), so the furniture flow now also
   runs on the cleaned fixture.
+
+Found on 2026-11-04 (`64f59b7`), with the checkered tile, lots and View > Materials
+([Materials and finishes](materials-and-finishes.md), [Lots](lots.md)):
+
+- **React leaves an empty `style=""`** when a style prop goes to `undefined`, so a `[style]` selector still
+  matches. Check `e.style.fill` in `evaluate` instead.
+- **With the photo visible, `F` frames the whole 109 × 68 m survey.** Area labels then span metres on screen and
+  take wall and furniture clicks, because labels are hit first. `make_fixture.py` now hides the image and marks the
+  Pared exterior areas as lots ([Development and testing](development-and-testing.md)).
+- An "empty canvas" click must be computed to be clear of the plan, e.g. just outside all vertices (as
+  `e2e_outline` now does), not taken from a fixed screen position.

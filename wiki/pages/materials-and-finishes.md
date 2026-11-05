@@ -1,8 +1,8 @@
 ---
 title: Materials and finishes
 type: component
-summary: "A materials catalogue (src/model/materials.ts: 28 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors; suits, materialGroups, findMaterial) and finishes on wall sides and area floors (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is indoor, finishProblem; segment.finish and area.floor in the plan), set by the Material tool, library drags or the Selection panel, drawn in plan (Finishes.tsx, tinted AreaFills), in 3-D and in the elevations."
-tags: [model, materials, finishes, walls, areas, ui, 3d, library]
+summary: "A materials catalogue (src/model/materials.ts: 29 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares; suits, materialGroups, findMaterial) and finishes on wall sides and area floors (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish and area.floor in the plan), set by the Material tool, library drags or the Selection panel, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
+tags: [model, materials, finishes, walls, areas, ui, 3d, library, lots]
 sources: []
 updated: 2026-11-04
 ---
@@ -15,11 +15,14 @@ material can go on, and materials shown in groups.
 
 ## Catalogue (`src/model/materials.ts`)
 
-- `MATERIALS`: 28 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
+- `MATERIALS`: 29 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
   concrete, wood, ceramic, metal, glass, roofing, ground and garden. Each has `surfaces` (`wall`, `floor`,
   `ceiling`, `roof`, `door`, `frame`), `indoor`/`outdoor` flags, and `color`, `roughness`, `metalness`, `clear` for
   the renderers. Only `wall` and `floor` are used so far.
 - `pattern` is drawn only in the library swatch (`MaterialIcon`); 3-D and the elevations use the flat colour.
+- `checker: {colors: [dark, light], tile}` (since `64f59b7`, only `tile-checkered`: Ceramic, floors, indoors and
+  out, 0.3 m squares) is drawn as real squares in the swatch, the plan and 3-D (see below). Its `color` holds the
+  mix of the two colours, for places where the squares don't show (the elevations).
 - `suits(material, surface, outdoor)`; `materialGroups(surface, outdoor?)` lists what suits, by family, and treats
   an omitted `outdoor` as "either" (the library lists everything for the surface; the Selection panel passes
   the side's or floor's actual outdoor flag); `findMaterial(id)`.
@@ -30,8 +33,9 @@ material can go on, and materials shown in groups.
   a→b is (d.y, −d.x), because +y is down. `sideOf(a, b, p)` picks the side a point is on.
 - `wallSide(layer, regions, half, segment, side)` samples the region 5 cm past the face at the wall's midpoint. A
   side is **outdoor unless that region is indoor**, so the outside, a gallery and a pool all count as outdoor
-  ([Indoor means unreachable from outside](indoor-reachability-rule.md)). A floor is outdoor when its region is not
-  indoor.
+  ([Indoor means unreachable from outside](indoor-reachability-rule.md)). A side facing a lot is outdoor too, even
+  though the lot's boundary walls make its region indoor. A floor is outdoor when its region is not indoor or its
+  area is a lot ([Lots](lots.md)).
 - `finishProblem(material, surface, outdoor)` gives the refusal text.
 
 ## In the plan
@@ -53,11 +57,17 @@ gallery), the finish stays, and the Selection panel lists it as "(does not suit 
   `p` is on, or the smallest named area around `p` on an editable layer. `applyFinish` refuses with a notice, then
   edits and selects. `dropMaterial` handles `MATERIAL_DRAG_TYPE` data `"wall:<id>"` / `"floor:<id>"`.
 - Plan: `FinishLayer` (`canvas/Finishes.tsx`) draws a line in the material's colour just inside each finished face,
-  broken at openings. `AreaFills` tints floors in their material (class `finished`).
+  broken at openings. `AreaFills` tints floors in their material (class `finished`). A checkered floor is filled
+  with `url(#finish-<id>)`: `FinishPatterns` renders one `<pattern>` per checkered material in plan units (m,
+  `patternUnits="userSpaceOnUse"`), once in Canvas's svg.
+- **View > Materials** (`prefs.materials`, default on, per browser): when it is off, `FinishLayer` is not drawn and
+  `AreaFills` gets `materials={false}` (layer tint only). This affects the plan only. The Exterior and the elevations
+  still show materials.
 - Selection panel: one `MaterialField` per wall side, labelled by screen side and what it faces ("Top side, facing
   Cocina"), plus a floor field on areas.
 - Library: the Materials group, with Walls and Floors boxes (family subheadings and a count of wall sides or floors
-  per material) ([Code conventions](code-conventions.md)).
+  per material) ([Code conventions](code-conventions.md)). `.library-name` ellipsizes long names. The catalogue title
+  "Checkered tile" was shortened for that reason: the full name overflowed.
 
-3-D and elevations: [House solids](house-solids.md) (face tagging and the reveal split),
-[Exterior tab](exterior-tab.md), [Elevations tab](elevations.md).
+3-D and elevations: [House solids](house-solids.md) (face tagging and the reveal split, lot covers),
+[Exterior tab](exterior-tab.md) (the checker texture and face UVs), [Elevations tab](elevations.md).

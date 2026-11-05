@@ -4,7 +4,7 @@ type: concept
 summary: "src/model/regions.ts: the outlines a layer's lines enclose, as faces of a planar arrangement (split at crossings and touches, a wall wins over other kinds, edges keep their segment ids) traced with half-edges; layerFaces adds which regions are indoor, which walls face outside and each wall's thickness; a Region has holes, area to centrelines, floor inside the wall faces, wallIds, boundary lengths by kind, regionAt and a lazy cached label point."
 tags: [model, regions, areas, geometry]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-04
 ---
 
 # Regions
@@ -49,7 +49,9 @@ too. The result is clamped to `[0, area]`.
 
 Computed lazily and cached per region object (WeakMap). `labelPoint` takes the centroid when it is inside and has
 at least 70% of the best clearance found; otherwise it takes that best point, from a grid search that zooms in on
-the point farthest from the edges (close to the pole of inaccessibility).
+the point farthest from the edges (close to the pole of inaccessibility). `labelPoint(outer, holes)` also takes
+extra obstacles as holes: `planAreas` passes boxes around other layers' areas to keep a lot's label off the house
+([Lots](lots.md)).
 
 - **Why the centroid rule:** the farthest point drifts along a long room, whose middle line is equally far from the
   walls everywhere. The user's hand-drawn, slightly skewed 17.35 × 5.02 m room got its label at one end.

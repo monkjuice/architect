@@ -2,7 +2,7 @@
 title: Editor store and state
 type: component
 summary: "src/state/: the EditorStore (immutable plan, undo via edit/preview/endGesture, editor-only state such as the open tab, active layer, tool, line kind, door/window/gate/fireplace style to place, column style, furniture and material picks, roof type to draw, view and prompt), user-level actions (openTab, roofTheHouse, applyColonnade, placeFurnitureAt, applyFinish among them), derived data cached per object (derived.ts: regions, wall thicknesses and shapes, covered area, 3-D solids), files (File System Access API, IndexedDB draft, image import) and per-browser prefs (per-style opening widths, folded panel sections, sun view settings, the View section's toggles, the Exterior's roof toggle)."
-tags: [state, undo, files, autosave, derived, prefs, tabs, roof, colonnades, fireplace, furniture, finishes]
+tags: [state, undo, files, autosave, derived, prefs, tabs, roof, colonnades, fireplace, furniture, finishes, lots]
 sources: []
 updated: 2026-11-04
 ---
@@ -76,8 +76,10 @@ They live here, not in `src/ui`, because state never imports from ui ([Code conv
 Data computed from the plan is cached in WeakMaps keyed on the plan's objects. Edits replace only what they change,
 so an unchanged object means an unchanged result. One faces cache, keyed on a layer's `vertices` and `segments`
 maps, backs `getRegions`, `getThickness`, `facesOutside` and `hostThickness`; `getPlacedAreas` and `visibleAreas`
-build on it ([Areas](areas.md), [Regions](regions.md)). `getWalls` (wall shapes) is cached per layer object
-because openings cut walls; `coveredArea` sums indoor rooms and their walls; `drawnHalfWidth` reads
+build on it ([Areas](areas.md), [Regions](regions.md)); `planAreas` (cached per plan) places lot labels clear of
+the other layers' areas, `visibleAreas` filters it, and `areaSize` gives a room's floor or a lot's area to its lines
+([Lots](lots.md)). `getWalls` (wall shapes) is cached per layer object
+because openings cut walls; `coveredArea` sums indoor rooms (not lots) and their walls; `drawnHalfWidth` reads
 `prefs.thickWalls` and is passed to model hit tests as a callback ([Walls](walls.md)). `getSolids(plan)` (the 3-D
 solids of the Exterior and the [Elevations](elevations.md)) is cached per plan object and built from the faces and
 walls caches ([House solids](house-solids.md)).
@@ -113,7 +115,8 @@ Since the sixth session prefs also hold:
 
 Since the eighth session the Floor tab's View section (`src/ui/panels/ViewPanel.tsx`) toggles `grid`, `lengths`,
 `calibration`, `thickWalls`, the new `areaNames` and `areaSizes` (which lines area labels show,
-[Canvas and tools](canvas-and-tools.md)) and `sun.visible`; the top bar no longer has these. Its *Base plan* box is
+[Canvas and tools](canvas-and-tools.md)), `materials` (since `64f59b7`: finishes drawn in plan,
+[Materials and finishes](materials-and-finishes.md)) and `sun.visible`; the top bar no longer has these. Its *Base plan* box is
 `plan.image.visible`, plan data and undoable. `roofs` is the Exterior's *Roof* toggle (hides the drawn roofs and parapets,
 [Exterior tab](exterior-tab.md)). All default on except `calibration`.
 

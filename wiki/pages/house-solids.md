@@ -2,7 +2,7 @@
 title: "House solids: the plan in 3-D"
 type: component
 summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
-tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes]
+tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots]
 sources: []
 updated: 2026-11-04
 ---
@@ -44,6 +44,9 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
 - Floors only for named areas ([Areas](areas.md)). `isCovered` (formerly `isRoofed`): indoor, or no outline in the
   boundary (a gallery) → `floor`; otherwise (pool, terrace) `paving`. It no longer creates roofs; *Roof the house*
   uses it to pick areas ([Roof tab](roof-tab.md)).
+- A lot ([Lots](lots.md)) is the ground itself and gets no slab. When finished (lawn, say), it gets a `GROUND`
+  (0.01 m) `paving` prism carrying its finish, under the 0.03 m floors. Before lots, a walled-in site got a 3 cm
+  `floor` slab that hid the pool's water.
 - No automatic roof: roofs come only from `layer.roofs` ([Roofs are drawn outlines](roofs-drawn-outlines.md)).
   Each gives one `roof` solid ([Roofs: model and geometry](roofs.md)); a flat one with a parapet adds a `parapet`
   ring on its eaves, `PARAPET_WALL` thick, from `height + SLAB`.

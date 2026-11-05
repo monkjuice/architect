@@ -1,8 +1,8 @@
 ---
 title: Plan model and file format
 type: component
-summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds, optional wall thickness and height, wall-side finishes and open-edge colonnades, named areas with optional floor finishes, styled doors/windows/gates/fireplaces hosted by segments, drawn roofs and free-standing furniture with kitchen sinks kept in counters, embedded base image), with parsing, migrations and serialization in planFile.ts."
-tags: [model, file-format, schema, site, walls, roof, colonnades, fireplace, furniture, finishes]
+summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds, optional wall thickness and height, wall-side finishes and open-edge colonnades, named areas (rooms, or lots of land) with optional floor finishes, styled doors/windows/gates/fireplaces hosted by segments, drawn roofs and free-standing furniture with kitchen sinks kept in counters, embedded base image), with parsing, migrations and serialization in planFile.ts."
+tags: [model, file-format, schema, site, walls, roof, colonnades, fireplace, furniture, finishes, lots]
 sources: []
 updated: 2026-11-04
 ---
@@ -40,8 +40,8 @@ updated: 2026-11-04
 - A segment may carry `finish: {left?, right?}`, material ids for its two sides named looking from `a` to `b`, used
   only while it is a wall; an area may carry `floor`, a material id. Ids are not checked against the catalogue
   ([Materials and finishes](materials-and-finishes.md)).
-- `areas` (id → `{name, at, floor?}`): named points whose outline is computed from the layer's lines, never stored
-  ([Areas](areas.md)).
+- `areas` (id → `{name, at, floor?, lot?}`): named points whose outline is computed from the layer's lines, never
+  stored ([Areas](areas.md)). `lot: true` marks the land of a plot, not a room ([Lots](lots.md)).
 - `openings` (id → door, window, gate or fireplace): a zod `discriminatedUnion` on `kind` (`DoorSchema`,
   `WindowSchema`, `GateSchema`, `FireplaceSchema`). Each has a `style` from `DOOR_STYLES` / `WINDOW_STYLES` /
   `GATE_STYLES` / `FIREPLACE_STYLES` and the common fields `segment`, a centre `offset` from the segment's `a` end,
@@ -113,4 +113,4 @@ since the automatic roof was removed at the same time ([Roofs are drawn outlines
 On 2026-11-04 the optional segment `colonnade` and the `fireplace` opening kind came, still at version 1
 ([Colonnades are an open-edge setting; fireplaces are an opening kind](colonnade-setting-fireplace-opening.md)).
 Later that day layer `furniture` (`.default({})`) came, also at version 1, and then the optional segment `finish`
-and area `floor`, still at version 1.
+and area `floor`, and after them the optional area `lot` (`z.literal(true)`), all still at version 1.

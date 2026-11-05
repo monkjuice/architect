@@ -1,8 +1,8 @@
 ---
 title: Areas
 type: concept
-summary: "An area is a named point ({name, at} in layer.areas) whose outline is the region of its layer's lines enclosing the point, Revit-room style; sizes shown are floor areas inside the wall faces, and coveredArea totals indoor rooms with their walls; regions and placed areas are cached per object in src/state/derived.ts; one area per region, \"not enclosed\" when the lines open; Area tool and label dragging."
-tags: [model, areas, regions, state, ui]
+summary: "An area is a named point ({name, at} in layer.areas) whose outline is the region of its layer's lines enclosing the point, Revit-room style; a room shows its floor area inside the wall faces and a lot (lot: true) its area to the lot lines (areaSize); coveredArea totals indoor rooms with their walls, lots excluded; regions and placed areas are cached per object in src/state/derived.ts (planAreas per plan); one area per region, \"not enclosed\" when the lines open; Area tool and label dragging."
+tags: [model, areas, regions, state, ui, lots]
 sources: []
 updated: 2026-11-04
 ---
@@ -19,6 +19,8 @@ updated: 2026-11-04
   closed through its doors ([Doors and windows](doors-and-windows.md)).
 - An area may also carry `floor`, a material id. Only named areas take floor finishes, as only they get floors in
   3-D ([Materials and finishes](materials-and-finishes.md)).
+- An area may be marked `lot: true`: land, not a room. A lot is outdoor, sized to its boundary lines and kept out
+  of the room totals ([Lots](lots.md)).
 - When nothing encloses `at` (walls deleted or opened), the area stays. Its label turns into a dashed "not
   enclosed" warning at `at`, and it counts 0 in the Areas panel total. Deleting walls never deletes areas; only
   selecting an area and deleting it does (`deleteItems`).
@@ -35,9 +37,12 @@ Adapted from the Forge H1 planner's `derived.ts` ([Stack adapted from the Forge 
   Renaming or moving an area replaces the layer object but not those maps, so the regions are not recomputed.
 - `getPlacedAreas(layer)` gives each area with its region and label position (the region's label, or `at` when not
   enclosed), cached per layer object.
-- `visibleAreas(plan)` covers the visible layers, bottom layer first (labels, Areas panel).
+- `planAreas(plan)` (cached per plan) gives every layer's placed areas, with lot labels moved off the other layers'
+  areas ([Lots](lots.md)). `visibleAreas(plan)` filters it to the visible layers, bottom layer first (labels, Areas
+  panel), and the select tool's `editableAreas` filters it to the editable ones.
+- `areaSize(a)`: a room's `region.floor`, a lot's `region.area`; null when not enclosed.
 - `coveredArea(plan)` (superficie cubierta, to the walls' outside faces): for each visible layer, the `floor` of
-  every named area whose region is `indoor`, plus the `footprint` of the walls bounding those regions (`wallIds`),
+  every named area whose region is `indoor` and that is not a lot, plus the `footprint` of the walls bounding those regions (`wallIds`),
   each wall once ([Walls](walls.md), [Indoor means unreachable from outside](indoor-reachability-rule.md)).
   Galleries, porches, pools and unnamed regions are left out. A 10 × 6 m house with 0.30 m outer walls comes to
   10.30 × 6.30 = 64.89 m².
@@ -45,8 +50,9 @@ Adapted from the Forge H1 planner's `derived.ts` ([Stack adapted from the Forge 
 ## Sizes
 
 Labels, the Area tool, the Areas panel and the Selection panel show the region's `floor`, the area inside the wall
-faces (the standard room size, [Regions](regions.md)); the Selection panel's hint also gives the size to the
-centrelines. The Areas panel shows *Total floor* and *Covered, with walls* (`coveredArea`).
+faces (the standard room size, [Regions](regions.md)). A lot shows its size to the centrelines instead (`areaSize`). The
+Selection panel's hint also gives the size to the centrelines. The Areas panel shows *Total floor* (rooms only) and
+*Covered, with walls* (`coveredArea`). When there are lots, it also shows *Lots* and *Lot covered* %.
 
 ## In the editor
 

@@ -1,7 +1,7 @@
 ---
 title: Canvas and tools
 type: component
-summary: "The SVG canvas of the Floor and Roof tabs in src/ui/canvas/ (mode floor or roof): Canvas.tsx routes pointer and key events to plain tool controllers in tools/ that return OverlayData and takes library drops (openings, colonnades, furniture and materials); Scene.tsx draws the plan (walls filled at their thickness unless Thick walls is off, area fills tinted by floor finish, area labels with the lines the View section shows), Columns.tsx the colonnades, Finishes.tsx the wall finishes, Furniture.tsx the furniture symbols, Sun.tsx the sun dial and wall shadows, Roofs.tsx the roof plan, and Overlay.tsx the tool feedback, at constant screen size; the select tool's hit order."
+summary: "The SVG canvas of the Floor and Roof tabs in src/ui/canvas/ (mode floor or roof): Canvas.tsx routes pointer and key events to plain tool controllers in tools/ that return OverlayData and takes library drops (openings, colonnades, furniture and materials); Scene.tsx draws the plan (walls filled at their thickness unless Thick walls is off, area fills in their floor finish (checkered ones as SVG patterns) unless View > Materials is off, area labels with the lines the View section shows), Columns.tsx the colonnades, Finishes.tsx the wall finishes, Furniture.tsx the furniture symbols, Sun.tsx the sun dial and wall shadows, Roofs.tsx the roof plan, and Overlay.tsx the tool feedback, at constant screen size; the select tool's hit order."
 tags: [ui, canvas, svg, tools, sun, walls, tabs, roof, colonnades, furniture, finishes]
 sources: []
 updated: 2026-11-04
@@ -31,7 +31,8 @@ updated: 2026-11-04
     crop tool is active.
   - `Grid` and `SelectionMarks`.
   - `AreaFills` (memoized, per layer): tints the named regions under the lines ([Areas](areas.md)); a floor with a
-    finish is tinted in its material's colour (class `finished`).
+    finish is tinted in its material's colour (class `finished`), or filled with `url(#finish-<id>)` when the material
+    is checkered. With `materials={false}` (View > *Materials* off) it uses only the layer tint.
   - `LayerShapes` (memoized): one path per segment kind, `.layer-lines` for walls, `.open` (dashed) and `.outline`
     (thin) ([Open edges and outlines are segment kinds](segment-kind-not-layer.md)). With `prefs.thickWalls` (View
     section *Thick walls*, default on) walls are instead `.walls .wall-fill` and `.wall-edges` from `getWalls`, filled
@@ -47,8 +48,9 @@ updated: 2026-11-04
   - `AreaLabels`: name and m² pills, dashed warning style when not enclosed. Each line shows only when the View
     section's *Area names* / *Area sizes* is on (`prefs.areaNames`, `areaSizes`, passed as `LabelLines`).
   - `CalibrationMarks` and `SegmentLabel`.
-- `Finishes.tsx`: `FinishLayer` (memoized, per layer), a line in each finished wall side's material colour, inset
-  inside the face (thin walls: just off the line) and broken at openings
+- `Finishes.tsx`: `FinishLayer` (memoized, per layer, drawn only while `prefs.materials` is on), a line in each
+  finished wall side's material colour, inset inside the face (thin walls: just off the line) and broken at openings;
+  `FinishPatterns`, the `<pattern>` defs of checkered materials in metres, rendered once in Canvas's svg
   ([Materials and finishes](materials-and-finishes.md)).
 - `Furniture.tsx`: `FurnitureSymbol` (renders `furnitureSymbol` parts as `.furniture-<role>`), `FurnitureLayer`
   (memoized, selected ids as one string like `ColonnadeLayer`) and the library's `FurnitureIcon`
@@ -79,7 +81,7 @@ The line tool draws the store's `lineKind` (`O` cycles wall → open edge → ou
 Library panel). The Area
 tool (`A`) and how the select tool picks and drags areas are described in [Areas](areas.md), the Door (`D`),
 Window (`W`) and Gate (no key: `G` is the grid) tools and opening drags in [Doors, windows and gates](doors-and-windows.md); the Fireplace, Colonnade, Furniture and Material tools have no key either. The select tool hits, in order:
-a selected bathtub's or shower's shower mark, area labels, vertices, openings, furniture (smallest piece first), segments; on the
+a selected bathtub's or shower's shower mark, area labels (from `planAreas`, so a lot's label stays off the house, [Lots](lots.md)), vertices, openings, furniture (smallest piece first), segments; on the
 Floor tab `R` turns selected furniture (on the Roof tab `R` is the Roof tool). Segment hits and wall picking for openings measure from a thick wall's
 faces, through the `drawnHalfWidth` callback ([Walls](walls.md)). `Overlay` and `OpeningLayer` take `thick` too.
 

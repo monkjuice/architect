@@ -1,7 +1,7 @@
 ---
 title: Development and testing
 type: guide
-summary: "npm scripts, the GitHub repository, the 184 Vitest model tests (and their spurious \"no tests\" run beside the dev server) and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 29-check furniture flow, the exterior, roof and colonnade ones with software WebGL; flows on the user's plan now need a pinned copy of it, the furniture flow included), plus reading live derived values from the dev server."
+summary: "npm scripts, the GitHub repository, the 190 Vitest tests (model files plus src/state/derived.test.ts; and their spurious \"no tests\" run beside the dev server) and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 29-check furniture flow, the exterior, roof and colonnade ones with software WebGL; flows on the user's plan now need a pinned copy of it with the photo hidden and the lots marked, the furniture flow included), plus reading live derived values from the dev server."
 tags: [guide, testing, vitest, playwright, webgl, git]
 sources: []
 updated: 2026-11-04
@@ -24,14 +24,16 @@ You need Node 20.19+ or 22.12+. Run `npm install` first.
 
 The code is in git, pushed to https://github.com/monkjuice/architect (branch `main`) on 2026-11-02 with one initial
 commit. The roof plan and elevations work was committed as `5e2f614`, and the colonnades, fireplaces and furniture
-together as `8b0cc2d` (2026-11-04), the toilet, bidet, shower and corner tub as `3014137`, the kitchen island as `0acdce9`, sofas as `3657510`, the coffee table as `4cf872f`, wall and floor materials as `839dce5`, all on `main`; the user wants each finished batch committed there, and pushes
+together as `8b0cc2d` (2026-11-04), the toilet, bidet, shower and corner tub as `3014137`, the kitchen island as `0acdce9`, sofas as `3657510`, the coffee table as `4cf872f`, wall and floor materials as `839dce5`, the checkered tile, lots and the Materials view toggle as `64f59b7`, all on `main`; the user wants each finished batch committed there, and pushes
 only on request.
 
 ## Model tests
 
-On 2026-11-04, after the materials, there were 184 Vitest tests in `src/model/*.test.ts`: `openings` 30,
-`edit` 27, `solids` 15, `regions` 13, `walls` 13, `furniture` 13, `finishes` 12, `roofs` 10, `baseImage` 9, `sun` 9, `geometry` 8,
-`pick` 6, `planFile` 6, `snap` 5, `colonnades` 4 and `elevations` 4 (counted from the `it(` calls). `furniture.test.ts`
+On 2026-11-04, after `64f59b7`, there were 190 Vitest tests: in `src/model/*.test.ts`, `openings` 30,
+`edit` 27, `finishes` 16, `solids` 15, `regions` 13, `walls` 13, `furniture` 13, `roofs` 10, `baseImage` 9, `sun` 9, `geometry` 8,
+`pick` 6, `planFile` 6, `snap` 5, `colonnades` 4 and `elevations` 4; and `src/state/derived.test.ts` 2, the first
+test outside the model (a lot's label kept off the room's box, `areaSize`, `coveredArea` without lots;
+[Lots](lots.md)) (counted from the `it(` calls). `furniture.test.ts`
 covers placement and angle, backing up to a wall face, the kitchen sink only in a counter (and kept there as the
 counter moves or goes), a chair facing a table, the shower head round the rim, picking the smaller piece first,
 3-D parts plus the file round trip, toilet and bidet snap and heights, a shower's tray, screen and head (rim round
@@ -42,8 +44,8 @@ end and at the left when mirrored, `mirror` kept in the file), and a coffee tabl
 three-seater and of a sectional's main seat, free away from sofas, no chair snapping to it, a 0.42 m top)
 ([Furniture and fixtures](furniture.md)). `finishes.test.ts` covers the catalogue (unique ids, groups, refusal
 texts), side naming and what each side faces, the edits (walls only; kept through a split and a wall → open edge →
-wall switch; the file round trip) and finished faces in 3-D and the elevations, unknown ids ignored
-([Materials and finishes](materials-and-finishes.md)). The colonnade and fireplace tests cover
+wall switch; the file round trip) and finished faces in 3-D and the elevations, unknown ids ignored, plus the
+checkered tile, lots counting as outdoor and lot solids ([Materials and finishes](materials-and-finishes.md)). The colonnade and fireplace tests cover
 column spots, ends a wall holds and a colonnade surviving a split, a kind switch and the file
 ([Colonnades](colonnades.md)); fireplaces (no wall gap, a side but no hinge, walls only, picked on the surround,
 the file; [Fireplaces](fireplaces.md)); colonnade beams with and without a roof and a fireplace's chimney; and
@@ -56,8 +58,8 @@ views' directions and names, face order and an empty plan ([Elevations tab](elev
 change, run `npm test`, `npm run typecheck`, `npm run lint` and `npm run build`. `walls.test.ts` covers automatic
 thickness (gallery, open-plan kitchen, own thickness), floor areas (own thicknesses, stubs, open edges, islands) and
 `layerWalls` joins (mitre, T, step, bevel, cut by openings) ([Walls](walls.md)). `sun.test.ts` is described in
-[Sun and shadows](sun.md). They run in the `node` environment (`vite.config.ts`). Only the model is unit-tested; the
-repo has no UI or browser tests ([Code conventions](code-conventions.md)).
+[Sun and shadows](sun.md). They run in the `node` environment (`vite.config.ts`). Only the model and
+`src/state/derived.ts` are unit-tested; the repo has no UI or browser tests ([Code conventions](code-conventions.md)).
 
 **Spurious "no tests" (recurring):** the first `npm test` after edits, while the Vite dev server is running, sometimes
 reports "no tests" for every file; a rerun passes. It looks like vitest and the dev server clashing over Vite's
@@ -212,6 +214,10 @@ The roof, objects and walls flows passed (26, 19, 21) on a cleaned copy built by
 (`make_fixture.py`: no roofs, furniture, fireplaces, colonnades or wall heights, Estudio dropped, a Pileta area
 re-added). The outline flow still fails two checks that hard-code the old pool (now 4.59 × 10.03 m, 46.03 m², 29.3 m
 perimeter). Pin a fixture for such flows ([Playwright flow-check pitfalls](playwright-flow-checks.md)).
+
+With `64f59b7` the user's live plan has the base-plan photo visible and its lots drawn. `make_fixture.py` now also
+hides the image and marks the Pared exterior layer's areas as lots ([Lots](lots.md)). `e2e_outline`'s "empty
+canvas" click is now computed just outside all vertices.
 
 **Inspecting live derived values:** in a Playwright `page.evaluate` on the Vite dev server,
 `await import('/src/state/derived.ts')` and `await import('/src/state/store.ts')` return the app's own module

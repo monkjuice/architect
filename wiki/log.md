@@ -230,3 +230,18 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/development-and-testing.md (184 tests, finishes 12, 839dce5, furniture flow on the cleaned fixture; summary)
 - updated: overview.md (summary, what it does, materials.ts/finishes.ts, Library groups, decision wording, open items)
 - updated: index.md
+
+## [2026-11-04] update | Checkered tile, lots, View > Materials toggle
+- created: pages/lots.md (AreaSchema.lot and setAreaLot, why: walled-in lots counted as rooms; outdoor in wallSide/finishTarget, areaSize, totals and FOS, GROUND cover, planAreas label boxes and the 17 vs 3 ms reason, tests)
+- updated: pages/materials-and-finishes.md (29 materials, checker field, lots outdoor, FinishPatterns and url(#finish-id) fills, View > Materials, .library-name ellipsis; summary, tags)
+- updated: pages/areas.md (lot flag, planAreas/visibleAreas/editableAreas, areaSize, coveredArea skips lots, Lots and Lot covered rows; summary, tags)
+- updated: pages/house-solids.md (lots get no slab unless finished, GROUND cover; tags)
+- updated: pages/exterior-tab.md (checkerTexture, uv attribute from addFace)
+- updated: pages/canvas-and-tools.md (checkered AreaFills, materials prop, FinishPatterns, FinishLayer behind prefs.materials, area labels from planAreas; summary)
+- updated: pages/editor-store.md (planAreas, areaSize, coveredArea without lots, prefs.materials; tags)
+- updated: pages/plan-model.md (area lot field, additive at schemaVersion 1; summary, tags)
+- updated: pages/regions.md (labelPoint takes extra obstacles)
+- updated: pages/development-and-testing.md (190 tests, finishes 16, derived.test.ts, 64f59b7, make_fixture.py hides the photo and marks lots, e2e_outline empty-canvas click; summary)
+- updated: pages/playwright-flow-checks.md (empty style="", shortcuts ignored on a focused checkbox, visible photo frames the survey, computed empty-canvas click, stale Vite modules again; summary quotes escaped, tags)
+- updated: overview.md (summary, what it does, open items)
+- updated: index.md (Lots added; summaries)
