@@ -77,6 +77,11 @@ export const AreaSchema = z.strictObject({
   at: VecSchema,
   /** Its floor's finish, a material id (see materials.ts). */
   floor: z.string().min(1).optional(),
+  /**
+   * The land of a lot (a plot), not a room: outdoors even where its boundary walls close it in, sized to its
+   * boundary lines, and summed apart from the rooms.
+   */
+  lot: z.literal(true).optional(),
 })
 
 export const DOOR_STYLES = ['single', 'double', 'sliding'] as const

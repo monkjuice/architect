@@ -17,6 +17,8 @@ export interface Prefs {
   /** Area labels on the plan: their names, and their sizes under them. */
   areaNames: boolean
   areaSizes: boolean
+  /** Wall and floor materials on the plan; off, floors in their layer's tint and walls plain. */
+  materials: boolean
   /** Roofs in the Exterior tab's 3-D view; off, it looks into the rooms. */
   roofs: boolean
   /** Widths new doors and windows get, by style ("door:double"…), in m: the last one typed for each style. */
@@ -49,6 +51,7 @@ const DEFAULTS: Prefs = {
   thickWalls: true,
   areaNames: true,
   areaSizes: true,
+  materials: true,
   roofs: true,
   widths: {},
   collapsed: [],
@@ -62,7 +65,7 @@ function load(): Prefs {
   try {
     const stored = JSON.parse(localStorage.getItem(KEY) ?? 'null') as (Partial<Prefs> & { doorWidth?: unknown }) | null
     if (!stored) return DEFAULTS
-    const flag = (key: 'grid' | 'lengths' | 'snap' | 'calibration' | 'thickWalls' | 'areaNames' | 'areaSizes' | 'roofs') =>
+    const flag = (key: 'grid' | 'lengths' | 'snap' | 'calibration' | 'thickWalls' | 'areaNames' | 'areaSizes' | 'materials' | 'roofs') =>
       typeof stored[key] === 'boolean' ? stored[key] : DEFAULTS[key]
     const widths: Record<string, number> = {}
     for (const [key, value] of Object.entries(stored.widths ?? {})) if (typeof value === 'number' && value > 0) widths[key] = value
@@ -77,6 +80,7 @@ function load(): Prefs {
       thickWalls: flag('thickWalls'),
       areaNames: flag('areaNames'),
       areaSizes: flag('areaSizes'),
+      materials: flag('materials'),
       roofs: flag('roofs'),
       widths,
       collapsed,

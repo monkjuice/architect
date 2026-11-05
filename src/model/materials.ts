@@ -25,6 +25,8 @@ export interface Material {
   pattern?: Pattern
   /** See-through (glass, water): 0 opaque. */
   clear?: number
+  /** Laid as a checkerboard of squares `tile` m a side in two colours; `color` is their mix, for where they do not show. */
+  checker?: { colors: readonly [string, string]; tile: number }
 }
 
 const m = (
@@ -35,7 +37,7 @@ const m = (
   where: 'both' | 'outdoor' | 'indoor',
   color: string,
   roughness: number,
-  extra: Partial<Pick<Material, 'metalness' | 'pattern' | 'clear'>> = {},
+  extra: Partial<Pick<Material, 'metalness' | 'pattern' | 'clear' | 'checker'>> = {},
 ): Material => ({ id, title, group, surfaces, outdoor: where !== 'indoor', indoor: where !== 'outdoor', color, roughness, metalness: 0, ...extra })
 
 /** The catalogue, in the order pickers list it, a group at a time. */
@@ -57,6 +59,7 @@ export const MATERIALS: readonly Material[] = [
   m('tile-light', 'Light porcelain tile', 'Ceramic', ['floor', 'wall'], 'both', '#d9d5cd', 0.35, { pattern: 'tiles' }),
   m('tile-dark', 'Dark porcelain tile', 'Ceramic', ['floor', 'wall'], 'both', '#4a4845', 0.35, { pattern: 'tiles' }),
   m('tile-terracotta', 'Terracotta tile', 'Ceramic', ['floor'], 'both', '#b5643f', 0.85, { pattern: 'tiles' }),
+  m('tile-checkered', 'Checkered tile', 'Ceramic', ['floor'], 'both', '#848280', 0.3, { checker: { colors: ['#161616', '#f2f0eb'], tile: 0.3 } }),
   m('aluminium-black', 'Black aluminium', 'Metal', ['frame', 'door'], 'both', '#1d1e20', 0.4, { metalness: 0.6 }),
   m('aluminium-white', 'White aluminium', 'Metal', ['frame', 'door'], 'both', '#e8e8e6', 0.4, { metalness: 0.3 }),
   m('aluminium-natural', 'Anodised aluminium', 'Metal', ['frame', 'door'], 'both', '#b9bbbe', 0.3, { metalness: 0.9 }),

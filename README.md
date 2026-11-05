@@ -109,6 +109,15 @@ to move the area there (one area per region). If walls stop enclosing it, the la
 *not enclosed* warning until the outline is closed again. A free-standing block inside a room (a chimney, a
 stair core) is subtracted from the room's size.
 
+A **lot** is an area that is the land of a plot, not a room: tick *Lot* for it in the Selection panel (draw the
+lot lines, the boundary walls and any outline between two lots, on a layer of their own, and name each region).
+A lot is outdoors even though its boundary walls close it in, so lawn and paving suit it; its size is to its
+boundary lines (the lot lines), not inside the walls; and the Areas panel leaves lots out of *Total floor* and
+*Covered, with walls* and sums them as *Lots*, with *Lot covered*: the covered area as a share of the lots (the
+*FOS*). Its label goes on its open ground, clear of the other layers' areas (the house, a pool), so it covers
+none of them. In 3-D a lot is the ground, or with a ground cover (its floor material) a thin layer under the
+house's floors.
+
 ### Doors, windows and gates
 
 Doors, windows and gates sit **in a wall**, or in a fence drawn as an open edge: they cut a gap in it and
@@ -202,16 +211,16 @@ the plan with the usual symbols (a basin and its drain, a bed's pillows and turn
 ### Materials
 
 Each side of a wall and the floor of each named area can be finished in a material from the library's *Materials*
-group: plaster and paint, brick and stone, concrete, wood, ceramic tile, metal sheet, and for the ground gravel,
-lawn and pool water. Pick one under *Walls* and click the side of a wall it goes on (hovering marks that face and
+group: plaster and paint, brick and stone, concrete, wood, ceramic tile (among them a black and white checkered
+tile, 0.30 m squares), metal sheet, and for the ground gravel, lawn and pool water. Pick one under *Walls* and click the side of a wall it goes on (hovering marks that face and
 names what it faces: a room, or the outside), or pick one under *Floors* and click inside a named area; or drag
 it there. A material that does not suit the place is refused with the reason: a wall side or floor is outdoors
-unless it is in a room (so a gallery is outdoors), and stone cladding, decks, pavers and lawn are for outdoors
+unless it is in a room (so a gallery is outdoors, and a [lot](#walls-open-edges-outlines-and-areas)), and stone cladding, decks, pavers and lawn are for outdoors
 only. For a selected wall the Selection panel has a material for each side, named by where it is on screen and
 what it faces, offering the materials that suit it; for an area, its floor material. *None* takes one off.
 
 The plan draws a finished side as a line in its material's colour just inside that face, and a floor tinted in
-its colour. The Exterior and the elevations draw them in their colours too: each side on every piece of its wall
+its colour (a checkered one in its squares); *Materials* in the View section hides them. The Exterior and the elevations draw them in their colours too: each side on every piece of its wall
 (over and under doors and windows, a gable end), the wall's ends and the reveals of its openings half in each
 side's material. A wall keeps its finishes when it is split, or turned into an open edge and back.
 
@@ -237,7 +246,8 @@ Sun positions use the standard solar formulas (good to about a degree; sunrise a
 
 The **View** section (first on the right) turns what the plan shows on and off: *Base plan* (the photo; saved
 with the plan, like the Base plan section's *Visible*), *Known lengths*, *Grid*, *Thick walls*, *Wall lengths*
-(the length labels on every line), *Area names*, *Area sizes* and *Sun*. A hidden area label cannot be dragged;
+(the length labels on every line), *Area names*, *Area sizes*, *Materials* (wall finishes and floor materials;
+the Exterior and the elevations still show them) and *Sun*. A hidden area label cannot be dragged;
 click inside the area to select it instead. The rest are per browser.
 
 Every panel section folds away from its title, and stays folded the next time.
@@ -290,7 +300,8 @@ across tabs):
   window and under each window; doors and windows are 2.10 m tall, windows sit on a 0.90 m sill (awnings on
   1.50 m), gates are as tall as their wall (1.80 m in a fence drawn as an open edge);
 - frames, glass and closed door and gate leaves;
-- the floor of every named area (tiled under cover, paved where outlines bound it: a pool, a terrace);
+- the floor of every named area (tiled under cover, paved where outlines bound it: a pool, a terrace; a lot only
+  when it has a ground cover), in its material when it has one;
 - the roofs from the Roof tab, with the walls that face outside filled up to the roof over them (gable ends);
 - open edges under a roof as beams following its underside, on columns where no wall holds them, and colonnades
   with their columns;
@@ -337,7 +348,8 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   meters when set (without them it is automatic and 2.70 m), and an open edge's `colonnade` (`{style, spacing}`,
   `style` `roman` or `metal`, `spacing` the most its columns stand apart in m), and a wall's `finish` (`{left,
   right}`, the material ids of its two sides looking from `a` to `b`, either left out when unfinished)), `areas`
-  (id → `{name, at, floor}`, `at` being a point inside the area, `floor` its floor's material id when set) and
+  (id → `{name, at, floor, lot}`, `at` being a point inside the area, `floor` its floor's material id when set,
+  `lot: true` for the land of a lot) and
   `openings` (id → `{kind, style, segment, offset, width, hinge, swing}`: `kind` is `door` (styles `single`,
   `double`, `sliding`), `window` (`fixed`, `sliding`, `double-hung`, `awning`, `casement`), `gate`
   (`single`, `double`, `sliding`) or `fireplace` (`masonry`); `offset` is the centre's distance from the segment's `a` end, `hinge` the

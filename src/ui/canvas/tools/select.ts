@@ -19,7 +19,7 @@ import { findLayer, isEditable, sameRef, type Plan, type Ref } from '../../../mo
 import { pointInPolygon } from '../../../model/regions'
 import { findSnap, type Snap } from '../../../model/snap'
 import { deleteSelection, selectAll } from '../../../state/actions'
-import { drawnHalfWidth, getPlacedAreas, hostThickness, type PlacedArea } from '../../../state/derived'
+import { drawnHalfWidth, getPlacedAreas, hostThickness, planAreas, type PlacedArea } from '../../../state/derived'
 import { areaLabelAt } from '../areas'
 import { openingOverlay } from './opening'
 import { DRAG_PX, HIT_SEGMENT_PX, HIT_VERTEX_PX, SNAP_PX, WALL_REACH_PX, type PointerInfo, type Tool, type ToolContext } from './types'
@@ -81,7 +81,7 @@ type Drag =
 
 const boxOf = (a: Vec, b: Vec): Box => ({ x0: Math.min(a.x, b.x), y0: Math.min(a.y, b.y), x1: Math.max(a.x, b.x), y1: Math.max(a.y, b.y) })
 
-const editableAreas = (plan: Plan): PlacedArea[] => plan.layers.filter(isEditable).flatMap(getPlacedAreas)
+const editableAreas = (plan: Plan): PlacedArea[] => planAreas(plan).filter((a) => isEditable(a.layer))
 
 const areaRef = (a: PlacedArea): Ref => ({ layer: a.layer.id, kind: 'area', id: a.id })
 

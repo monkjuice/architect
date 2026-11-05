@@ -41,6 +41,8 @@ export const BEAM_WIDTH = 0.15
 /** A square column's side. */
 export const COLUMN = 0.2
 export const FLOOR = 0.03
+/** A lot's ground cover (a lawn), under the floors that stand on it. */
+export const GROUND = 0.01
 /** A chimney stands this far above the roof where it comes through (or above its wall with no roof over it). */
 export const CHIMNEY_ABOVE = 1
 /** A fireplace's surround is this tall, its mantel shelf on top. */
@@ -192,6 +194,11 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   for (const [id, area] of Object.entries(layer.areas)) {
     const region = regionAt(faces.regions, area.at)
     if (!region) continue
+    // a lot is the ground itself unless it is finished, then a thin cover the house's floors stand on
+    if (area.lot) {
+      if (findMaterial(area.floor)) out.push({ ...prism('floor', region.outer, region.holes, lift, lift + GROUND, 'paving', ref('area', id)), finish: area.floor })
+      continue
+    }
     const floor = prism('floor', region.outer, region.holes, lift, lift + FLOOR, isCovered(region) ? 'floor' : 'paving', ref('area', id))
     if (findMaterial(area.floor)) floor.finish = area.floor
     out.push(floor)

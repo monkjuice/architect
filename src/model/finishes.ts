@@ -22,12 +22,16 @@ export function sideNormal(a: Vec, b: Vec, side: WallSide): Vec {
 /** The side of the line a→b that `p` is on. */
 export const sideOf = (a: Vec, b: Vec, p: Vec): WallSide => (dot(sub(p, a), { x: b.y - a.y, y: -(b.x - a.x) }) >= 0 ? 'left' : 'right')
 
-/** What one side of a wall faces: the region there (null for the outside) and whether that is outdoors. */
+/**
+ * What one side of a wall faces: the region there (null for the outside) and whether that is outdoors: not a room,
+ * or a lot (its boundary walls close it in, but it is land).
+ */
 export function wallSide(layer: Layer, regions: readonly Region[], half: number, segment: string, side: WallSide): { region: Region | null; outdoor: boolean } {
   const s = layer.segments[segment]
   const [a, b] = [layer.vertices[s.a], layer.vertices[s.b]]
   const region = regionAt(regions, add(mul(add(a, b), 0.5), mul(sideNormal(a, b, side), half + 0.05)))
-  return { region, outdoor: !region?.indoor }
+  const lot = !!region && Object.values(layer.areas).some((area) => area.lot && regionAt(regions, area.at) === region)
+  return { region, outdoor: !region?.indoor || lot }
 }
 
 /** A wall's face on one side, as a line `half` out from its centreline. */

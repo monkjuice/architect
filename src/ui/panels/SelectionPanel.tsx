@@ -5,6 +5,7 @@ import {
   moveSegments,
   segmentsAt,
   setAreaFloor,
+  setAreaLot,
   setColonnade,
   setSegmentKind,
   setSegmentLength,
@@ -25,9 +26,9 @@ import { measureSegments } from '../../model/pick'
 import { COLUMN_STYLES, findLayer, segmentKind, type ColumnStyle, type OpeningKind, type OpeningStyle, type Ref, type SegmentKind } from '../../model/plan'
 import { EXTERIOR_WALL, INTERIOR_WALL, wallHeight } from '../../model/walls'
 import { deleteSelection } from '../../state/actions'
-import { facesOutside, getPlacedAreas, getRegions, getThickness } from '../../state/derived'
+import { areaSize, facesOutside, getPlacedAreas, getRegions, getThickness } from '../../state/derived'
 import { getStore, useEditor } from '../../state/store'
-import { Box, NumberField, Segmented, SelectField, TextField } from '../fields'
+import { Box, CheckField, NumberField, Segmented, SelectField, TextField } from '../fields'
 
 const KIND_OPTIONS = [
   ['wall', 'Wall'],
@@ -143,21 +144,31 @@ function AreaDetails({ layerId, id }: { layerId: string; id: string }) {
   const placed = layer && getPlacedAreas(layer).find((a) => a.id === id)
   if (!placed) return null
   const r = placed.region
+  const { lot } = placed.area
+  const refs = [{ layer: layerId, kind: 'area' as const, id }]
   return (
     <>
       <div className="fields">
         <TextField label="Name" value={placed.area.name} onCommit={(name) => store.edit((p) => updateArea(p, layerId, id, { name }))} />
         <div className="field">
-          <label>Floor, inside the walls</label>
-          <span className="readout">{r ? `${r.floor.toFixed(2)} m²` : '—'}</span>
+          <label>{lot ? 'Lot, to its boundary lines' : 'Floor, inside the walls'}</label>
+          <span className="readout">{r ? `${areaSize(placed)!.toFixed(2)} m²` : '—'}</span>
         </div>
         <MaterialField
-          label="Floor material"
+          label={lot ? 'Ground cover' : 'Floor material'}
           surface="floor"
-          outdoor={r ? !r.indoor : undefined}
+          outdoor={r ? !r.indoor || !!lot : undefined}
           value={placed.area.floor}
-          onChange={(m) => store.edit((p) => setAreaFloor(p, [{ layer: layerId, kind: 'area', id }], m))}
+          onChange={(m) => store.edit((p) => setAreaFloor(p, refs, m))}
         />
+        <div className="field-wide">
+          <CheckField
+            label="Lot: the land, not a room"
+            checked={!!lot}
+            onChange={(on) => store.edit((p) => setAreaLot(p, refs, on))}
+            title="A lot is outdoors even where its boundary walls close it in (so lawn suits it), is sized to its boundary lines, and is summed apart from the rooms in the Areas panel"
+          />
+        </div>
       </div>
       {r ? (
         <p className="hint">

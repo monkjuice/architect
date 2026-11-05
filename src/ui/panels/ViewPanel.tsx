@@ -29,7 +29,18 @@ export function ViewPanel() {
         <CheckField label="Thick walls" title="Walls at their thickness; off, thin lines (to trace over the base plan)" checked={prefs.thickWalls} onChange={(thickWalls) => setPrefs({ thickWalls })} />
         <CheckField label="Wall lengths" title="Length labels on every line: walls, open edges and outlines" checked={prefs.lengths} onChange={(lengths) => setPrefs({ lengths })} />
         <CheckField label="Area names" checked={prefs.areaNames} onChange={(areaNames) => setPrefs({ areaNames })} />
-        <CheckField label="Area sizes" title="Each area's floor inside its walls, under its name" checked={prefs.areaSizes} onChange={(areaSizes) => setPrefs({ areaSizes })} />
+        <CheckField
+          label="Area sizes"
+          title="Each area's size under its name: a room's floor inside its walls, a lot's to its boundary lines"
+          checked={prefs.areaSizes}
+          onChange={(areaSizes) => setPrefs({ areaSizes })}
+        />
+        <CheckField
+          label="Materials"
+          title="Walls and floors in their materials; off, floors in their layer's tint and walls plain (the Exterior and the elevations still show them)"
+          checked={prefs.materials}
+          onChange={(materials) => setPrefs({ materials })}
+        />
         <CheckField label="Sun" title="The sun over the plan (S); its season and time are in the Sun section" checked={prefs.sun.visible} onChange={(visible) => setSun({ visible })} />
       </div>
     </Box>

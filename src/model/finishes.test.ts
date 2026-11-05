@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addArea, addSegment, addVertex, draftLayer, drawSegment, replaceLayer, setAreaFloor, setSegmentKind, setWallFinish } from './edit'
+import { addArea, addSegment, addVertex, draftLayer, drawSegment, replaceLayer, setAreaFloor, setAreaLot, setSegmentKind, setWallFinish } from './edit'
 import { elevation, elevationViews } from './elevations'
 import { faceLine, finishProblem, sideNormal, sideOf, wallSide } from './finishes'
 import type { Vec } from './geometry'
@@ -7,7 +7,7 @@ import { findMaterial, materialGroups, MATERIALS, suits } from './materials'
 import { createPlan, type Plan } from './plan'
 import { parsePlan, serializePlan } from './planFile'
 import { layerFaces } from './regions'
-import { houseSolids } from './solids'
+import { GROUND, houseSolids } from './solids'
 
 /** A closed 10 × 4 room named "Living": s1 is its top wall, from (0,0) to (10,0), its left side the outside. */
 function room(): Plan {
@@ -46,6 +46,14 @@ describe('materials', () => {
     expect(new Set(families).size).toBe(families.length)
     expect(families[0]).toBe('Plaster and paint')
     expect(suits(material('stone-cladding'), 'wall', false)).toBe(false)
+  })
+
+  it('lays a checkered tile in squares of two colours, on floors indoors and out', () => {
+    const checkered = material('tile-checkered')
+    expect(checkered.group).toBe('Ceramic')
+    expect(checkered.checker).toEqual({ colors: ['#161616', '#f2f0eb'], tile: 0.3 })
+    expect([suits(checkered, 'floor', false), suits(checkered, 'floor', true), suits(checkered, 'wall', false)]).toEqual([true, true, false])
+    for (const m of MATERIALS) if (m.checker) expect(m.checker.tile).toBeGreaterThan(0)
   })
 
   it('says why a material does not suit a wall side or a floor', () => {
@@ -161,5 +169,33 @@ describe('finishes in 3D and in elevation', () => {
     // the outside of s1, the top wall, faces one of the four views squarely (its ends show in the views either side)
     const seen = elevationViews(plan).map((v) => elevation(solids, v).polygons.some((p) => p.kind === 'wall' && p.finish === 'brick-red' && p.facing > 0.99))
     expect(seen.filter(Boolean)).toHaveLength(1)
+  })
+})
+
+describe('lots', () => {
+  const lotRef = (plan: Plan) => ({ layer: 'L1', kind: 'area' as const, id: areaId(plan) })
+
+  it('marks an area as a lot and back, and keeps it through the file', () => {
+    const plan = room()
+    const lot = setAreaLot(plan, [lotRef(plan)], true)
+    expect(lot.layers[0].areas[areaId(plan)].lot).toBe(true)
+    expect(setAreaLot(lot, [lotRef(plan)], true)).toBe(lot)
+    expect(setAreaLot(lot, [lotRef(plan)], false).layers[0].areas[areaId(plan)]).not.toHaveProperty('lot')
+    const parsed = parsePlan(JSON.parse(serializePlan(lot)))
+    expect(parsed.ok && Object.values(parsed.plan.layers[0].areas)[0].lot).toBe(true)
+  })
+
+  it('is outdoors, though its boundary walls close it in', () => {
+    const plan = room()
+    const inside = (p: Plan) => wallSide(p.layers[0], layerFaces(p.layers[0]).regions, 0.15, 's1', 'right')
+    expect(inside(plan).outdoor).toBe(false)
+    expect(inside(setAreaLot(plan, [lotRef(plan)], true)).outdoor).toBe(true)
+  })
+
+  it('is the ground in 3-D until it is finished, then a thin cover under the floors', () => {
+    const lot = setAreaLot(room(), [lotRef(room())], true)
+    expect(houseSolids(lot).filter((s) => s.kind === 'floor')).toHaveLength(0)
+    const lawn = houseSolids(setAreaFloor(lot, [lotRef(lot)], 'grass')).filter((s) => s.kind === 'floor')
+    expect(lawn.map((s) => [s.finish, s.top])).toEqual([['grass', GROUND]])
   })
 })

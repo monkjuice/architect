@@ -4,8 +4,8 @@ import type { Face, Solid, SolidMaterial, Vec3 } from '../model/solids'
 
 /**
  * The house's solids as three.js meshes. Plan x is x, plan y (down on screen) is z, and heights are y, all in m,
- * so the top view looks like the plan. A basic palette stands in until materials are picked per surface; the
- * colours are approximate.
+ * so the top view looks like the plan. What is not finished in a material (see materials.ts) is in a basic
+ * palette; the colours are approximate.
  */
 
 const PALETTE: Record<SolidMaterial, THREE.MeshStandardMaterialParameters> = {
@@ -37,10 +37,34 @@ export interface HouseModel {
   dispose(): void
 }
 
-/** A finish's material: its catalogue colour, roughness and metalness, see-through when it is (water). */
+/**
+ * A finish's material: its catalogue colour, roughness and metalness, see-through when it is (water); a checkered
+ * one gets its squares as a texture (faces are mapped in metres, see addFace).
+ */
 function finishMaterial(id: string): THREE.MeshStandardMaterialParameters {
   const m = findMaterial(id)!
-  return { color: m.color, roughness: m.roughness, metalness: m.metalness, ...(m.clear ? { transparent: true, opacity: 1 - m.clear, depthWrite: false } : {}) }
+  const base = { roughness: m.roughness, metalness: m.metalness, ...(m.clear ? { transparent: true, opacity: 1 - m.clear, depthWrite: false } : {}) }
+  return m.checker ? { ...base, color: '#ffffff', map: checkerTexture(m.checker.colors, m.checker.tile) } : { ...base, color: m.color }
+}
+
+/** Two squares by two in two colours, repeating every two tiles. */
+function checkerTexture([dark, light]: readonly [string, string], tile: number): THREE.Texture {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = 64
+  const g = canvas.getContext('2d')!
+  g.fillStyle = light
+  g.fillRect(0, 0, 64, 64)
+  g.fillStyle = dark
+  g.fillRect(0, 0, 32, 32)
+  g.fillRect(32, 32, 32, 32)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+  texture.repeat.set(1 / (2 * tile), 1 / (2 * tile))
+  texture.colorSpace = THREE.SRGBColorSpace
+  // sharp edges between squares close up, no shimmer far off
+  texture.magFilter = THREE.NearestFilter
+  texture.anisotropy = 8
+  return texture
 }
 
 export function buildHouse(solids: readonly Solid[]): HouseModel {
@@ -81,7 +105,10 @@ export function buildHouse(solids: readonly Solid[]): HouseModel {
     box,
     dispose() {
       for (const g of geometries) g.dispose()
-      for (const m of materials.values()) m.dispose()
+      for (const m of materials.values()) {
+        if (m instanceof THREE.MeshStandardMaterial) m.map?.dispose()
+        m.dispose()
+      }
     },
   }
 }
@@ -93,15 +120,18 @@ const world = (p: Vec3) => new THREE.Vector3(p.x, p.z, p.y)
 function facesGeometry(faces: readonly Face[]): THREE.BufferGeometry | null {
   const positions: number[] = []
   const normals: number[] = []
-  for (const face of faces) addFace(face, positions, normals)
+  const uvs: number[] = []
+  for (const face of faces) addFace(face, positions, normals, uvs)
   if (!positions.length) return null
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3))
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
   return geometry
 }
 
-function addFace(face: Face, positions: number[], normals: number[]) {
+/** A face's triangles, with texture coordinates in metres along two axes of its plane (a floor's: the plan's). */
+function addFace(face: Face, positions: number[], normals: number[], uvs: number[]) {
   const n = world(face.normal)
   // two axes in the face's plane to triangulate it in
   const u = new THREE.Vector3().crossVectors(n, Math.abs(n.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)).normalize()
@@ -121,9 +151,10 @@ function addFace(face: Face, positions: number[], normals: number[]) {
     const [a, b, c] = [points[i].q, points[j].q, points[k].q]
     // wind each triangle to face the way the face does
     const facing = e1.subVectors(b, a).cross(e2.subVectors(c, a)).dot(n) >= 0
-    for (const p of facing ? [a, b, c] : [a, c, b]) {
-      positions.push(p.x, p.y, p.z)
+    for (const { q, uv } of (facing ? [i, j, k] : [i, k, j]).map((index) => points[index])) {
+      positions.push(q.x, q.y, q.z)
       normals.push(n.x, n.y, n.z)
+      uvs.push(uv.x, uv.y)
     }
   }
 }

@@ -288,9 +288,13 @@ function MaterialIcon({ material }: { material: Material }) {
     grass: 'M7 20L8 15M12 20L11 14M17 20L18 15M22 20L21 14M26 20L27 16',
     gravel: 'M8 8h.1M14 11h.1M20 7h.1M24 13h.1M10 15h.1M17 17h.1',
   }
+  const { checker } = material
+  // a checkerboard of 4 px squares, six by four
+  const squares = Array.from({ length: 12 }, (_, i) => `M${4 + 4 * ((i % 3) * 2 + (Math.floor(i / 3) % 2))} ${4 + 4 * Math.floor(i / 3)}h4v4h-4Z`).join('')
   return (
     <g className="material-icon">
-      <rect x="4" y="4" width="24" height="16" rx="2" fill={material.color} />
+      <rect x="4" y="4" width="24" height="16" rx="2" fill={checker ? checker.colors[1] : material.color} />
+      {checker && <path className="checker" d={squares} fill={checker.colors[0]} />}
       {material.pattern && <path d={lines[material.pattern]} />}
     </g>
   )

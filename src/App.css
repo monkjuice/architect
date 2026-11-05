@@ -299,8 +299,13 @@ kbd {
   margin: 0 4px;
 }
 
+/* a long name ends in an ellipsis rather than push its count out (the item's title has it whole) */
 .library-name {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .library-detail {
@@ -361,6 +366,10 @@ kbd {
 .library-icon .material-icon path {
   stroke: rgba(0, 0, 0, 0.28);
   stroke-width: 1;
+}
+
+.library-icon .material-icon path.checker {
+  stroke: none;
 }
 
 .box {

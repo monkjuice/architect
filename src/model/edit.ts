@@ -415,6 +415,27 @@ export function setAreaFloor(plan: Plan, refs: readonly Ref[], material: string 
   return next
 }
 
+/** Marks the areas among `refs` as lots (the land, not rooms) or not; the same plan when nothing changes. */
+export function setAreaLot(plan: Plan, refs: readonly Ref[], lot: boolean): Plan {
+  let next = plan
+  for (const layerId of new Set(refs.filter((r) => r.kind === 'area').map((r) => r.layer))) {
+    next = withAreas(next, layerId, (areas) => {
+      let changed = false
+      for (const ref of refs) {
+        const area = ref.layer === layerId && ref.kind === 'area' ? areas[ref.id] : undefined
+        if (!area || !!area.lot === lot) continue
+        const a = { ...area }
+        if (lot) a.lot = true
+        else delete a.lot
+        areas[ref.id] = a
+        changed = true
+      }
+      return changed
+    })
+  }
+  return next
+}
+
 /** Sets area anchor points, grouped by layer (they move with the walls of a selection being dragged). */
 export function setAreaAnchors(plan: Plan, positions: ReadonlyMap<string, ReadonlyMap<string, Vec>>): Plan {
   let next = plan

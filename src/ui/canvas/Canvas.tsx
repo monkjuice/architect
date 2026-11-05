@@ -21,7 +21,7 @@ import {
   planBounds,
 } from '../../state/actions'
 import { ColonnadeLayer } from './Columns'
-import { FinishLayer } from './Finishes'
+import { FinishLayer, FinishPatterns } from './Finishes'
 import { FurnitureLayer } from './Furniture'
 import { getPrefs, setPrefs, setSun, usePrefs } from '../../state/prefs'
 import { getStore, useEditor, type ToolId, type Viewport } from '../../state/store'
@@ -296,10 +296,11 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
           onPointerLeave={() => setCursor(null)}
           onContextMenu={(event) => event.preventDefault()}
         >
+          <FinishPatterns />
           {plan.image?.visible && <BaseImageView image={plan.image} cropping={toolId === 'crop'} />}
           {prefs.grid && <Grid view={view} width={size.w} height={size.h} />}
           {!roofMode &&
-            plan.layers.map((layer) => layer.visible && <AreaFills key={layer.id} layer={layer} selected={refIds('area', layer.id)} hovered={hovered('area', layer.id)} />)}
+            plan.layers.map((layer) => layer.visible && <AreaFills key={layer.id} layer={layer} selected={refIds('area', layer.id)} hovered={hovered('area', layer.id)} materials={prefs.materials} />)}
           {!roofMode && <SunShadows plan={plan} sun={prefs.sun} />}
           {plan.layers.map(
             (layer) =>
@@ -314,7 +315,7 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
                 />
               ),
           )}
-          {!roofMode && plan.layers.map((layer) => layer.visible && <FinishLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} />)}
+          {!roofMode && prefs.materials && plan.layers.map((layer) => layer.visible && <FinishLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} />)}
           {plan.layers.map((layer) => layer.visible && <ColonnadeLayer key={layer.id} layer={layer} />)}
           {plan.layers.map(
             (layer) => layer.visible && <FurnitureLayer key={layer.id} layer={layer} selected={refIds('furniture', layer.id)} hovered={hovered('furniture', layer.id)} />,

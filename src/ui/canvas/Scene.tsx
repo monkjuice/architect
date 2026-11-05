@@ -197,23 +197,25 @@ export function CalibrationMarks({ image, zoom }: { image: BaseImage; zoom: numb
   )
 }
 
-/** The regions named by a layer's areas, tinted in the layer colour under its lines, or in their floor's material. */
-export const AreaFills = memo(function AreaFills({ layer, selected, hovered }: { layer: Layer; selected: string; hovered?: string }) {
+/** The regions named by a layer's areas, tinted in the layer colour under its lines, or in their floor's material when `materials` shows. */
+export const AreaFills = memo(function AreaFills({ layer, selected, hovered, materials }: { layer: Layer; selected: string; hovered?: string; materials: boolean }) {
   const ids = new Set(selected.split(' '))
   return (
     <g className="area-fills" style={{ '--layer': layer.color } as CSSProperties}>
-      {getPlacedAreas(layer).map(
-        (a) =>
-          a.region && (
-            <path
-              key={a.id}
-              className={[ids.has(a.id) ? 'area-fill selected' : a.id === hovered ? 'area-fill hovered' : 'area-fill', findMaterial(a.area.floor) && 'finished'].filter(Boolean).join(' ')}
-              fillRule="evenodd"
-              d={regionPath(a.region)}
-              style={findMaterial(a.area.floor) ? { fill: findMaterial(a.area.floor)!.color } : undefined}
-            />
-          ),
-      )}
+      {getPlacedAreas(layer).map((a) => {
+        if (!a.region) return null
+        const floor = materials ? findMaterial(a.area.floor) : undefined
+        return (
+          <path
+            key={a.id}
+            className={[ids.has(a.id) ? 'area-fill selected' : a.id === hovered ? 'area-fill hovered' : 'area-fill', floor && 'finished'].filter(Boolean).join(' ')}
+            fillRule="evenodd"
+            d={regionPath(a.region)}
+            // a checkered floor in its squares (FinishPatterns), any other in its colour
+            style={floor ? { fill: floor.checker ? `url(#finish-${floor.id})` : floor.color } : undefined}
+          />
+        )
+      })}
     </g>
   )
 })

@@ -1,10 +1,28 @@
 import { memo } from 'react'
 import { add, dist, lerp, mul, type Vec } from '../../model/geometry'
 import { sideNormal, type WallSide } from '../../model/finishes'
-import { findMaterial } from '../../model/materials'
+import { findMaterial, MATERIALS } from '../../model/materials'
 import { openingSpans } from '../../model/openings'
 import { segmentKind, type Layer } from '../../model/plan'
 import { getThickness } from '../../state/derived'
+
+/** A pattern (`finish-<id>`, in plan units: m) for each checkered material, for floors laid in it. */
+export function FinishPatterns() {
+  return (
+    <defs>
+      {MATERIALS.map(({ id, checker }) => {
+        if (!checker) return null
+        const t = checker.tile
+        return (
+          <pattern key={id} id={`finish-${id}`} patternUnits="userSpaceOnUse" width={2 * t} height={2 * t}>
+            <rect width={2 * t} height={2 * t} fill={checker.colors[1]} />
+            <path d={`M0 0H${t}V${t}H0ZM${t} ${t}H${2 * t}V${2 * t}H${t}Z`} fill={checker.colors[0]} />
+          </pattern>
+        )
+      })}
+    </defs>
+  )
+}
 
 /**
  * Wall finishes in plan: a line in each finished side's material colour, just inside that face, broken where

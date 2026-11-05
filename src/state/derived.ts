@@ -1,6 +1,6 @@
-import type { Vec } from '../model/geometry'
+import { boundsOf, type Vec } from '../model/geometry'
 import type { Area, Layer, Plan } from '../model/plan'
-import { layerFaces, regionAt, regionLabel, type LayerFaces, type Region } from '../model/regions'
+import { labelPoint, layerFaces, regionAt, regionLabel, type LayerFaces, type Region } from '../model/regions'
 import { houseSolids, type Solid } from '../model/solids'
 import { INTERIOR_WALL, layerWalls, type LayerWalls } from '../model/walls'
 import { getPrefs } from './prefs'
@@ -69,23 +69,50 @@ export function getPlacedAreas(layer: Layer): PlacedArea[] {
   return placed
 }
 
+/** An area's size: a lot's to its boundary lines (the lot lines), a room's floor inside its walls; null when not enclosed. */
+export const areaSize = (a: PlacedArea): number | null => (a.region ? (a.area.lot ? a.region.area : a.region.floor) : null)
+
+const planAreasCache = new WeakMap<Plan, PlacedArea[]>()
+
+/**
+ * The areas of every layer, bottom layer first, with a lot's label on its open ground: clear of the box around
+ * each other visible layer's areas (the house, a pool), which a lot's middle often falls in, where its label would
+ * cover them and take their clicks. Boxes rather than every room keep this quick enough to redo on every edit.
+ */
+export function planAreas(plan: Plan): PlacedArea[] {
+  let all = planAreasCache.get(plan)
+  if (!all) {
+    const placed = plan.layers.flatMap(getPlacedAreas)
+    all = placed.map((a) => {
+      if (!a.area.lot || !a.region) return a
+      const over = plan.layers.flatMap((layer) => {
+        const box = layer !== a.layer && layer.visible ? boundsOf(getPlacedAreas(layer).flatMap((o) => (o.region && !o.area.lot ? o.region.outer : []))) : null
+        return box ? [[{ x: box.x0, y: box.y0 }, { x: box.x1, y: box.y0 }, { x: box.x1, y: box.y1 }, { x: box.x0, y: box.y1 }]] : []
+      })
+      return over.length ? { ...a, label: labelPoint(a.region.outer, [...a.region.holes, ...over]) } : a
+    })
+    planAreasCache.set(plan, all)
+  }
+  return all
+}
+
 /** Areas of every visible layer, bottom layer first. */
 export function visibleAreas(plan: Plan): PlacedArea[] {
-  return plan.layers.filter((l) => l.visible).flatMap(getPlacedAreas)
+  return planAreas(plan).filter((a) => a.layer.visible)
 }
 
 /**
  * Covered area of the visible layers, to the walls' outside faces: the indoor areas (rooms) with the walls around
  * and in them, each wall counted once. Galleries and porches, and pools and paving, open to the outside across
- * open edges or outlines, are left out.
+ * open edges or outlines, are left out, and so are lots.
  */
 export function coveredArea(plan: Plan): number {
   let total = 0
   for (const layer of plan.layers) {
     if (!layer.visible) continue
     const walls = new Set<string>()
-    for (const { region } of getPlacedAreas(layer)) {
-      if (!region?.indoor) continue
+    for (const { region, area } of getPlacedAreas(layer)) {
+      if (!region?.indoor || area.lot) continue
       total += region.floor
       for (const id of region.wallIds) walls.add(id)
     }

@@ -306,7 +306,7 @@ export function finishTarget(surface: 'wall' | 'floor', p: Vec, reach: number): 
     for (const a of getPlacedAreas(layer)) {
       const r = a.region
       if (!r || !pointInPolygon(p, r.outer) || r.holes.some((h) => pointInPolygon(p, h))) continue
-      if (!best || (best.surface === 'floor' && r.area < best.region.area)) best = { surface, layer: layer.id, area: a.id, region: r, outdoor: !r.indoor, name: a.area.name }
+      if (!best || (best.surface === 'floor' && r.area < best.region.area)) best = { surface, layer: layer.id, area: a.id, region: r, outdoor: !r.indoor || !!a.area.lot, name: a.area.name }
     }
   }
   return best

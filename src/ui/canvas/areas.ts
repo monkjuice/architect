@@ -1,6 +1,6 @@
 import type { Vec } from '../../model/geometry'
 import type { Region } from '../../model/regions'
-import type { PlacedArea } from '../../state/derived'
+import { areaSize, type PlacedArea } from '../../state/derived'
 
 /** Which lines area labels show (View: area names, area sizes). */
 export interface LabelLines {
@@ -9,7 +9,7 @@ export interface LabelLines {
 }
 
 /** The second line of an area's label: its floor area inside the walls, or why it has none. */
-export const areaText = (placed: PlacedArea): string => (placed.region ? `${placed.region.floor.toFixed(2)} m²` : 'not enclosed')
+export const areaText = (placed: PlacedArea): string => (placed.region ? `${areaSize(placed)!.toFixed(2)} m²` : 'not enclosed')
 
 /** Size of an area label in screen pixels, estimated from its text as the other labels are; nothing when it shows no line. */
 export function areaLabelSize(placed: PlacedArea, lines: LabelLines): { w: number; h: number } {
