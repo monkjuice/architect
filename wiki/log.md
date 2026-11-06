@@ -247,4 +247,7 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: index.md (Lots added; summaries)
 
 ## [2026-11-05] update | Brick, wood and lawn textures in 3-D
-- updated: pages/materials-and-finishes.md (src/render/textures.ts: real-size canvas textures and normal maps for brick, planks, grass; why normal not bump maps; lawn 8 m repeat; cached per session; ground and chimneys textured)
+- updated: pages/materials-and-finishes.md (src/render/textures.ts: real-size canvas textures and normal maps for brick, planks, grass; why normal not bump maps; lawn 8 m repeat; cached per session; ground and chimneys textured; summary, tags)
+- updated: pages/exterior-tab.md (textures.ts replaces checkerTexture, textured helper, maps cached not disposed, upside-down wall UVs and normal-map green, ground in lawn clones; summary, tags)
+- updated: pages/development-and-testing.md (194 tests, textures.test.ts, 69111af, iteration mode: no new tests until asked, cheap visual checks; summary)
+- updated: index.md

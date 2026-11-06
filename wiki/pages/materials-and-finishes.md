@@ -1,10 +1,10 @@
 ---
 title: Materials and finishes
 type: component
-summary: "A materials catalogue (src/model/materials.ts: 29 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares; suits, materialGroups, findMaterial) and finishes on wall sides and area floors (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish and area.floor in the plan), set by the Material tool, library drags or the Selection panel, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
-tags: [model, materials, finishes, walls, areas, ui, 3d, library, lots]
+summary: "A materials catalogue (src/model/materials.ts: 29 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares; brick, wood and lawn textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides and area floors (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish and area.floor in the plan), set by the Material tool, library drags or the Selection panel, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
+tags: [model, materials, finishes, walls, areas, ui, 3d, library, lots, textures]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-05
 ---
 
 # Materials and finishes
@@ -21,7 +21,7 @@ material can go on, and materials shown in groups.
   the renderers. Only `wall` and `floor` are used so far.
 - `pattern` draws the library swatch (`MaterialIcon`) and, since `69111af`, picks the 3-D texture for `brick`,
   `planks` and `grass` (src/render/textures.ts): real-size canvases (brick 512 px/m, a 1 × 0.516 m repeat; boards
-  256 px/m, 2.5 × 0.94 m; lawn 128 px/m, 8 m, as 4 m showed as a grid from above) with a normal map from a painted
+  256 px/m, 2.5 × 0.9375 m; lawn 128 px/m, 8 m, as 4 m showed as a grid from above) with a normal map from a painted
   height field. Normal maps, not bump maps: three's bump strength follows screen pixels (it normalises the surface
   derivatives), so relief would come and go with zoom; brick arrises are rounded over 3 px because a 1 px edge only
   shows up close. Painted once per material and cached for the session (`finishTextures`, never disposed with the
@@ -78,4 +78,4 @@ gallery), the finish stays, and the Selection panel lists it as "(does not suit 
   "Checkered tile" was shortened for that reason: the full name overflowed.
 
 3-D and elevations: [House solids](house-solids.md) (face tagging and the reveal split, lot covers),
-[Exterior tab](exterior-tab.md) (the checker texture and face UVs), [Elevations tab](elevations.md).
+[Exterior tab](exterior-tab.md) (textures, face UVs and the upside-down wall UVs), [Elevations tab](elevations.md).

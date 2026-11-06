@@ -1,10 +1,10 @@
 ---
 title: Development and testing
 type: guide
-summary: "npm scripts, the GitHub repository, the 190 Vitest tests (model files plus src/state/derived.test.ts; and their spurious \"no tests\" run beside the dev server) and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 29-check furniture flow, the exterior, roof and colonnade ones with software WebGL; flows on the user's plan now need a pinned copy of it with the photo hidden and the lots marked, the furniture flow included), plus reading live derived values from the dev server."
+summary: "npm scripts, the GitHub repository, the 194 Vitest tests (model files plus src/state/derived.test.ts and src/render/textures.test.ts; and their spurious \"no tests\" run beside the dev server), iteration mode (no new tests until the user asks, cheap visual checks) and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 29-check furniture flow, the exterior, roof and colonnade ones with software WebGL; flows on the user's plan now need a pinned copy of it with the photo hidden and the lots marked, the furniture flow included), plus reading live derived values from the dev server."
 tags: [guide, testing, vitest, playwright, webgl, git]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-05
 ---
 
 # Development and testing
@@ -24,10 +24,17 @@ You need Node 20.19+ or 22.12+. Run `npm install` first.
 
 The code is in git, pushed to https://github.com/monkjuice/architect (branch `main`) on 2026-11-02 with one initial
 commit. The roof plan and elevations work was committed as `5e2f614`, and the colonnades, fireplaces and furniture
-together as `8b0cc2d` (2026-11-04), the toilet, bidet, shower and corner tub as `3014137`, the kitchen island as `0acdce9`, sofas as `3657510`, the coffee table as `4cf872f`, wall and floor materials as `839dce5`, the checkered tile, lots and the Materials view toggle as `64f59b7`, all on `main`; the user wants each finished batch committed there, and pushes
+together as `8b0cc2d` (2026-11-04), the toilet, bidet, shower and corner tub as `3014137`, the kitchen island as `0acdce9`, sofas as `3657510`, the coffee table as `4cf872f`, wall and floor materials as `839dce5`, the checkered tile, lots and the Materials view toggle as `64f59b7`, brick, wood and lawn textures as `69111af`, all on `main`; the user wants each finished batch committed there, and pushes
 only on request.
 
 ## Model tests
+
+**Iteration mode (since 2026-11-05):** the user asked for no new tests until they ask for them, and to keep visual
+checks cheap. Still run the existing suite, typecheck, lint and build.
+
+After `69111af` there are 194: the 190 below plus `src/render/textures.test.ts` (4: recipes and real sizes, seeded
+determinism, running bond, board rows filling the repeat), which tests only the pure helpers (`textureRecipe`,
+`seeded`, `brickLayout`, `plankLayout`); the canvas painting is not unit-tested.
 
 On 2026-11-04, after `64f59b7`, there were 190 Vitest tests: in `src/model/*.test.ts`, `openings` 30,
 `edit` 27, `finishes` 16, `solids` 15, `regions` 13, `walls` 13, `furniture` 13, `roofs` 10, `baseImage` 9, `sun` 9, `geometry` 8,
@@ -58,8 +65,8 @@ views' directions and names, face order and an empty plan ([Elevations tab](elev
 change, run `npm test`, `npm run typecheck`, `npm run lint` and `npm run build`. `walls.test.ts` covers automatic
 thickness (gallery, open-plan kitchen, own thickness), floor areas (own thicknesses, stubs, open edges, islands) and
 `layerWalls` joins (mitre, T, step, bevel, cut by openings) ([Walls](walls.md)). `sun.test.ts` is described in
-[Sun and shadows](sun.md). They run in the `node` environment (`vite.config.ts`). Only the model and
-`src/state/derived.ts` are unit-tested; the repo has no UI or browser tests ([Code conventions](code-conventions.md)).
+[Sun and shadows](sun.md). They run in the `node` environment (`vite.config.ts`). Only the model,
+`src/state/derived.ts` and the pure helpers of `src/render/textures.ts` are unit-tested; the repo has no UI or browser tests ([Code conventions](code-conventions.md)).
 
 **Spurious "no tests" (recurring):** the first `npm test` after edits, while the Vite dev server is running, sometimes
 reports "no tests" for every file; a rerun passes. It looks like vitest and the dev server clashing over Vite's

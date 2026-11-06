@@ -1,10 +1,10 @@
 ---
 title: Exterior tab (3-D view)
 type: component
-summary: "The Exterior tab: src/ui/exterior/ExteriorTab.tsx (camera presets, Roof toggle for the drawn roofs and parapets, sun season and time, Save image) over a three.js view in src/render/ (house.ts triangulates each solid face in its own plane and winds it to the face's explicit normal, plan y as three z; engine.ts, adapted from the Forge H1 planner, lights it with the plan's sun and real shadows, draws on demand and keeps the camera pose across tab switches); three.js is a separate chunk loaded only when the tab opens."
-tags: [ui, 3d, three, render, sun, exterior, roof, finishes]
+summary: "The Exterior tab: src/ui/exterior/ExteriorTab.tsx (camera presets, Roof toggle for the drawn roofs and parapets, sun season and time, Save image) over a three.js view in src/render/ (house.ts triangulates each solid face in its own plane and winds it to the face's explicit normal, plan y as three z; engine.ts, adapted from the Forge H1 planner, lights it with the plan's sun and real shadows, draws on demand and keeps the camera pose across tab switches; textures.ts paints brick, wood, lawn and checker textures with normal maps, cached for the session); three.js is a separate chunk loaded only when the tab opens."
+tags: [ui, 3d, three, render, sun, exterior, roof, finishes, textures]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-05
 ---
 
 # Exterior tab (3-D view)
@@ -30,13 +30,19 @@ the wall and floor finishes it draws.
   mesh each: the palette name, or `"finish:<id>"` for a finished face or floor, built by `finishMaterial` from the
   catalogue's colour, roughness, metalness and `clear` (transparency) ([Materials and finishes](materials-and-finishes.md)). Glass casts no shadow. Roofs receive none: the old per-room slabs
   drew dark seams where they met.
-  - Checkered finishes (`64f59b7`): `checkerTexture` builds a 64 px `CanvasTexture` (`RepeatWrapping`, repeat
-    1/(2·tile), SRGB, `NearestFilter` for magnification) as the material's `map`. The map is disposed with the
-    material. For this, `facesGeometry`/`addFace` emit a `uv` attribute: each vertex's in-plane coordinates in
-    metres, in the same u/v basis used for triangulating, so a floor's UVs follow the plan axes.
+  - Textures (`69111af`): `src/render/textures.ts` paints checker, brick, planks and lawn finishes on real-size
+    canvases, with normal maps for relief ([Materials and finishes](materials-and-finishes.md)); `textured(id, color)`
+    sets colour white plus `map` and `normalMap`. `facesGeometry`/`addFace` emit a `uv` attribute in metres (each
+    vertex's in-plane coordinates in the triangulation's u/v basis, so a floor's UVs follow the plan axes), and a
+    texture's repeat is px per metre / canvas width. `finishTextures` caches per material id for the session and never
+    disposes: the house's `dispose` frees materials but not their maps.
+  - Gotcha: on walls v points world-down (u = n × up, v = n × u), so textures show upside down. This is harmless,
+    and the relief stays right because three builds the tangent frame from the UVs. A normal map's green points up the
+    texture (canvas y runs down; canvases are flipped on upload).
 - `src/render/engine.ts`: `createExteriorEngine(host, pose)`, adapted from `../forge-h1/planner/src/render/engine.ts`
   ([Stack adapted from the Forge H1 planner](forge-h1-stack.md)): renderer with soft shadows, `RoomEnvironment`, a
-  lawn, `OrbitControls` with frames drawn on demand, `fitDistance`, `snapshot`.
+  ground plane in its own clones of the lawn textures (repeat = extent × px / width, so a lawned lot runs on into it;
+  disposed with the engine), `OrbitControls` with frames drawn on demand, `fitDistance`, `snapshot`.
 
 ## Sun
 
