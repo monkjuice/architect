@@ -4,6 +4,7 @@ import {
   moveSegments,
   segmentsAt,
   setAreaFloor,
+  setAreaDepth,
   setAreaLot,
   setColonnade,
   setSegmentKind,
@@ -159,6 +160,14 @@ function AreaDetails({ layerId, id }: { layerId: string; id: string }) {
           value={placed.area.floor}
           onChange={(m) => store.edit((p) => setAreaFloor(p, refs, m))}
         />
+        {r && !r.indoor && !lot && (
+          <NumberField
+            label="Pool depth (0: not a pool)"
+            value={placed.area.depth ?? 0}
+            min={0}
+            onCommit={(depth) => store.edit((p) => setAreaDepth(p, layerId, id, depth))}
+          />
+        )}
         <div className="field-wide">
           <CheckField
             label="Lot: the land, not a room"

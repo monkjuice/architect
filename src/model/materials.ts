@@ -9,7 +9,7 @@
 export type Surface = 'wall' | 'floor' | 'ceiling' | 'roof' | 'door' | 'frame'
 
 /** A pattern drawn on it in 3-D, repeated at its real size. */
-export type Pattern = 'brick' | 'planks' | 'tiles' | 'stone' | 'grass' | 'gravel' | 'seams'
+export type Pattern = 'brick' | 'planks' | 'tiles' | 'stone' | 'grass' | 'gravel' | 'seams' | 'dirt'
 
 export interface Material {
   id: string
@@ -75,6 +75,7 @@ export const MATERIALS: readonly Material[] = [
   m('roof-membrane', 'White roof membrane', 'Roofing', ['roof'], 'outdoor', '#dcdcd8', 0.85),
   m('roof-green', 'Green roof', 'Roofing', ['roof'], 'outdoor', '#5d7d3c', 1, { pattern: 'grass' }),
   m('gravel', 'Gravel', 'Ground and garden', ['floor', 'roof'], 'outdoor', '#a59f94', 1, { pattern: 'gravel' }),
+  m('dirt', 'Dirt road', 'Ground and garden', ['floor'], 'outdoor', '#7a6450', 1, { pattern: 'dirt' }),
   m('grass', 'Lawn', 'Ground and garden', ['floor'], 'outdoor', '#5f8a3a', 1, { pattern: 'grass' }),
   m('water', 'Pool water', 'Ground and garden', ['floor'], 'outdoor', '#2f8fb0', 0.05, { clear: 0.25 }),
   m('pool-stone', 'Stone pool (green stone under water)', 'Ground and garden', ['floor'], 'outdoor', '#2c6b67', 0.06, { pattern: 'tiles', tile: 0.2, water: true }),

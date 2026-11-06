@@ -28,6 +28,8 @@ const FILL: Record<SolidMaterial, string> = {
   ceramic: '#f7f6f2',
   wood: '#b0825c',
   fabric: '#a3adc2',
+  foliage: '#7f9c66',
+  bark: '#7b6553',
 }
 const INK = '#2a2a2d'
 

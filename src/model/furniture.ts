@@ -48,6 +48,8 @@ export const FURNITURE: readonly FurnitureInfo[] = [
   { kind: 'table', style: 'circle', title: 'Circle', width: 1.1, depth: 1.1, height: 0.75, snap: 'none' },
   { kind: 'table', style: 'coffee', title: 'Coffee', width: 1.2, depth: 0.6, height: 0.42, snap: 'sofa' },
   { kind: 'chair', title: 'Chair', width: 0.45, depth: 0.5, height: 0.9, snap: 'table' },
+  { kind: 'tree', style: 'shade', title: 'Shade tree', width: 6, depth: 6, height: 7, snap: 'none' },
+  { kind: 'tree', style: 'slender', title: 'Tall tree', width: 3.5, depth: 3.5, height: 11, snap: 'none' },
 ]
 
 export const furnitureKey = (kind: FurnitureKind, style?: string): string => (style ? `${kind}:${style}` : kind)
@@ -113,7 +115,7 @@ export function placeFurniture(layer: Layer, f: Furniture): Placement | null {
 /** Whether a plan point is on a piece (a round table is a disc, the rest rectangles). */
 export function onFurniture(f: Furniture, pl: Placement, p: Vec): boolean {
   const q = toLocal(pl, p)
-  if (f.kind === 'table' && f.style === 'circle') return (q.x / (pl.width / 2)) ** 2 + (q.y / (pl.depth / 2)) ** 2 <= 1
+  if ((f.kind === 'table' && f.style === 'circle') || f.kind === 'tree') return (q.x / (pl.width / 2)) ** 2 + (q.y / (pl.depth / 2)) ** 2 <= 1
   return Math.abs(q.x) <= pl.width / 2 && Math.abs(q.y) <= pl.depth / 2
 }
 
@@ -495,6 +497,13 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
         { pts: ellipse(pl, -hw + 0.06, -hd + 0.12, hw - 0.06, hd - 0.05), closed: true, role: 'detail' },
         drain(0, 0.05),
         { c: local(pl, 0, -hd + 0.08), r: 0.02, role: 'soft' },
+      ]
+    case 'tree':
+      // its crown from above, and its trunk
+      return [
+        { pts: ellipse(pl, -hw, -hd, hw, hd, 40), closed: true, role: 'soft' },
+        { pts: ellipse(pl, -hw * 0.6, -hd * 0.6, hw * 0.6, hd * 0.6, 28), closed: true, role: 'detail' },
+        { c: local(pl, 0, 0), r: Math.min(0.2, hw * 0.08), role: 'heavy' },
       ]
     case 'chair':
       return [

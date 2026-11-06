@@ -82,6 +82,8 @@ export const AreaSchema = z.strictObject({
    * boundary lines, and summed apart from the rooms.
    */
   lot: z.literal(true).optional(),
+  /** A pool's depth, m: its floor (its lining) sinks this far into the ground, under water 0.1 m below its rim. */
+  depth: z.number().positive().max(5).optional(),
 })
 
 export const DOOR_STYLES = ['single', 'double', 'sliding'] as const
@@ -186,6 +188,11 @@ export const TableSchema = z.strictObject({ kind: z.literal('table'), style: z.e
 
 export const ChairSchema = z.strictObject({ kind: z.literal('chair'), ...Standing })
 
+export const TREE_STYLES = ['shade', 'slender'] as const
+
+/** A tree, its crown `width` across (its trunk at `at`): a broad shade tree, or a tall slender one. */
+export const TreeSchema = z.strictObject({ kind: z.literal('tree'), style: z.enum(TREE_STYLES), ...Standing })
+
 export const FurnitureSchema = z.discriminatedUnion('kind', [
   CounterSchema,
   SinkSchema,
@@ -197,6 +204,7 @@ export const FurnitureSchema = z.discriminatedUnion('kind', [
   SofaSchema,
   TableSchema,
   ChairSchema,
+  TreeSchema,
 ])
 
 export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip'] as const

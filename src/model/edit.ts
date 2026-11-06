@@ -415,6 +415,18 @@ export function setAreaFloor(plan: Plan, refs: readonly Ref[], material: string 
   return next
 }
 
+/** Makes an area a pool `depth` m deep, or takes its depth off with 0; the same plan when nothing changes. */
+export function setAreaDepth(plan: Plan, layerId: string, id: string, depth: number): Plan {
+  return withAreas(plan, layerId, (areas) => {
+    const area = areas[id]
+    if (!area || (area.depth ?? 0) === depth) return false
+    const a = { ...area }
+    if (depth > 0) a.depth = Math.min(5, depth)
+    else delete a.depth
+    areas[id] = a
+  })
+}
+
 /** Marks the areas among `refs` as lots (the land, not rooms) or not; the same plan when nothing changes. */
 export function setAreaLot(plan: Plan, refs: readonly Ref[], lot: boolean): Plan {
   let next = plan

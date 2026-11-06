@@ -97,6 +97,8 @@ export type SolidMaterial =
   | 'ceramic'
   | 'wood'
   | 'fabric'
+  | 'foliage'
+  | 'bark'
 
 export type { Face, Vec3 } from './faces'
 
@@ -109,6 +111,8 @@ export interface Solid {
   material: SolidMaterial
   /** A material id it is finished in all over, over `material`: an area's floor. */
   finish?: string
+  /** An opening it needs in the ground (and in a lot's lawn): a pool's rim. */
+  hole?: Vec[]
   /** The plan item it is part of: a wall or an open edge, a door, window or gate, an area or a roof. */
   ref: Ref
 }
@@ -123,11 +127,23 @@ const direct: SolidsSource = { faces: layerFaces, walls: (layer) => layerWalls(l
 
 export function houseSolids(plan: Plan, source: SolidsSource = direct): Solid[] {
   const out: Solid[] = []
+  // pools, wherever they are drawn, open the ground and the lawns over them
+  const pools = plan.layers.flatMap((layer) => {
+    if (!layer.visible) return []
+    const regions = source.faces(layer).regions
+    return Object.values(layer.areas).flatMap((a) => {
+      const r = a.depth ? regionAt(regions, a.at) : null
+      return r ? [r.outer] : []
+    })
+  })
   plan.layers.forEach((layer, index) => {
-    if (layer.visible) layerSolids(layer, index * LAYER_LIFT, source, out)
+    if (layer.visible) layerSolids(layer, index * LAYER_LIFT, source, out, pools)
   })
   return out
 }
+
+/** How far below a pool's rim its water is, m. */
+export const POOL_WATER = 0.1
 
 /** Whether an area is covered: a room, or a space bounded by walls and open edges only (a gallery). */
 export const isCovered = (region: Region): boolean => region.indoor || region.outline < EPS
@@ -198,7 +214,7 @@ function roofSolidFaces(roof: Roof): Face[] {
 
 // ---- a layer ----------------------------------------------------------------------------------------------
 
-function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Solid[]) {
+function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Solid[], pools: readonly Vec[][]) {
   const faces = source.faces(layer)
   const ref = (kind: Ref['kind'], id: string): Ref => ({ layer: layer.id, kind, id })
   const wallIds = Object.keys(layer.segments).filter((id) => segmentKind(layer.segments[id]) === 'wall')
@@ -207,9 +223,25 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   for (const [id, area] of Object.entries(layer.areas)) {
     const region = regionAt(faces.regions, area.at)
     if (!region) continue
-    // a lot is the ground itself unless it is finished, then a thin cover the house's floors stand on
+    // a lot is the ground itself unless it is finished, then a thin cover the house's floors stand on, open over
+    // the pools in it
     if (area.lot) {
-      if (findMaterial(area.floor)) out.push({ ...prism('floor', region.outer, region.holes, lift, lift + GROUND, 'paving', ref('area', id)), finish: area.floor })
+      const open = pools.filter((pool) => pool.every((p) => pointInPolygon(p, region.outer)))
+      if (findMaterial(area.floor)) out.push({ ...prism('floor', region.outer, [...region.holes, ...open], lift, lift + GROUND, 'paving', ref('area', id)), finish: area.floor })
+      continue
+    }
+    // a pool: its lining, walls and floor facing in, sunk into the ground, and its water just under the rim. The
+    // lining is its floor material (white tile when that is water itself)
+    if (area.depth) {
+      const material = findMaterial(area.floor)
+      const lining = prismFaces(region.outer, region.holes, lift - area.depth, lift)
+        .filter((f) => f.normal.z < 0.5)
+        .map((f) => ({ ...f, normal: { x: -f.normal.x, y: -f.normal.y, z: -f.normal.z } }))
+      const basin = solid('floor', lining, 'ceramic', ref('area', id))
+      if (material && !material.clear) basin.finish = area.floor
+      basin.hole = region.outer
+      out.push(basin)
+      out.push({ ...prism('floor', region.outer, region.holes, lift - POOL_WATER - 0.01, lift - POOL_WATER, 'glass', ref('area', id)), finish: 'water' })
       continue
     }
     const floor = prism('floor', region.outer, region.holes, lift, lift + FLOOR, isCovered(region) ? 'floor' : 'paving', ref('area', id))
@@ -427,12 +459,22 @@ function fireplaceSolids(o: Opening, p: PlacedOpening, half: number, roof: Roof 
   if (o.style === 'parrilla') {
     const [d, c, back] = [PARRILLA_DEPTH, Math.min(PARRILLA_CHEEK, w / 4), 0.12]
     const { counter, fire, hood } = PARRILLA
-    put('fireplace', rect(-0.1, w + 0.1, d, d + HEARTH), 0, 0.03, 'stone')
+    // the hearth stands a little proud of the floor (level with it, the two flickered)
+    put('fireplace', rect(-0.1, w + 0.1, d, d + HEARTH), 0, FLOOR + 0.02, 'stone')
     put('fireplace', rect(0, w, 0, d), 0, 0.1, 'brick')
     put('fireplace', rect(0, c, 0, d), 0.1, 0.75, 'brick')
     put('fireplace', rect(w - c, w, 0, d), 0.1, 0.75, 'brick')
     put('fireplace', rect(c, w - c, 0, d - 0.45), 0.1, 0.75, 'brick')
     put('fireplace', rect(c, w - c, d - 0.45, d - 0.44), 0.1, 0.75, 'soot')
+    // firewood stacked in the niche, ends out
+    const along = (u: number, v: number) => add(add(p.start, mul(p.dir, u)), mul(p.left, (o.swing === 'left' ? 1 : -1) * (half + v)))
+    const log = 0.055
+    for (let row = 0, z = 0.1 + log; z + log <= 0.62; row++, z += log * 1.75) {
+      for (let u = c + log + 0.01 + (row % 2) * log; u + log <= w - c - 0.01; u += 2 * log + 0.004) {
+        const section = Array.from({ length: 8 }, (_, k): [number, number] => [u + log * Math.cos((k * Math.PI) / 4), z + log * Math.sin((k * Math.PI) / 4)])
+        out.push(solid('fireplace', profileFaces(along(0, d - 0.24), p.dir, 0.2, section), 'bark', ref))
+      }
+    }
     put('fireplace', rect(0, w, 0, d), 0.75, counter - 0.04, 'brick')
     put('fireplace', rect(-0.03, w + 0.03, 0, d + 0.05), counter - 0.04, counter, 'stone')
     put('fireplace', rect(0, c, 0, d), counter, fire, 'brick')

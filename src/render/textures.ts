@@ -8,7 +8,7 @@ import type { Material } from '../model/materials'
  * kept for the session: the house is rebuilt on every change, its textures are not.
  */
 
-export type TextureKind = 'brick' | 'planks' | 'grass' | 'seams' | 'tiles' | 'stone' | 'checker'
+export type TextureKind = 'brick' | 'planks' | 'grass' | 'seams' | 'tiles' | 'stone' | 'dirt' | 'checker'
 
 /** What a finish's texture shows, and its canvas: one repeat, in px, at `px` pixels per metre. */
 export interface TextureRecipe {
@@ -42,6 +42,8 @@ export function textureRecipe(material: Material): TextureRecipe | null {
       return { kind: 'planks', width: PLANK.length, height: PLANK.width * PLANK.rows, px: PLANK.px, depth: 0.004 }
     case 'grass':
       return { kind: 'grass', width: LAWN.size, height: LAWN.size, px: LAWN.px, depth: 0.004 }
+    case 'dirt':
+      return { kind: 'dirt', width: LAWN.size, height: LAWN.size, px: LAWN.px, depth: 0.006 }
     case 'seams':
       return { kind: 'seams', width: SEAM.panel * SEAM.panels, height: SEAM.length, px: SEAM.px, depth: 0.025 }
     case 'tiles': {
@@ -444,6 +446,44 @@ function paintSeams(r: TextureRecipe, material: Material, rand: () => number): P
   return { map: color.el, height: height.el }
 }
 
+/** Packed earth: drier and damper patches, pebbles and crumbs, wrapped round the edges. */
+function paintDirt(r: TextureRecipe, material: Material, rand: () => number): Painted {
+  const size = r.width
+  const [color, height] = [canvas(size, size), canvas(size, size)]
+  const base = rgb(material.color)
+  color.g.fillStyle = css(base)
+  color.g.fillRect(0, 0, size, size)
+  height.g.fillStyle = gray(128)
+  height.g.fillRect(0, 0, size, size)
+  for (let i = 0; i < 90; i++) {
+    const [cx, cy, radius] = [rand() * size, rand() * size, 30 + rand() * 160]
+    const dry = rand() < 0.55
+    const tint: Rgb = dry ? scaled(base, 1.22) : scaled(base, 0.72)
+    const alpha = 0.1 + rand() * 0.2
+    for (const x of [cx - size, cx, cx + size]) {
+      for (const y of [cy - size, cy, cy + size]) {
+        if (x + radius < 0 || x - radius > size || y + radius < 0 || y - radius > size) continue
+        const patch = color.g.createRadialGradient(x, y, 0, x, y, radius)
+        patch.addColorStop(0, css(tint, alpha))
+        patch.addColorStop(1, css(tint, 0))
+        color.g.fillStyle = patch
+        color.g.fillRect(x - radius, y - radius, 2 * radius, 2 * radius)
+      }
+    }
+  }
+  // pebbles, lighter on top, each a bump
+  for (let i = 0; i < 2600; i++) {
+    const [x, y, s] = [rand() * size, rand() * size, 1 + rand() * 2.5]
+    color.g.fillStyle = css(scaled(base, 0.7 + rand() * 0.7), 0.8)
+    color.g.fillRect(x, y, s, s)
+    height.g.fillStyle = gray(200, 0.8)
+    height.g.fillRect(x, y, s, s)
+  }
+  grain(color.g, rand, 0.16)
+  grain(height.g, rand, 0.35)
+  return { map: color.el, height: height.el }
+}
+
 function paintChecker(r: TextureRecipe, material: Material): Painted {
   const [dark, light] = material.checker!.colors
   const { el, g } = canvas(r.width, r.height)
@@ -513,7 +553,9 @@ export function finishTextures(material: Material): FinishTextures | null {
                 ? paintTiles(r, material, rand)
                 : r.kind === 'stone'
                   ? paintStone(r, material, rand)
-                  : paintChecker(r, material)
+                  : r.kind === 'dirt'
+                    ? paintDirt(r, material, rand)
+                    : paintChecker(r, material)
     const texture = (el: HTMLCanvasElement, colour: boolean) => {
       const t = new THREE.CanvasTexture(el)
       t.wrapS = t.wrapT = THREE.RepeatWrapping

@@ -30,6 +30,7 @@ const FURNITURE_GROUPS: { kinds: FurnitureKind[]; title: string }[] = [
   { kinds: ['sofa'], title: 'Sofas' },
   { kinds: ['table'], title: 'Tables' },
   { kinds: ['chair'], title: 'Chairs' },
+  { kinds: ['tree'], title: 'Trees' },
 ]
 
 /**
@@ -288,6 +289,7 @@ function MaterialIcon({ material }: { material: Material }) {
     grass: 'M7 20L8 15M12 20L11 14M17 20L18 15M22 20L21 14M26 20L27 16',
     gravel: 'M8 8h.1M14 11h.1M20 7h.1M24 13h.1M10 15h.1M17 17h.1',
     seams: 'M10 4V20M16 4V20M22 4V20',
+    dirt: 'M7 9h.1M12 15h.1M18 8h.1M23 14h.1M9 18h.1M26 10h.1M15 11h3M20 17h4',
   }
   const { checker } = material
   // a checkerboard of 4 px squares, six by four

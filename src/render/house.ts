@@ -27,6 +27,8 @@ const PALETTE: Record<SolidMaterial, THREE.MeshStandardMaterialParameters> = {
   ceramic: { color: '#f3f2ee', roughness: 0.15, metalness: 0.05 },
   wood: { color: '#9a6a44', roughness: 0.6 },
   fabric: { color: '#8a97b0', roughness: 1 },
+  foliage: { color: '#4d7433', roughness: 1 },
+  bark: { color: '#5a4636', roughness: 1 },
 }
 
 export const GRASS = '#6d8f4e'
@@ -35,6 +37,8 @@ export interface HouseModel {
   root: THREE.Group
   /** Around everything built; a patch of ground at the origin when nothing is. */
   box: THREE.Box3
+  /** Openings it needs in the ground (pools), in plan coordinates. */
+  holes: { x: number; y: number }[][]
   dispose(): void
 }
 
@@ -94,6 +98,7 @@ export function buildHouse(solids: readonly Solid[]): HouseModel {
   return {
     root,
     box,
+    holes: solids.flatMap((s) => (s.hole ? [s.hole] : [])),
     dispose() {
       for (const g of geometries) g.dispose()
       // textures stay: they are painted once a session (textures.ts)

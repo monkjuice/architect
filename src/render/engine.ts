@@ -77,7 +77,7 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
   const lawnTextures = finishTextures(lawn)
   const lawnRecipe = textureRecipe(lawn)
   const groundMaps = lawnTextures ? [lawnTextures.map.clone(), ...(lawnTextures.normalMap ? [lawnTextures.normalMap.clone()] : [])] : []
-  const groundGeometry = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
+  let groundGeometry: THREE.BufferGeometry = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
   const groundMaterial = new THREE.MeshStandardMaterial(
     groundMaps.length ? { color: '#ffffff', map: groundMaps[0], normalMap: groundMaps[1] ?? null, roughness: 1 } : { color: GRASS, roughness: 1 },
   )
@@ -175,10 +175,20 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
       scene.add(model.root)
       const size = model.box.getSize(new THREE.Vector3())
       const center = model.box.getCenter(new THREE.Vector3())
+      // the ground: a square round the house, open over its pools, mapped in metres (as the house's faces are)
       const extent = Math.max(150, 5 * Math.max(size.x, size.z))
-      ground.scale.setScalar(extent)
-      if (lawnRecipe) for (const t of groundMaps) t.repeat.setScalar((extent * lawnRecipe.px) / lawnRecipe.width)
-      ground.position.set(center.x, 0, center.z)
+      const square = new THREE.Shape([
+        new THREE.Vector2(center.x - extent / 2, -(center.z - extent / 2)),
+        new THREE.Vector2(center.x + extent / 2, -(center.z - extent / 2)),
+        new THREE.Vector2(center.x + extent / 2, -(center.z + extent / 2)),
+        new THREE.Vector2(center.x - extent / 2, -(center.z + extent / 2)),
+      ])
+      for (const hole of model.holes) square.holes.push(new THREE.Path(hole.map((p) => new THREE.Vector2(p.x, -p.y))))
+      groundGeometry.dispose()
+      // shape (x, −y) turned flat: plan x is x, plan y is z, facing up
+      groundGeometry = new THREE.ShapeGeometry(square).rotateX(-Math.PI / 2)
+      ground.geometry = groundGeometry
+      if (lawnRecipe) for (const t of groundMaps) t.repeat.setScalar(lawnRecipe.px / lawnRecipe.width)
       aim()
       if (pending) view(pending.preset, pending.site)
       request()

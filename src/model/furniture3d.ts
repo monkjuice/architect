@@ -1,4 +1,4 @@
-import { prismFaces, ring, smoothSides, type Face } from './faces'
+import { frustumFaces, prismFaces, ring, smoothSides, type Face } from './faces'
 import type { Vec } from './geometry'
 import { ellipse, ISLAND_OVERHANG, local, quarterDisc, rounded, showerPoint, SOFA, sofaOutline, type Placement } from './furniture'
 import type { Furniture } from './plan'
@@ -192,6 +192,36 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
         }
       }
       break
+    case 'tree': {
+      // a trunk, and a crown of a few rounded lobes round the top of it, as tall as the catalogue's tree of its kind
+      // is for its width
+      const slender = f.style === 'slender'
+      const height = (slender ? 11 / 3.5 : 7 / 6) * Math.max(hw, hd) * 2
+      const r = Math.max(hw, hd)
+      const crown = slender ? height * 0.25 : height * 0.35
+      const c = local(pl, 0, 0)
+      const lobe = (dx: number, dy: number, rx: number, z0: number, z1: number) => {
+        const at = local(pl, dx, dy)
+        const bands = 6
+        const faces: Face[] = []
+        for (let i = 0; i < bands; i++) {
+          const [a0, a1] = [-Math.PI / 2 + (Math.PI * i) / bands, -Math.PI / 2 + (Math.PI * (i + 1)) / bands]
+          const zm = (z0 + z1) / 2
+          const h = (z1 - z0) / 2
+          faces.push(...frustumFaces(at, Math.max(0.05, rx * Math.cos(a0)), Math.max(0.05, rx * Math.cos(a1)), zm + h * Math.sin(a0), zm + h * Math.sin(a1), 14))
+        }
+        parts.push({ faces: smoothSides(faces), material: 'foliage' })
+      }
+      parts.push({ faces: smoothSides(frustumFaces(c, Math.min(0.22, r * 0.07), Math.min(0.14, r * 0.045), 0, crown + 0.6, 10)), material: 'bark' })
+      if (slender) {
+        lobe(0, 0, r, crown, height)
+      } else {
+        lobe(0, 0, r * 0.8, crown, height * 0.92)
+        lobe(r * 0.35, r * 0.15, r * 0.6, crown + 0.4, height)
+        lobe(-r * 0.3, -r * 0.25, r * 0.6, crown + 0.6, height * 0.97)
+      }
+      break
+    }
     case 'chair':
       put(box(-hw + 0.02, -hd + 0.05, hw - 0.02, hd), 0.42, 0.46, 'wood')
       for (const [x, y] of [
