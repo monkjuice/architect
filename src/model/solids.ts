@@ -8,7 +8,7 @@ import { findMaterial } from './materials'
 import { besideWall, FIREPLACE_DEPTH, fireplaceShape, HEARTH, hasHinge, PARRILLA_CHEEK, PARRILLA_DEPTH, placeOpening, type PlacedOpening } from './openings'
 import { segmentKind, type ColumnStyle, type Layer, type Opening, type Plan, type Ref, type Roof } from './plan'
 import { layerFaces, pointInPolygon, regionAt, type LayerFaces, type Region } from './regions'
-import { eavesOf, offsetPolygon, PARAPET_WALL, roofFaces, roofPlanes, roofThickness, skylights, SLAB, underside, undersideAlong, unionOutlines } from './roofs'
+import { eavesOf, offsetPolygon, PARAPET_WALL, PERGOLA_SHEET, pergolaRafters, RAFTER, roofFaces, roofPlanes, roofThickness, skylights, SLAB, underside, undersideAlong, unionOutlines } from './roofs'
 import { EXTERIOR_WALL, INTERIOR_WALL, layerWalls, WALL_HEIGHT, wallHeight, type LayerWalls } from './walls'
 
 /**
@@ -277,6 +277,48 @@ function upward(pts: readonly Vec3[]): Vec3 {
 const prism = (kind: SolidKind, outline: readonly Vec[], holes: readonly (readonly Vec[])[], bottom: number, top: number, material: SolidMaterial, ref: Ref) =>
   solid(kind, prismFaces(outline, holes, bottom, top), material, ref)
 
+/**
+ * A pergola: no slab, but timber rafters on the beams of its open edges (built with them, under its underside),
+ * running down its slope; and on them, when it has one, its covering as a thin sheet (polycarbonate lets the light
+ * through, and casts no shadow).
+ */
+function pergolaSolids(roof: Roof, planes: ReturnType<typeof roofPlanes>, ref: Ref, out: Solid[]) {
+  const z = (p: Vec) => underside(roof, planes, p)
+  for (const [a, b] of pergolaRafters(roof)) {
+    const len = dist(a, b)
+    if (len < EPS) continue
+    const dir = mul(sub(b, a), 1 / len)
+    const [z0, z1] = [z(a), z(b)]
+    const faces = profileFaces(a, dir, RAFTER.width / 2, [
+      [0, z0],
+      [len, z1],
+      [len, z1 + RAFTER.depth],
+      [0, z0 + RAFTER.depth],
+    ]).map((f) => ({ ...f, grain: { x: dir.x, y: dir.y, z: (z1 - z0) / len } }))
+    const rafter = solid('roof', faces, 'wood', ref)
+    rafter.finish = 'teak'
+    out.push(rafter)
+  }
+  const cover = findMaterial(roof.finish)
+  if (!cover) return
+  const eaves = eavesOf(roof)
+  const k = Math.tan((roof.pitch * Math.PI) / 180)
+  const up = norm({ x: -k * planes[0].a, y: -k * planes[0].b, z: 1 })
+  const top = (p: Vec, dz: number) => v3(p, z(p) + RAFTER.depth + dz)
+  const faces: Face[] = [
+    { pts: eaves.map((p) => top(p, PERGOLA_SHEET)), holes: [], normal: up },
+    { pts: eaves.map((p) => top(p, 0)), holes: [], normal: { x: -up.x, y: -up.y, z: -up.z } },
+  ]
+  eaves.forEach((p, i) => {
+    const q = eaves[(i + 1) % eaves.length]
+    const d = sub(q, p)
+    faces.push({ pts: [top(p, 0), top(q, 0), top(q, PERGOLA_SHEET), top(p, PERGOLA_SHEET)], holes: [], normal: norm({ x: d.y, y: -d.x, z: 0 }) })
+  })
+  const sheet = solid('roof', faces, cover.clear ? 'glass' : 'roof', ref)
+  sheet.finish = roof.finish
+  out.push(sheet)
+}
+
 /** A roof's slab: each slope's face on top and under it, and its edge round the eaves. */
 function roofSolidFaces(roof: Roof): Face[] {
   const planes = roofPlanes(roof)
@@ -389,7 +431,11 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
 
   // roofs, and what stands up to them
   const roofs = Object.entries(layer.roofs).map(([id, roof]) => ({ id, roof, eaves: eavesOf(roof), planes: roofPlanes(roof) }))
-  for (const { id, roof, eaves } of roofs) {
+  for (const { id, roof, eaves, planes } of roofs) {
+    if (roof.type === 'pergola') {
+      pergolaSolids(roof, planes, ref('roof', id), out)
+      continue
+    }
     // its covering on top (and on a pitched roof's fascia), its soffit underneath
     const [cover, under] = [roof.finish, roof.soffit].map((m) => (findMaterial(m) ? m : undefined))
     const faces = roofSolidFaces(roof).map((f) => {

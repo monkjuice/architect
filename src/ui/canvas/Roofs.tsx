@@ -4,7 +4,7 @@ import { fireplaceShape, placeOpening } from '../../model/openings'
 import type { Layer, Roof } from '../../model/plan'
 import { findMaterial } from '../../model/materials'
 import { labelPoint } from '../../model/regions'
-import { eavesOf, ROOF_TITLES, roofFaces, roofProblem, roofSummary, skylights, type RoofFace } from '../../model/roofs'
+import { eavesOf, pergolaRafters, ROOF_TITLES, roofFaces, roofProblem, roofSummary, skylights, type RoofFace } from '../../model/roofs'
 import { hostThickness } from '../../state/derived'
 import { flueMark } from './symbols'
 
@@ -74,7 +74,8 @@ function RoofShape({ roof, px, selected, hovered }: { roof: Roof; px: number; se
       {faces.map((f, i) => (
         <path key={i} className="roof-face" d={ring(f.pts)} fillOpacity={shade(f)} style={cover ? { fill: cover.color } : undefined} />
       ))}
-      {skylights(roof).map((h, i) => (
+      {roof.type === 'pergola' && <path className="roof-rafter" d={pergolaRafters(roof).map(([p, q]) => `M${p.x} ${p.y}L${q.x} ${q.y}`).join('')} />}
+      {roof.type !== 'pergola' && skylights(roof).map((h, i) => (
         <path key={`sky${i}`} className="roof-skylight" d={ring(h)} />
       ))}
       <path className="roof-eaves" d={ring(eaves)} />

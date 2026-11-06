@@ -74,6 +74,7 @@ export const MATERIALS: readonly Material[] = [
   m('metal-standing-seam', 'Standing seam metal', 'Metal', ['roof', 'wall'], 'outdoor', '#3b3e42', 0.42, { metalness: 0.55, pattern: 'seams' }),
   m('metal-sheet', 'Corrugated metal sheet', 'Metal', ['roof', 'wall'], 'outdoor', '#8e9396', 0.45, { metalness: 0.6 }),
   m('glass', 'Glass', 'Glass', ['door'], 'both', '#9fb8c4', 0.05, { clear: 0.7 }),
+  m('polycarbonate', 'Polycarbonate (translucent)', 'Roofing', ['roof'], 'outdoor', '#eef2f3', 0.3, { clear: 0.45 }),
   m('roof-membrane', 'White roof membrane', 'Roofing', ['roof'], 'outdoor', '#dcdcd8', 0.85),
   m('roof-green', 'Green roof', 'Roofing', ['roof'], 'outdoor', '#5d7d3c', 1, { pattern: 'grass' }),
   m('gravel', 'Gravel', 'Ground and garden', ['floor', 'roof'], 'outdoor', '#a59f94', 1, { pattern: 'gravel' }),

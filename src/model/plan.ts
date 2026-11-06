@@ -222,7 +222,7 @@ export const FurnitureSchema = z.discriminatedUnion('kind', [
   PlantSchema,
 ])
 
-export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip'] as const
+export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip', 'pergola'] as const
 
 export const RoofSchema = z.strictObject({
   /** What the roof covers, usually the walls' outside faces; the eaves stand `overhang` beyond it. */

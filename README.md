@@ -292,6 +292,7 @@ covers, usually the walls' outside faces) on a layer, and its eaves stand an **o
 | **Shed** | One slope, rising away from one side. *Turn the slope* moves the low side round the outline. |
 | **Gable** | Two slopes meeting at a ridge along one side's direction; the other sides are gable ends. *Turn the ridge* runs it the other way. |
 | **Hip** | A slope from every side, meeting at hips and a ridge. It needs a convex outline: draw an L-shaped house as two overlapping roofs (the panel warns otherwise). |
+| **Pergola** | No slab: timber rafters (0.07 × 0.20 m, every 0.60 m) on the beams of the open edges under it, running down its slight slope (2° unless set); with a *Covering* they carry a thin sheet of it (*Polycarbonate* lets the light through and casts no shadow), without one it is open. For a carport or a garden pergola: enclose the area with open edges (columns where no wall holds them, or a colonnade for steel or stone columns along them), name it, and draw a pergola over it. |
 
 - **Roof the house** covers the active layer's covered areas out to the walls' outside faces (0.15 m past the
   centrelines), as high as their tallest wall: one roof of the type picked under *New roofs* per group of rooms

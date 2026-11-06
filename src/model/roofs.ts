@@ -18,7 +18,11 @@ import { EXTERIOR_WALL, WALL_HEIGHT } from './walls'
  * overhang.
  */
 
-export const ROOF_TITLES: Record<RoofType, string> = { flat: 'Flat', shed: 'Shed', gable: 'Gable', hip: 'Hip' }
+export const ROOF_TITLES: Record<RoofType, string> = { flat: 'Flat', shed: 'Shed', gable: 'Gable', hip: 'Hip', pergola: 'Pergola' }
+
+/** A pergola's rafters: how deep and wide they are and how far apart, m; its covering, when it has one, on them. */
+export const RAFTER = { depth: 0.2, width: 0.07, spacing: 0.6 }
+export const PERGOLA_SHEET = 0.012
 
 /** Thickness of a flat slab and of a pitched roof (rafters and covering), measured vertically. */
 export const SLAB = 0.2
@@ -149,6 +153,42 @@ export function skylights(roof: Roof, slope?: readonly Vec[]): Vec[][] {
   }).filter((poly) => poly.length >= 3 && polygonArea(poly) > 0.05)
 }
 
+/**
+ * A pergola's rafters in plan, as lines: RAFTER.spacing apart along its `edge` (a shed's eaves), each running down
+ * its slope from eaves to eaves (out over its overhang).
+ */
+export function pergolaRafters(roof: Roof): [Vec, Vec][] {
+  const eaves = eavesOf(roof)
+  const pts = normalized(roof.outline)
+  const [a, b] = [pts[roof.edge % pts.length], pts[(roof.edge + 1) % pts.length]]
+  const u = unit(sub(b, a))
+  let v = { x: -u.y, y: u.x }
+  const middle = mul(pts.reduce(add, { x: 0, y: 0 }), 1 / pts.length)
+  if (dot(sub(middle, a), v) < 0) v = mul(v, -1)
+  const us = eaves.map((p) => dot(sub(p, a), u))
+  const [u0, u1] = [Math.min(...us), Math.max(...us)]
+  const n = Math.max(2, Math.round((u1 - u0 - RAFTER.width) / RAFTER.spacing) + 1)
+  const out: [Vec, Vec][] = []
+  for (let i = 0; i < n; i++) {
+    const c = u0 + RAFTER.width / 2 + ((u1 - u0 - RAFTER.width) * i) / (n - 1)
+    const origin = add(a, mul(u, c))
+    // where the line across the roof at `c` meets its eaves: the first and last crossings
+    const ts: number[] = []
+    eaves.forEach((p, j) => {
+      const q = eaves[(j + 1) % eaves.length]
+      const d = sub(q, p)
+      const den = cross(v, d)
+      if (Math.abs(den) < 1e-12) return
+      const t = cross(sub(p, origin), d) / den
+      const s = cross(sub(p, origin), v) / den
+      if (s >= -1e-9 && s <= 1 + 1e-9) ts.push(t)
+    })
+    if (ts.length < 2) continue
+    out.push([add(origin, mul(v, Math.min(...ts))), add(origin, mul(v, Math.max(...ts)))])
+  }
+  return out
+}
+
 /** Whether `p` is inside the ring (even-odd). */
 function pointIn(p: Vec, ring: readonly Vec[]): boolean {
   let inside = false
@@ -184,10 +224,11 @@ export function roofPlanes(roof: Roof): Plane[] {
   const low = Math.min(...s)
   const high = Math.max(...s)
   const rising: Plane = { a: n.x, b: n.y, c: -low }
-  return roof.type === 'shed' ? [rising] : [rising, { a: -n.x, b: -n.y, c: high }]
+  // a pergola slopes one way, as a shed does
+  return roof.type === 'shed' || roof.type === 'pergola' ? [rising] : [rising, { a: -n.x, b: -n.y, c: high }]
 }
 
-export const roofThickness = (roof: Pick<Roof, 'type'>): number => (roof.type === 'flat' ? SLAB : COVERING)
+export const roofThickness = (roof: Pick<Roof, 'type'>): number => (roof.type === 'flat' ? SLAB : roof.type === 'pergola' ? RAFTER.depth + PERGOLA_SHEET : COVERING)
 
 /** Height of the roof's underside over plan point `p`. */
 export function underside(roof: Roof, planes: readonly Plane[], p: Vec): number {
@@ -307,7 +348,8 @@ export function newRoof(outline: readonly Vec[], type: RoofType, height = WALL_H
     if (dist(p, pts[(i + 1) % pts.length]) > dist(pts[edge], pts[(edge + 1) % pts.length])) edge = i
   })
   const flat = type === 'flat'
-  return { outline: pts, type, pitch: type === 'shed' ? 10 : 25, height, overhang: flat ? 0 : 0.5, edge, parapet: flat ? 0.3 : 0 }
+  const pitch = type === 'pergola' ? 2 : type === 'shed' ? 10 : 25
+  return { outline: pts, type, pitch, height, overhang: flat ? 0 : type === 'pergola' ? 0.3 : 0.5, edge, parapet: flat ? 0.3 : 0 }
 }
 
 /** The pitch a gallery's roof starts at, in degrees: as near flat as still sheds water; and its overhang, m. */

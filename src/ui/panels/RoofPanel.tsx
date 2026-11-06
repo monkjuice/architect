@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { updateRoof } from '../../model/edit'
 import { ROOF_TYPES, sameRef, type Roof } from '../../model/plan'
-import { nextEdge, ROOF_TITLES, roofProblem, roofSummary } from '../../model/roofs'
+import { nextEdge, RAFTER, ROOF_TITLES, roofProblem, roofSummary } from '../../model/roofs'
 import { chooseTool, deleteSelection } from '../../state/actions'
 import { getStore, useEditor } from '../../state/store'
 import { Box, MaterialField, NumberField, Segmented } from '../fields'
@@ -79,11 +79,11 @@ function RoofFields({ layer, id, roof }: { layer: string; id: string; roof: Roof
         <NumberField label="Height at the walls" min={0.5} value={roof.height} onCommit={(height) => set({ height })} />
         <NumberField label="Overhang" min={0} value={roof.overhang} onCommit={(overhang) => set({ overhang: Math.min(3, overhang) })} />
         {roof.type === 'flat' && <NumberField label="Parapet" min={0} value={roof.parapet} onCommit={(parapet) => set({ parapet: Math.min(2, parapet) })} />}
-        {(roof.type === 'shed' || roof.type === 'gable') && (
+        {(roof.type === 'shed' || roof.type === 'gable' || roof.type === 'pergola') && (
           <div className="field">
             <label>&nbsp;</label>
-            <button onClick={() => set({ edge: nextEdge(roof) })} title={roof.type === 'shed' ? 'Slope down to the next side' : 'Run the ridge the other way'}>
-              {roof.type === 'shed' ? 'Turn the slope' : 'Turn the ridge'}
+            <button onClick={() => set({ edge: nextEdge(roof) })} title={roof.type === 'gable' ? 'Run the ridge the other way' : 'Slope down to the next side'}>
+              {roof.type === 'gable' ? 'Turn the ridge' : 'Turn the slope'}
             </button>
           </div>
         )}
@@ -91,17 +91,24 @@ function RoofFields({ layer, id, roof }: { layer: string; id: string; roof: Roof
           {pitched && `${(Math.tan((roof.pitch * Math.PI) / 180) * 100).toFixed(0)}% slope · `}covers {summary.planArea.toFixed(2)} m²
           {pitched && `, ${summary.surface.toFixed(2)} m² of roof`} · eaves +{summary.eaves.toFixed(2)} · top +{summary.top.toFixed(2)}
         </p>
-        <NumberField
-          label="Skylights (0: none)"
-          digits={0}
-          min={0}
-          value={roof.skylights?.count ?? 0}
-          onCommit={(n) => {
-            const count = Math.min(40, Math.round(n))
-            set({ skylights: count > 0 ? { count, width: roof.skylights?.width ?? 1 } : undefined })
-          }}
-        />
-        {roof.skylights && (
+        {roof.type === 'pergola' && (
+          <p className="hint field-wide">
+            Rafters every {RAFTER.spacing.toFixed(2)} m on the beams of its open edges; with no covering it is open (polycarbonate lets the light through).
+          </p>
+        )}
+        {roof.type !== 'pergola' && (
+          <NumberField
+            label="Skylights (0: none)"
+            digits={0}
+            min={0}
+            value={roof.skylights?.count ?? 0}
+            onCommit={(n) => {
+              const count = Math.min(40, Math.round(n))
+              set({ skylights: count > 0 ? { count, width: roof.skylights?.width ?? 1 } : undefined })
+            }}
+          />
+        )}
+        {roof.type !== 'pergola' && roof.skylights && (
           <NumberField
             label="Skylight width"
             min={0.2}
@@ -110,13 +117,15 @@ function RoofFields({ layer, id, roof }: { layer: string; id: string; roof: Roof
           />
         )}
         <MaterialField label="Covering" surface="roof" outdoor value={roof.finish} onChange={(finish) => set({ finish: finish ?? undefined })} />
-        <MaterialField
-          label="Soffit (its underside)"
-          surface="ceiling"
-          outdoor
-          value={roof.soffit}
-          onChange={(soffit) => set({ soffit: soffit ?? undefined })}
-        />
+        {roof.type !== 'pergola' && (
+          <MaterialField
+            label="Soffit (its underside)"
+            surface="ceiling"
+            outdoor
+            value={roof.soffit}
+            onChange={(soffit) => set({ soffit: soffit ?? undefined })}
+          />
+        )}
         {problem && <p className="hint warning field-wide">{problem}</p>}
       </div>
       <div className="row">

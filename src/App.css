@@ -1779,3 +1779,11 @@ button.icon {
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
+
+/* a pergola's rafters in the roof plan */
+.roof-rafter {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
