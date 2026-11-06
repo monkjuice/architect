@@ -131,11 +131,13 @@ plus three random ones; lavender a `foliage` mound under a `lavender` top; agapa
 stems with `flower` heads; a climber a `bark` stem and 16 foliage blobs up the wall plane at its back, about 60 %
 with a `blossom` dot. The ratios are hard-coded in `furniture3d.ts`: change them with the `FURNITURE` heights.
 
-**Garden beds** (`d5c7fb7`): the user's plan has a layer *Jardín* with three outline-bounded areas *Cantero*
+**Garden beds** (`d5c7fb7`): the user's plan got a layer *Jardín* with three outline-bounded areas *Cantero*
 floored in `mulch`, about 1.25 m deep: inside the bottom boundary wall either side of its gate, and along the east
 wall. 80 plants: climbers on the wall, bushes behind, agapanthus and lavender alternating in front (the west side is
 the quincho and parking). Visual check: a bed behind the 2.7 m boundary wall is hidden from the default `aerial`
-camera on the street side; the *North* preset shows it ([Exterior tab](exterior-tab.md)).
+camera on the street side; the *North* preset shows it ([Exterior tab](exterior-tab.md)). The layer was later lost
+(a user save from a draft without it overwrote the file, [Development and testing](development-and-testing.md)) and
+put back the same day, rebuilt on the user's latest file as layer `L8`: their own new `L7` had taken the old id.
 
 ## Limits (2026-11-04)
 

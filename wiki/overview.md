@@ -1,10 +1,10 @@
 ---
 title: Overview
 type: overview
-summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman or metal colonnades, ground-level outlines, named areas (rooms, or lots of land with the share covered) with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs; wall-side and floor finishes from a materials catalogue) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable and hip roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
+summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman or metal colonnades, ground-level outlines, named areas (rooms, or lots of land with the share covered) with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs; wall-side and floor finishes from a materials catalogue) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable, hip and pergola roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
 tags: [overview]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-06
 ---
 
 # Architect
@@ -29,8 +29,8 @@ The sun can be shown over the plan for a season and time of day, with the walls'
 autosaved in IndexedDB. `README.md` lists the workflow, tools and keys.
 
 The bar's top row holds tabs over the same plan ([Tabs over one plan](pages/tabs-over-one-plan.md)): Floor is the
-drawing; Roof is a roof plan where roof outlines are drawn over the faded floor plan, each flat, shed, gable or hip
-([Roof tab](pages/roof-tab.md)); Elevations draws the four facades from the 3-D model, view only
+drawing; Roof is a roof plan where roof outlines are drawn over the faded floor plan, each flat, shed, gable, hip or
+pergola ([Roof tab](pages/roof-tab.md)); Elevations draws the four facades from the 3-D model, view only
 ([Elevations tab](pages/elevations.md)); Exterior shows the house in 3-D under the plan's sun
 ([Exterior tab](pages/exterior-tab.md)). The other tabs (Foundation, Interior, Plumbing, Electricity, Gas,
 Materials) show but are not built.

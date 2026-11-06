@@ -1,10 +1,10 @@
 ---
 title: Development and testing
 type: guide
-summary: "npm scripts, the GitHub repository, the 194 Vitest tests (model files plus src/state/derived.test.ts and src/render/textures.test.ts; and their spurious \"no tests\" run beside the dev server), iteration mode (no new tests until the user asks, cheap visual checks) and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 29-check furniture flow, the exterior, roof and colonnade ones with software WebGL; flows on the user's plan now need a pinned copy of it with the photo hidden and the lots marked, the furniture flow included), plus reading live derived values from the dev server."
-tags: [guide, testing, vitest, playwright, webgl, git]
+summary: "npm scripts, the GitHub repository, the 194 Vitest tests (model files plus src/state/derived.test.ts and src/render/textures.test.ts; and their spurious \"no tests\" run beside the dev server), iteration mode (no new tests until the user asks, cheap visual checks), agent edits to the user's plan file lost unless they reopen it before saving, and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 29-check furniture flow, the exterior, roof and colonnade ones with software WebGL; flows on the user's plan now need a pinned copy of it with the photo hidden and the lots marked, the furniture flow included), plus reading live derived values from the dev server."
+tags: [guide, testing, vitest, playwright, webgl, git, user-plan]
 sources: []
-updated: 2026-11-05
+updated: 2026-11-06
 ---
 
 # Development and testing
@@ -31,6 +31,12 @@ only on request.
 
 **Iteration mode (since 2026-11-05):** the user asked for no new tests until they ask for them, and to keep visual
 checks cheap. Still run the existing suite, typecheck, lint and build.
+
+**Edits to the user's plan file do not stick by themselves.** The app saves its open plan (or draft) over the file,
+so an agent's edit to the file lasts only if the user reopens the file before saving again. On 2026-11-06 a save
+from a draft that never had the garden overwrote the agent's *Jardín* layer (80 plants; [Furniture](furniture.md)).
+Tell the user to reopen the file after such an edit; do visual checks on a copy. To put such an edit back, rebuild it
+on the user's latest file rather than copying the old layer in: layer ids may have been taken meanwhile.
 
 After `69111af` there are 194: the 190 below plus `src/render/textures.test.ts` (4: recipes and real sizes, seeded
 determinism, running bond, board rows filling the repeat), which tests only the pure helpers (`textureRecipe`,

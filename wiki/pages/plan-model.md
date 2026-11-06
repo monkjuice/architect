@@ -118,4 +118,4 @@ On 2026-11-04 the optional segment `colonnade` and the `fireplace` opening kind 
 Later that day layer `furniture` (`.default({})`) came, also at version 1, and then the optional segment `finish`
 and area `floor`, and after them the optional area `lot` (`z.literal(true)`), all still at version 1. On
 2026-11-05 the optional roof `finish` and `soffit` came, also at version 1, and on 2026-11-06 the optional layer
-`level` and roof `skylights`.
+`level`, roof `skylights` and a fifth roof type, `pergola` (`59bcfa6`).
