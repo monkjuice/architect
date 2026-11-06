@@ -207,7 +207,7 @@ Furniture and fixtures go where you click (pick one in the library, or drag it o
 | **Tables** | *Square* 0.90 × 0.90 m, *Circle* Ø 1.10 m, 0.75 m high; *Coffee* (mesa ratona) 1.20 × 0.60 m, 0.42 m high, with a shelf; *Oak trestle* 3.20 × 1.10 m, 0.78 m high, any length: a 9 cm top of long boards over leg frames (square legs on a foot rail, a third frame in the middle when over 4 m), a low stretcher and braces, in solid reclaimed oak with its grain along each piece | stand where they are put; a coffee table stands centred 0.40 m in front of a sofa it is put by (a sectional's main seat), squared to it |
 | **Chairs** | 0.45 × 0.50 m | turn to face a dining table they are put by |
 | **Outdoor living** | *Teak outdoor sofa* 2.20 × 0.90 m and *armchair* 0.85 m square (sofa styles): a teak frame with slatted arms and back under thick linen cushions; *Teak coffee table* 1.30 × 0.70 m, 0.40 m high (a table style), slatted | the sofa backs up to a wall; the armchair stands where it is put; the table stands before a sofa like a coffee table |
-| **Plants** | *Olive tree in a pot* (foliage 1.20 m across, 2 m high) and *Shrub in a pot* (0.60 m): a tapering stone pot with its plant | stand where they are put |
+| **Plants** | In a pot: *Olive tree* (foliage 1.20 m across, 2 m high), *Shrub* (0.60 m). In the ground: *Bush* (1 m), *Agapanthus* (0.70 m, its blue-violet flower heads on tall stems), *Lavender* (0.60 m), *Climber* (1.60 m along a wall, 2.60 m up it, with white flowers); each in-ground one a little different | stand where they are put; a climber backs up to a wall |
 | **Trees** | *Shade tree* a crown 6 m across, 7 m high; *Tall tree* 3.5 m across, 11 m high (taller as they are wider) | stand where they are put, for gardens and streets |
 
 Near a wall, a piece that goes against one turns its back to the wall and stands flush with its face (`Alt`
@@ -228,7 +228,7 @@ the plan with the usual symbols (a basin and its drain, a bed's pillows and turn
 Each side of a wall and the floor of each named area can be finished in a material from the library's *Materials*
 group: plaster and paint, brick and stone, concrete, wood, ceramic tile (among them a black and white checkered
 tile, 0.30 m squares), large stone slabs (0.60 m squares, for steps and outdoor paths), metal sheet, and for the
-ground gravel, lawn, a dirt road, pool water and a **stone pool** (its lining of 0.20 m green stones seen through the
+ground gravel, lawn, a garden bed's mulch, a dirt road, pool water and a **stone pool** (its lining of 0.20 m green stones seen through the
 water). An outdoor area can be a **pool**: give it a *Pool depth* in the Selection panel and in 3-D it sinks into the
 ground that deep, lined in its floor material (white tile when that is just water) under water 0.1 m below its rim,
 with the ground and a lot's lawn opened over it; the elevations leave it out. For **steps** in a pool, divide it with

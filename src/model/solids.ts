@@ -101,6 +101,9 @@ export type SolidMaterial =
   | 'bark'
   | 'linen'
   | 'olive'
+  | 'flower'
+  | 'lavender'
+  | 'blossom'
 
 export type { Face, Vec3 } from './faces'
 

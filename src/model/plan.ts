@@ -196,9 +196,12 @@ export const ChairSchema = z.strictObject({ kind: z.literal('chair'), ...Standin
 
 export const TREE_STYLES = ['shade', 'slender'] as const
 
-export const PLANT_STYLES = ['olive', 'shrub'] as const
+export const PLANT_STYLES = ['olive', 'shrub', 'bush', 'agapanthus', 'lavender', 'climber'] as const
 
-/** A plant in a pot, `width` its foliage across: a small olive tree, or a shrub. */
+/**
+ * A plant, `width` its foliage across: in a pot (a small olive tree, a shrub), or in the ground (a bush, a clump of
+ * agapanthus, lavender, a climber up a wall behind it).
+ */
 export const PlantSchema = z.strictObject({ kind: z.literal('plant'), style: z.enum(PLANT_STYLES), ...Standing })
 
 /** A tree, its crown `width` across (its trunk at `at`): a broad shade tree, or a tall slender one. */

@@ -31,6 +31,9 @@ const PALETTE: Record<SolidMaterial, THREE.MeshStandardMaterialParameters> = {
   bark: { color: '#5a4636', roughness: 1 },
   linen: { color: '#e8e1d3', roughness: 1 },
   olive: { color: '#76875a', roughness: 1 },
+  flower: { color: '#6a66d4', roughness: 0.9 },
+  lavender: { color: '#8e80b8', roughness: 1 },
+  blossom: { color: '#f4f2ec', roughness: 0.9 },
 }
 
 export const GRASS = '#6d8f4e'

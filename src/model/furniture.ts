@@ -54,6 +54,10 @@ export const FURNITURE: readonly FurnitureInfo[] = [
   { kind: 'chair', title: 'Chair', width: 0.45, depth: 0.5, height: 0.9, snap: 'table' },
   { kind: 'plant', style: 'olive', title: 'Olive tree in a pot', width: 1.2, depth: 1.2, height: 2.0, snap: 'none' },
   { kind: 'plant', style: 'shrub', title: 'Shrub in a pot', width: 0.6, depth: 0.6, height: 0.9, snap: 'none' },
+  { kind: 'plant', style: 'bush', title: 'Bush', width: 1.0, depth: 1.0, height: 0.9, snap: 'none' },
+  { kind: 'plant', style: 'agapanthus', title: 'Agapanthus', width: 0.7, depth: 0.7, height: 0.9, snap: 'none' },
+  { kind: 'plant', style: 'lavender', title: 'Lavender', width: 0.6, depth: 0.6, height: 0.5, snap: 'none' },
+  { kind: 'plant', style: 'climber', title: 'Climber (up a wall)', width: 1.6, depth: 0.3, height: 2.6, snap: 'wall' },
   { kind: 'tree', style: 'shade', title: 'Shade tree', width: 6, depth: 6, height: 7, snap: 'none' },
   { kind: 'tree', style: 'slender', title: 'Tall tree', width: 3.5, depth: 3.5, height: 11, snap: 'none' },
 ]
@@ -121,7 +125,7 @@ export function placeFurniture(layer: Layer, f: Furniture): Placement | null {
 /** Whether a plan point is on a piece (a round table is a disc, the rest rectangles). */
 export function onFurniture(f: Furniture, pl: Placement, p: Vec): boolean {
   const q = toLocal(pl, p)
-  if ((f.kind === 'table' && f.style === 'circle') || f.kind === 'tree' || f.kind === 'plant') return (q.x / (pl.width / 2)) ** 2 + (q.y / (pl.depth / 2)) ** 2 <= 1
+  if ((f.kind === 'table' && f.style === 'circle') || f.kind === 'tree' || (f.kind === 'plant' && f.style !== 'climber')) return (q.x / (pl.width / 2)) ** 2 + (q.y / (pl.depth / 2)) ** 2 <= 1
   return Math.abs(q.x) <= pl.width / 2 && Math.abs(q.y) <= pl.depth / 2
 }
 
@@ -310,6 +314,9 @@ export const isCoffee = (f: Furniture): boolean => f.kind === 'table' && (f.styl
 
 /** A plant's pot, across, m. */
 export const potSize = (width: number): number => Math.min(0.6, width * 0.5)
+
+/** Whether a plant stands in a pot (the rest grow in the ground). */
+export const potted = (style: string): boolean => style === 'olive' || style === 'shrub'
 
 /**
  * A sofa's footprint, local and before turning: a rectangle, or for a sectional an L, its return reaching the
@@ -537,6 +544,18 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
         { c: local(pl, 0, -hd + 0.08), r: 0.02, role: 'soft' },
       ]
     case 'plant': {
+      if (f.style === 'climber') {
+        // its spread along the wall, and a few flowers
+        return [
+          { pts: rounded(pl, -hw, -hd, hw, hd, Math.min(hd, 0.12)), closed: true, role: 'soft' },
+          ...[-0.3, 0, 0.3].map((x): SymbolPart => ({ c: local(pl, x * hw * 2, 0), r: 0.05, role: 'detail' })),
+        ]
+      }
+      if (!potted(f.style)) {
+        // its spread; an agapanthus's flower heads
+        const flowers = f.style === 'agapanthus' ? [0, 1, 2, 3, 4].map((i): SymbolPart => ({ c: local(pl, Math.cos(i * 1.26) * hw * 0.45, Math.sin(i * 1.26) * hd * 0.45), r: 0.05, role: 'detail' })) : []
+        return [{ pts: ellipse(pl, -hw, -hd, hw, hd, 24), closed: true, role: 'soft' }, ...flowers]
+      }
       // its pot, and its foliage over it
       const r = potSize(pl.width) / 2
       return [

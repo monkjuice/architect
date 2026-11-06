@@ -77,6 +77,7 @@ export const MATERIALS: readonly Material[] = [
   m('roof-membrane', 'White roof membrane', 'Roofing', ['roof'], 'outdoor', '#dcdcd8', 0.85),
   m('roof-green', 'Green roof', 'Roofing', ['roof'], 'outdoor', '#5d7d3c', 1, { pattern: 'grass' }),
   m('gravel', 'Gravel', 'Ground and garden', ['floor', 'roof'], 'outdoor', '#a59f94', 1, { pattern: 'gravel' }),
+  m('mulch', 'Garden bed (mulch)', 'Ground and garden', ['floor'], 'outdoor', '#4b3a2b', 1, { pattern: 'dirt' }),
   m('dirt', 'Dirt road', 'Ground and garden', ['floor'], 'outdoor', '#7a6450', 1, { pattern: 'dirt' }),
   m('grass', 'Lawn', 'Ground and garden', ['floor'], 'outdoor', '#5f8a3a', 1, { pattern: 'grass' }),
   m('water', 'Pool water', 'Ground and garden', ['floor'], 'outdoor', '#2f8fb0', 0.05, { clear: 0.25 }),

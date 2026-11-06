@@ -1,6 +1,6 @@
 import { frustumFaces, prismFaces, profileFaces, ring, smoothSides, type Face, type Vec3 } from './faces'
 import type { Vec } from './geometry'
-import { ellipse, ISLAND_OVERHANG, local, potSize, quarterDisc, rounded, showerPoint, SOFA, sofaCushions, sofaOutline, trestleBoards, trestleFrames, type Placement } from './furniture'
+import { ellipse, ISLAND_OVERHANG, local, potSize, potted, quarterDisc, rounded, showerPoint, SOFA, sofaCushions, sofaOutline, trestleBoards, trestleFrames, type Placement } from './furniture'
 import type { Furniture } from './plan'
 import type { SolidMaterial } from './solids'
 
@@ -297,6 +297,51 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
       }
       break
     case 'plant': {
+      if (!potted(f.style)) {
+        // in the ground: each one a little different, by where it stands
+        let seed = Math.abs(Math.round(pl.at.x * 1000 + pl.at.y * 7919)) % 2147483647 || 1
+        const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646
+        const info = { bush: 0.9 / 1.0, agapanthus: 0.9 / 0.7, lavender: 0.5 / 0.6, climber: 2.6 / 1.6 }[f.style as 'bush']
+        const tall = info * (f.style === 'climber' ? pl.width : Math.max(pl.width, pl.depth))
+        const blob = (dx: number, dy: number, r: number, z0: number, z1: number, material: SolidMaterial) => {
+          const at = local(pl, dx, dy)
+          const faces: Face[] = []
+          for (let i = 0; i < 5; i++) {
+            const [a0, a1] = [-Math.PI / 2 + (Math.PI * i) / 5, -Math.PI / 2 + (Math.PI * (i + 1)) / 5]
+            const [zm, h] = [(z0 + z1) / 2, (z1 - z0) / 2]
+            faces.push(...frustumFaces(at, Math.max(0.01, r * Math.cos(a0)), Math.max(0.01, r * Math.cos(a1)), zm + h * Math.sin(a0), zm + h * Math.sin(a1), 10))
+          }
+          parts.push({ faces: smoothSides(faces), material })
+        }
+        const r = Math.max(hw, hd)
+        if (f.style === 'bush') {
+          blob(0, 0, r * 0.85, 0, tall, 'foliage')
+          for (let i = 0; i < 3; i++) blob((rand() - 0.5) * r, (rand() - 0.5) * r, r * (0.5 + rand() * 0.2), tall * 0.15, tall * (0.8 + rand() * 0.15), 'foliage')
+        } else if (f.style === 'lavender') {
+          blob(0, 0, r, 0, tall * 0.7, 'foliage')
+          blob(0, 0, r * 0.9, tall * 0.35, tall, 'lavender')
+        } else if (f.style === 'agapanthus') {
+          // a mound of strap leaves, and tall stems each with a round head of flowers
+          blob(0, 0, r * 0.9, 0, tall * 0.4, 'foliage')
+          for (let i = 0; i < 7; i++) {
+            const [a, d] = [rand() * Math.PI * 2, rand() * r * 0.5]
+            const [x, y] = [Math.cos(a) * d, Math.sin(a) * d]
+            const top = tall * (0.75 + rand() * 0.25)
+            parts.push({ faces: frustumFaces(local(pl, x, y), 0.008, 0.006, tall * 0.2, top, 5), material: 'foliage' })
+            blob(x, y, 0.07 + rand() * 0.03, top - 0.06, top + 0.1, 'flower')
+          }
+        } else {
+          // a climber: a stem, and leaves spread up the wall behind it, white flowers among them
+          parts.push({ faces: smoothSides(frustumFaces(local(pl, 0, -hd + 0.06), 0.03, 0.02, 0, tall * 0.4, 8)), material: 'bark' })
+          for (let i = 0; i < 16; i++) {
+            const [x, z] = [(rand() - 0.5) * pl.width * 0.9, 0.3 + rand() * (tall - 0.5)]
+            const s = 0.18 + rand() * 0.14
+            blob(x, -hd + Math.min(s, hd), s, z - s, z + s, 'foliage')
+            if (rand() < 0.6) blob(x + (rand() - 0.5) * 0.2, -hd + Math.min(s, hd) + s * 0.8, 0.05, z - 0.05, z + 0.05, 'blossom')
+          }
+        }
+        break
+      }
       // a tapering stone pot, its soil, and the plant: a small olive tree (a trunk under a crown of grey-green
       // lobes), or a shrub of a few lobes sitting on the pot
       const pot = potSize(pl.width) / 2
