@@ -1,10 +1,10 @@
 ---
 title: Door, window and gate styles
 type: component
-summary: "Door styles (single, double, sliding), window styles (fixed, sliding, double-hung, awning, casement), gate styles (single, double, sliding) and the masonry fireplace: the style field and its defaults, the STYLES table with usual widths, hasSide/hasHinge/slides/cutsWall, sliding-gate direction and parkingRoom, and openingParts, the one source of symbol geometry for both the plan and the library icons (the fireplace's icon excepted)."
+summary: "Door styles (single, double, sliding), window styles (fixed, sliding, double-hung, awning, casement), gate styles (single, double, sliding) and fireplace styles (masonry, parrilla): the style field and its defaults, the STYLES table with usual widths, hasSide/hasHinge/slides/cutsWall, sliding-gate direction and parkingRoom, and openingParts, the one source of symbol geometry for both the plan and the library icons (the fireplace's icon excepted)."
 tags: [model, openings, doors, windows, gates, fireplace, ui]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-05
 ---
 
 # Door, window and gate styles
@@ -43,6 +43,7 @@ Placement, edits and the tools are in [Doors, windows and gates](doors-and-windo
 | gate | `double` | 3.00 | posts, a pair of leaves meeting in the middle (driveway) |
 | gate | `sliding` | 4.00 | posts, a panel across the opening, and a dashed outline of the panel parked beyond the end it slides towards |
 | fireplace | `masonry` | 1.20 | `parts.fireplace` (`fireplaceShape`): box, firebox, dashed hearth, crossed flue; no gap ([Fireplaces](fireplaces.md)) |
+| fireplace | `parrilla` | 1.80 | the same parts, 0.8 m deep with a wider firebox (`4097821`) |
 
 - `styleKey` gives `"door:double"`. It keys the width prefs, the library counts and the drag data. `styleInfo` looks
   up a style, and `isStyleOf` checks that a style belongs to a kind.

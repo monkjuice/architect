@@ -1,7 +1,7 @@
 ---
 title: "House solids: the plan in 3-D"
 type: component
-summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
+summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces and parrillas with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
 tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery]
 sources: []
 updated: 2026-11-05
@@ -34,7 +34,7 @@ furniture `ceramic`, `wood` and `fabric`. Their
 colours are set twice, in `src/render/house.ts` and `src/ui/ElevationsTab.tsx`.
 
 Finishes override the palette ([Materials and finishes](materials-and-finishes.md)): `Face.finish` (wall pieces, roof faces) and
-`Solid.finish` (floors) hold a catalogue id, and only ids `findMaterial` knows are set. `house.ts` makes one mesh
+`Solid.finish` (floors; a fireplace's `brick` parts, since `4097821`) hold a catalogue id, and only ids `findMaterial` knows are set. `house.ts` makes one mesh
 per material key (palette name or `"finish:<id>"`), so a wall finished on one side is two meshes.
 `ElevationPolygon.finish` (face's, else solid's) gives the elevation fill.
 
@@ -92,9 +92,9 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
   reveals drew as pale stripes beside every window on a brick facade. Tops, bottoms and faces with holes keep the
   base material. A floor carries `area.floor` as `Solid.finish`.
 - Fireplaces ([Fireplaces](fireplaces.md)) are built after the roofs, because the chimney's height needs the roof
-  over its flue: brick and stone up to the `MANTEL` (1.10 m), then the chimney to `CHIMNEY_ABOVE` (1 m) over that
-  roof (thickness and a flat roof's parapet included), or 1 m over its wall, under a stone cap. Their walls are not
-  cut.
+  over its flue: brick and stone up to the `MANTEL` (1.10 m), or a parrilla's counter, grill and hood up to 2.3 m,
+  then the chimney to `CHIMNEY_ABOVE` (1 m) over that roof (thickness and a flat roof's parapet included), or 1 m
+  over its wall, under a stone cap. Their walls are not cut.
 - Furniture last: `furnitureParts(f, placeFurniture(layer, f))` from `src/model/furniture3d.ts`, one `furniture`
   solid per part, ref to the piece; a kitchen sink without its counter is skipped
   ([Furniture and fixtures](furniture.md)).

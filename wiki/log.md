@@ -270,3 +270,11 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/roofs.md (offsetEdges; galleryRoof on the centreline ring, in to the house wall face, out 0.5 m on free sides, overhang 0 and why, Overhang-field caveat, user's r2 rebuilt; summary)
 - updated: pages/house-solids.md (wall trimming per wall by roofOver(midpoint), per-point rule rejected and why; "not a bug" note corrected into a debugging lesson: probe houseSolids before trusting screenshots)
 - updated: index.md (Roofs summary)
+
+## [2026-11-05] update | Parrilla, stone pool, stone slabs, tile and stacked-stone textures
+- updated: pages/fireplaces.md (parrilla style, PARRILLA_DEPTH/CHEEK and fireplaceDepth, parrilla solids, fireplace finish on brick parts only, Selection panel field, limits; summary, tags)
+- updated: pages/materials-and-finishes.md (32 materials, tile and water fields, stone-slab and pool-stone, tiles and stone textures, no sunken pool; fireplace finish; summary, tags)
+- updated: pages/house-solids.md (Solid.finish on fireplace brick parts, parrilla heights; summary)
+- updated: pages/exterior-tab.md (tile and stacked stone textures, pool painted into its floor; summary)
+- updated: pages/opening-styles.md (parrilla row in STYLES; summary)
+- updated: index.md (Fireplaces, Door/window/gate styles, Materials and finishes, House solids, Exterior tab summaries)
