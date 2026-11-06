@@ -204,7 +204,7 @@ Furniture and fixtures go where you click (pick one in the library, or drag it o
 | **Toilets** | *Toilet* 0.40 × 0.70 m, its cistern to the wall; *Bidet* 0.38 × 0.55 m | back up to a wall |
 | **Beds** | *Single* 0.95 × 2.00, *Double* 1.45 × 2.00, *Queen* 1.65 × 2.10, *King* 1.85 × 2.10 m (mattress and frame) | head to a wall |
 | **Sofas** | *Armchair* 0.90 × 0.90 m, *Loveseat* 1.60 × 0.90 m, *Three-seater* 2.20 × 0.95 m, *Sectional* 2.80 × 1.70 m (an L whose return, at its right end, *Flip* moves to its left), 0.85 m high | back up to a wall |
-| **Tables** | *Square* 0.90 × 0.90 m, *Circle* Ø 1.10 m, 0.75 m high; *Coffee* (mesa ratona) 1.20 × 0.60 m, 0.42 m high, with a shelf | stand where they are put; a coffee table stands centred 0.40 m in front of a sofa it is put by (a sectional's main seat), squared to it |
+| **Tables** | *Square* 0.90 × 0.90 m, *Circle* Ø 1.10 m, 0.75 m high; *Coffee* (mesa ratona) 1.20 × 0.60 m, 0.42 m high, with a shelf; *Oak trestle* 3.20 × 1.10 m, 0.78 m high, any length: a 9 cm top of long boards over leg frames (square legs on a foot rail, a third frame in the middle when over 4 m), a low stretcher and braces, in solid reclaimed oak with its grain along each piece | stand where they are put; a coffee table stands centred 0.40 m in front of a sofa it is put by (a sectional's main seat), squared to it |
 | **Chairs** | 0.45 × 0.50 m | turn to face a dining table they are put by |
 | **Trees** | *Shade tree* a crown 6 m across, 7 m high; *Tall tree* 3.5 m across, 11 m high (taller as they are wider) | stand where they are put, for gardens and streets |
 

@@ -8,7 +8,7 @@ import type { Material } from '../model/materials'
  * kept for the session: the house is rebuilt on every change, its textures are not.
  */
 
-export type TextureKind = 'brick' | 'planks' | 'grass' | 'seams' | 'tiles' | 'stone' | 'dirt' | 'checker'
+export type TextureKind = 'brick' | 'planks' | 'grass' | 'seams' | 'tiles' | 'stone' | 'dirt' | 'grain' | 'checker'
 
 /** What a finish's texture shows, and its canvas: one repeat, in px, at `px` pixels per metre. */
 export interface TextureRecipe {
@@ -44,6 +44,8 @@ export function textureRecipe(material: Material): TextureRecipe | null {
       return { kind: 'grass', width: LAWN.size, height: LAWN.size, px: LAWN.px, depth: 0.004 }
     case 'dirt':
       return { kind: 'dirt', width: LAWN.size, height: LAWN.size, px: LAWN.px, depth: 0.006 }
+    case 'grain':
+      return { kind: 'grain', width: 768, height: 256, px: 256, depth: 0.002 }
     case 'seams':
       return { kind: 'seams', width: SEAM.panel * SEAM.panels, height: SEAM.length, px: SEAM.px, depth: 0.025 }
     case 'tiles': {
@@ -484,6 +486,64 @@ function paintDirt(r: TextureRecipe, material: Material, rand: () => number): Pa
   return { map: color.el, height: height.el }
 }
 
+/**
+ * Solid timber along its grain: long wavy streaks darker and lighter, broad bands of tone, a few knots and checks,
+ * the grey of weathered (reclaimed) oak in places. It runs along a texture's u, which faces set along each piece.
+ */
+function paintGrain(r: TextureRecipe, material: Material, rand: () => number): Painted {
+  const [color, height] = [canvas(r.width, r.height), canvas(r.width, r.height)]
+  const base = rgb(material.color)
+  color.g.fillStyle = css(base)
+  color.g.fillRect(0, 0, r.width, r.height)
+  height.g.fillStyle = gray(200)
+  height.g.fillRect(0, 0, r.width, r.height)
+  // bands of tone across the grain, wrapped top to bottom
+  for (let i = 0; i < 14; i++) {
+    const [y, h] = [rand() * r.height, 6 + rand() * 30]
+    const tint = rand() < 0.5 ? scaled(base, 0.82) : [base[0] * 1.08 + 8, base[1] * 1.08 + 8, base[2] * 1.12 + 10]
+    color.g.fillStyle = css(tint as Rgb, 0.18 + rand() * 0.2)
+    for (const yy of [y, y - r.height]) color.g.fillRect(0, yy, r.width, h)
+  }
+  // the grain: streaks the length of the repeat, waving gently (the ends meet as it repeats along)
+  for (let i = 0; i < 70; i++) {
+    const [y0, amp, phase, waves] = [rand() * r.height, 0.5 + rand() * 3, rand() * 6, 1 + Math.floor(rand() * 3)]
+    const dark = rand() < 0.7
+    color.g.strokeStyle = dark ? css([45, 30, 18], 0.08 + rand() * 0.2) : css([235, 220, 195], 0.05 + rand() * 0.1)
+    color.g.lineWidth = 0.6 + rand() * 1.8
+    height.g.strokeStyle = gray(dark ? 160 : 225, 0.6)
+    height.g.lineWidth = color.g.lineWidth
+    for (const g of [color.g, height.g]) {
+      g.beginPath()
+      for (let x = 0; x <= r.width; x += 8) {
+        const y = y0 + Math.sin((x / r.width) * Math.PI * 2 * waves + phase) * amp
+        if (x) g.lineTo(x, y)
+        else g.moveTo(x, y)
+      }
+      g.stroke()
+    }
+  }
+  // a few knots and checks
+  for (let i = 0; i < 4; i++) {
+    const [kx, ky] = [rand() * r.width, 20 + rand() * (r.height - 40)]
+    const knot = color.g.createRadialGradient(kx, ky, 0, kx, ky, 12)
+    knot.addColorStop(0, css([40, 25, 14], 0.6))
+    knot.addColorStop(1, css([40, 25, 14], 0))
+    color.g.fillStyle = knot
+    color.g.beginPath()
+    color.g.ellipse(kx, ky, 14, 6, 0, 0, Math.PI * 2)
+    color.g.fill()
+    color.g.strokeStyle = css([35, 22, 12], 0.5)
+    color.g.lineWidth = 1
+    color.g.beginPath()
+    color.g.moveTo(kx + 14, ky)
+    color.g.lineTo(kx + 40 + rand() * 60, ky + (rand() - 0.5) * 3)
+    color.g.stroke()
+  }
+  grain(color.g, rand, 0.08)
+  grain(height.g, rand, 0.1)
+  return { map: color.el, height: height.el }
+}
+
 function paintChecker(r: TextureRecipe, material: Material): Painted {
   const [dark, light] = material.checker!.colors
   const { el, g } = canvas(r.width, r.height)
@@ -555,7 +615,9 @@ export function finishTextures(material: Material): FinishTextures | null {
                   ? paintStone(r, material, rand)
                   : r.kind === 'dirt'
                     ? paintDirt(r, material, rand)
-                    : paintChecker(r, material)
+                    : r.kind === 'grain'
+                      ? paintGrain(r, material, rand)
+                      : paintChecker(r, material)
     const texture = (el: HTMLCanvasElement, colour: boolean) => {
       const t = new THREE.CanvasTexture(el)
       t.wrapS = t.wrapT = THREE.RepeatWrapping

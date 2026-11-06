@@ -23,6 +23,8 @@ export interface Face {
   smooth?: boolean
   /** A material id (see materials.ts) it is finished in, over its solid's own material: one side of a wall. */
   finish?: string
+  /** The way its texture's grain runs, in its plane (a board's length): otherwise along its eaves, or the plan's x. */
+  grain?: Vec3
 }
 
 export const v3 = (p: Vec, z: number): Vec3 => ({ x: p.x, y: p.y, z })

@@ -45,6 +45,7 @@ export const FURNITURE: readonly FurnitureInfo[] = [
   { kind: 'sofa', style: 'three-seater', title: 'Three-seater', width: 2.2, depth: 0.95, height: 0.85, snap: 'wall' },
   { kind: 'sofa', style: 'sectional', title: 'Sectional', width: 2.8, depth: 1.7, height: 0.85, snap: 'wall' },
   { kind: 'table', style: 'square', title: 'Square', width: 0.9, depth: 0.9, height: 0.75, snap: 'none' },
+  { kind: 'table', style: 'trestle', title: 'Oak trestle', width: 3.2, depth: 1.1, height: 0.78, snap: 'none' },
   { kind: 'table', style: 'circle', title: 'Circle', width: 1.1, depth: 1.1, height: 0.75, snap: 'none' },
   { kind: 'table', style: 'coffee', title: 'Coffee', width: 1.2, depth: 0.6, height: 0.42, snap: 'sofa' },
   { kind: 'chair', title: 'Chair', width: 0.45, depth: 0.5, height: 0.9, snap: 'table' },
@@ -379,6 +380,18 @@ export type SymbolPart =
   | { pts: Vec[]; closed: boolean; role: 'outline' | 'detail' | 'soft' | 'heavy' }
   | { c: Vec; r: number; role: 'outline' | 'detail' | 'soft' | 'heavy' }
 
+/** A trestle table's top in boards about 0.35 m wide: where each starts across its depth (local y), from its back edge. */
+export function trestleBoards(depth: number): number[] {
+  const n = Math.max(2, Math.round(depth / 0.35))
+  return Array.from({ length: n }, (_, i) => -depth / 2 + (depth * i) / n)
+}
+
+/** Where a trestle table's leg frames stand along it (local x): in from each end, and one more in the middle of a long one. */
+export function trestleFrames(width: number): number[] {
+  const end = width / 2 - Math.min(0.4, width * 0.09)
+  return width > 4 ? [-end, 0, end] : [-end, end]
+}
+
 /** An ellipse inside the box x0..x1, y0..y1 (local), as a polygon. */
 export const ellipse = (pl: Placement, x0: number, y0: number, x1: number, y1: number, n = 32): Vec[] =>
   Array.from({ length: n }, (_, i) => {
@@ -472,6 +485,15 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
     }
     case 'table':
       if (f.style === 'coffee') return [{ pts: rounded(pl, -hw, -hd, hw, hd, 0.06), closed: true, role: 'outline' }, { pts: rounded(pl, -hw + 0.06, -hd + 0.06, hw - 0.06, hd - 0.06, 0.04), closed: true, role: 'soft' }]
+      if (f.style === 'trestle') {
+        // its top's boards, and the leg frames under it
+        const boards = trestleBoards(pl.depth)
+        return [
+          outline,
+          ...boards.slice(1).map((y): SymbolPart => ({ pts: [local(pl, -hw, y), local(pl, hw, y)], closed: false, role: 'soft' })),
+          ...trestleFrames(pl.width).map((x): SymbolPart => ({ pts: box(x - 0.07, -hd + 0.09, x + 0.07, hd - 0.09), closed: true, role: 'soft' })),
+        ]
+      }
       return f.style === 'circle' ? [{ pts: ellipse(pl, -hw, -hd, hw, hd, 48), closed: true, role: 'outline' }] : [outline]
     case 'shower':
       // a tray with its drain, the head on its edge, and the glass screen along its front

@@ -552,7 +552,11 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   for (const [id, f] of Object.entries(layer.furniture)) {
     const pl = placeFurniture(layer, f)
     if (!pl) continue
-    for (const part of furnitureParts(f, pl)) out.push(solid('furniture', part.faces, part.material, ref('furniture', id)))
+    for (const part of furnitureParts(f, pl)) {
+      const s = solid('furniture', part.faces, part.material, ref('furniture', id))
+      if (part.finish) s.finish = part.finish
+      out.push(s)
+    }
   }
 }
 

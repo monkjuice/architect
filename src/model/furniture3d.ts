@@ -1,6 +1,6 @@
-import { frustumFaces, prismFaces, ring, smoothSides, type Face } from './faces'
+import { frustumFaces, prismFaces, profileFaces, ring, smoothSides, type Face, type Vec3 } from './faces'
 import type { Vec } from './geometry'
-import { ellipse, ISLAND_OVERHANG, local, quarterDisc, rounded, showerPoint, SOFA, sofaOutline, type Placement } from './furniture'
+import { ellipse, ISLAND_OVERHANG, local, quarterDisc, rounded, showerPoint, SOFA, sofaOutline, trestleBoards, trestleFrames, type Placement } from './furniture'
 import type { Furniture } from './plan'
 import type { SolidMaterial } from './solids'
 
@@ -13,12 +13,17 @@ import type { SolidMaterial } from './solids'
 export interface FurniturePart {
   faces: Face[]
   material: SolidMaterial
+  /** A material id it is finished in (see materials.ts): a trestle table's oak. */
+  finish?: string
 }
 
 /** The tops of things, in m above the floor. */
 export const WORKTOP = 0.9
 const VANITY = 0.86
 const SHOWER_HEAD = 1.95
+
+const sub2 = (a: Vec, b: Vec): Vec => ({ x: a.x - b.x, y: a.y - b.y })
+const mul2 = (a: Vec, k: number): Vec => ({ x: a.x * k, y: a.y * k })
 
 export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
   const [hw, hd] = [pl.width / 2, pl.depth / 2]
@@ -164,6 +169,48 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
       break
     }
     case 'table':
+      if (f.style === 'trestle') {
+        // a farmhouse trestle in solid oak: a thick top of long boards over leg frames (two square legs on a foot
+        // rail, a bearer under the top), a stretcher low along the middle, and braces from it up to the top
+        const [top, thick] = [0.78, 0.09]
+        const under = top - thick
+        const along = mul2(sub2(local(pl, 1, 0), local(pl, 0, 0)), 1)
+        const xDir: Vec3 = { x: along.x, y: along.y, z: 0 }
+        const yDir: Vec3 = { x: -along.y, y: along.x, z: 0 }
+        const up: Vec3 = { x: 0, y: 0, z: 1 }
+        const oak = (faces: Face[], grain: Vec3) => parts.push({ faces: faces.map((g) => ({ ...g, grain })), material: 'wood', finish: 'oak-solid' })
+        const block = (x0: number, y0: number, x1: number, y1: number, z0: number, z1: number, grain: Vec3) => oak(prismFaces(box(x0, y0, x1, y1), [], z0, z1), grain)
+        const edges = [...trestleBoards(pl.depth), hd]
+        for (let i = 0; i + 1 < edges.length; i++) block(-hw, edges[i] + (i ? 0.003 : 0), hw, edges[i + 1] - (i + 2 < edges.length ? 0.003 : 0), under, top, xDir)
+        const legY = hd - 0.16
+        const frames = trestleFrames(pl.width)
+        for (const x of frames) {
+          for (const y of [-legY, legY]) block(x - 0.07, y - 0.07, x + 0.07, y + 0.07, 0, under, up)
+          block(x - 0.06, -legY - 0.1, x + 0.06, legY + 0.1, 0.05, 0.17, yDir)
+          block(x - 0.06, -hd + 0.06, x + 0.06, hd - 0.06, under - 0.1, under, yDir)
+        }
+        const [x0, x1] = [frames[0], frames[frames.length - 1]]
+        block(x0, -0.05, x1, 0.05, 0.2, 0.32, xDir)
+        // the braces, rising from the stretcher near each end frame towards the middle
+        const reach = Math.min(0.9, (x1 - x0) / 4)
+        for (const [from, dir] of [
+          [x0 + 0.1, 1],
+          [x1 - 0.1, -1],
+        ] as const) {
+          const [s0, s1] = [from, from + dir * reach]
+          const rise = under - 0.1 - 0.32
+          const len = Math.hypot(reach, rise)
+          const grain: Vec3 = { x: (along.x * dir * reach) / len, y: (along.y * dir * reach) / len, z: rise / len }
+          const profile: [number, number][] = [
+            [s0, 0.32],
+            [s0 + dir * 0.13, 0.32],
+            [s1, under - 0.1],
+            [s1 - dir * 0.13, under - 0.1],
+          ]
+          oak(profileFaces(local(pl, 0, 0), along, 0.04, profile), grain)
+        }
+        break
+      }
       if (f.style === 'coffee') {
         // a low top on four legs, a shelf between them
         put(rounded(pl, -hw, -hd, hw, hd, 0.06), 0.38, 0.42, 'wood')

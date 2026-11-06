@@ -9,7 +9,7 @@
 export type Surface = 'wall' | 'floor' | 'ceiling' | 'roof' | 'door' | 'frame'
 
 /** A pattern drawn on it in 3-D, repeated at its real size. */
-export type Pattern = 'brick' | 'planks' | 'tiles' | 'stone' | 'grass' | 'gravel' | 'seams' | 'dirt'
+export type Pattern = 'brick' | 'planks' | 'tiles' | 'stone' | 'grass' | 'gravel' | 'seams' | 'dirt' | 'grain'
 
 export interface Material {
   id: string
@@ -60,6 +60,7 @@ export const MATERIALS: readonly Material[] = [
   m('paving-concrete', 'Concrete pavers', 'Concrete', ['floor'], 'outdoor', '#b3aea5', 0.9, { pattern: 'tiles', tile: 0.4 }),
   m('wood-oak', 'Oak', 'Wood', ['wall', 'floor', 'ceiling', 'door', 'frame'], 'both', '#b48a58', 0.62, { pattern: 'planks' }),
   m('wood-walnut', 'Walnut', 'Wood', ['wall', 'floor', 'ceiling', 'door', 'frame'], 'both', '#5e3e28', 0.58, { pattern: 'planks' }),
+  m('oak-solid', 'Solid reclaimed oak', 'Wood', ['door', 'frame'], 'both', '#8b7259', 0.75, { pattern: 'grain' }),
   m('wood-deck', 'Hardwood deck', 'Wood', ['floor', 'wall'], 'outdoor', '#7a4a2c', 0.7, { pattern: 'planks' }),
   m('tile-light', 'Light porcelain tile', 'Ceramic', ['floor', 'wall'], 'both', '#d9d5cd', 0.35, { pattern: 'tiles', tile: 0.6 }),
   m('tile-dark', 'Dark porcelain tile', 'Ceramic', ['floor', 'wall'], 'both', '#4a4845', 0.35, { pattern: 'tiles', tile: 0.6 }),
