@@ -270,9 +270,12 @@ covers, usually the walls' outside faces) on a layer, and its eaves stand an **o
 | **Gable** | Two slopes meeting at a ridge along one side's direction; the other sides are gable ends. *Turn the ridge* runs it the other way. |
 | **Hip** | A slope from every side, meeting at hips and a ridge. It needs a convex outline: draw an L-shaped house as two overlapping roofs (the panel warns otherwise). |
 
-- **Roof the house** covers the active layer's covered areas (rooms, and galleries bounded by walls and open
-  edges) with one roof per group of areas that touch, out to the walls' outside faces (0.15 m past the
-  centrelines) and as high as their tallest wall, of the type picked under *New roofs*.
+- **Roof the house** covers the active layer's covered areas out to the walls' outside faces (0.15 m past the
+  centrelines), as high as their tallest wall: one roof of the type picked under *New roofs* per group of rooms
+  that touch, and apart from them, so it can have its own pitch, a nearly flat shed (2°) per group of galleries
+  (bounded by walls and open edges), sloping down away from the house and tucked 0.1 m under the top of its walls,
+  under the house's eaves. Walls stop at the underside of the roof they stand in (the highest, where two cover
+  them), or of the lowest overhang over them: a gallery's end walls stop under its roof.
 - **Roof** (`R`) draws one: click its corners (they snap to the plan's points and lines; `Shift` keeps 45°), then
   click the first corner or press `Enter`. `Backspace` takes a corner back, `Esc` cancels.
 - **Select** (`V`): click a roof (`Shift` adds), drag it to move it, drag a corner of a selected roof to reshape

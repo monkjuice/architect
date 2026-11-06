@@ -1,6 +1,6 @@
-import { add, cross, dist, dot, EPS, lerp, mul, polygonArea, signedArea, sub, type Vec } from './geometry'
+import { add, closestOnSegment, cross, dist, dot, EPS, lerp, mul, polygonArea, signedArea, sub, type Vec } from './geometry'
 import type { Roof, RoofType } from './plan'
-import { WALL_HEIGHT } from './walls'
+import { EXTERIOR_WALL, WALL_HEIGHT } from './walls'
 
 /**
  * Roof geometry. A roof covers its outline (usually the walls' outside faces) and its eaves stand `overhang`
@@ -228,6 +228,33 @@ export function newRoof(outline: readonly Vec[], type: RoofType, height = WALL_H
   })
   const flat = type === 'flat'
   return { outline: pts, type, pitch: type === 'shed' ? 10 : 25, height, overhang: flat ? 0 : 0.5, edge, parapet: flat ? 0.3 : 0 }
+}
+
+/** The pitch a gallery's roof starts at, in degrees: as near flat as still sheds water. */
+export const GALLERY_PITCH = 2
+
+/**
+ * A gallery's own roof, apart from the rooms' so it can be nearly flat: a shed sloping down away from the house, to
+ * its longest side that does not run along the rooms (`rooms`, their outlines), and 0.1 m under the top of the
+ * walls (`top`) where it meets them, so it tucks under the eaves of the rooms' roof.
+ */
+export function galleryRoof(outline: readonly Vec[], rooms: readonly (readonly Vec[])[], top: number): Roof {
+  const roof = newRoof(outline, 'shed')
+  const pts = roof.outline
+  const next = (i: number) => pts[(i + 1) % pts.length]
+  const alongRooms = (i: number) => {
+    const m = lerp(pts[i], next(i), 0.5)
+    return rooms.some((r) => r.some((p, j) => closestOnSegment(m, p, r[(j + 1) % r.length]).dist < EXTERIOR_WALL))
+  }
+  let edge = roof.edge
+  let longest = -1
+  pts.forEach((p, i) => {
+    if (!alongRooms(i) && dist(p, next(i)) > longest) [edge, longest] = [i, dist(p, next(i))]
+  })
+  const [a, b] = [pts[edge], next(edge)]
+  const depth = Math.max(...pts.map((p) => Math.abs(cross(sub(b, a), sub(p, a))) / dist(a, b)))
+  const rise = depth * Math.tan((GALLERY_PITCH * Math.PI) / 180)
+  return { ...roof, edge, pitch: GALLERY_PITCH, height: top - 0.1 - roofThickness(roof) - rise }
 }
 
 /**

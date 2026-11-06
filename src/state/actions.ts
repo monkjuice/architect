@@ -24,7 +24,7 @@ import {
   type Ref,
 } from '../model/plan'
 import { parsePlanText, serializePlan } from '../model/planFile'
-import { newRoof, offsetPolygon, unionOutlines } from '../model/roofs'
+import { galleryRoof, GALLERY_PITCH, newRoof, offsetPolygon, unionOutlines } from '../model/roofs'
 import { isCovered } from '../model/solids'
 import { EXTERIOR_WALL, WALL_HEIGHT, wallHeight } from '../model/walls'
 import { pickFile, pickPlanFile, readImageFile, savePlanFile } from './files'
@@ -90,8 +90,10 @@ export function addRoofOutline(outline: Vec[]) {
 }
 
 /**
- * Roofs over the active layer's covered areas (rooms, and galleries bounded by walls and open edges), one per
- * group of areas that touch, out to the walls' outside faces and as high as the tallest of their walls.
+ * Roofs over the active layer's covered areas, out to the walls' outside faces and as high as the tallest of their
+ * walls: one of the type last picked over each group of rooms that touch, and apart from them a nearly flat shed
+ * over each group of galleries (bounded by walls and open edges), sloping away from the house under its eaves, so
+ * the two can have different pitches.
  */
 export function roofTheHouse() {
   const store = getStore()
@@ -106,8 +108,14 @@ export function roofTheHouse() {
   const { roofType } = store.getState()
   let plan = store.getState().plan
   const ids: string[] = []
-  for (const ring of unionOutlines(covered.map((r) => r.outer))) {
-    const result = addRoof(plan, layer.id, newRoof(offsetPolygon(ring, EXTERIOR_WALL / 2), roofType, height))
+  const rooms = unionOutlines(covered.filter((r) => r.indoor).map((r) => r.outer))
+  const galleries = unionOutlines(covered.filter((r) => !r.indoor).map((r) => r.outer))
+  const roofs = [
+    ...rooms.map((ring) => newRoof(offsetPolygon(ring, EXTERIOR_WALL / 2), roofType, height)),
+    ...galleries.map((ring) => galleryRoof(offsetPolygon(ring, EXTERIOR_WALL / 2), rooms, height)),
+  ]
+  for (const roof of roofs) {
+    const result = addRoof(plan, layer.id, roof)
     if (!result) continue
     plan = result.plan
     ids.push(result.id)
@@ -116,7 +124,10 @@ export function roofTheHouse() {
   store.select(ids.map((id) => ({ layer: layer.id, kind: 'roof' as const, id })))
   store.notify({
     kind: 'info',
-    text: `${ids.length === 1 ? 'A roof covers' : `${ids.length} roofs cover`} the rooms and galleries of ${layer.name}, out to the walls' outside faces. Set its type, pitch and overhang in the Roofs section.`,
+    text:
+      `${ids.length === 1 ? 'A roof covers' : `${ids.length} roofs cover`} the rooms and galleries of ${layer.name}, out to the walls' outside faces` +
+      (galleries.length ? `, the galleries apart, sloping away from the house at ${GALLERY_PITCH}° under its eaves` : '') +
+      '. Set each one\'s type, pitch and overhang in the Roofs section.',
   })
 }
 

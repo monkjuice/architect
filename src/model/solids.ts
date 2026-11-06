@@ -157,6 +157,19 @@ function solid(kind: SolidKind, faces: Face[], material: SolidMaterial, ref: Ref
   return { kind, faces, bottom: Math.min(...zs), top: Math.max(...zs), material, ref }
 }
 
+/** The upward normal of a ring of points that are (near enough) in one plane, by Newell's method. */
+function upward(pts: readonly Vec3[]): Vec3 {
+  const n = { x: 0, y: 0, z: 0 }
+  pts.forEach((p, i) => {
+    const q = pts[(i + 1) % pts.length]
+    n.x += (p.y - q.y) * (p.z + q.z)
+    n.y += (p.z - q.z) * (p.x + q.x)
+    n.z += (p.x - q.x) * (p.y + q.y)
+  })
+  const u = norm(n)
+  return u.z < 0 ? { x: -u.x, y: -u.y, z: -u.z } : u
+}
+
 const prism = (kind: SolidKind, outline: readonly Vec[], holes: readonly (readonly Vec[])[], bottom: number, top: number, material: SolidMaterial, ref: Ref) =>
   solid(kind, prismFaces(outline, holes, bottom, top), material, ref)
 
@@ -245,6 +258,27 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   }
   /** A wall or edge's underside profile under `roof`, as (distance along it, height). */
   const profile = (roof: Roof, a: Vec, b: Vec): [number, number][] => undersideAlong(roof, a, b).map(({ t, z }) => [t * dist(a, b), z])
+
+  // walls (and the wall over their doors and windows) stop at the underside of the highest roof whose outline they
+  // stand in, or of the lowest overhang over them when they stand in none, where it is lower than their tops: a
+  // gallery's end walls under its nearly flat roof, tucked under the house's eaves. The wall the gallery leans on
+  // stands in the house's roof too, which is higher, so it keeps its height
+  const ceiling = (p: Vec): number => {
+    const heights = (rs: typeof roofs) => rs.map((r) => underside(r.roof, r.planes, p))
+    const within = roofs.filter((r) => covers(r.roof.outline, p))
+    return within.length ? Math.max(...heights(within)) : Math.min(...heights(roofs.filter((r) => covers(r.eaves, p))))
+  }
+  for (const s of roofs.length ? out : []) {
+    if (s.ref.layer !== layer.id || s.ref.kind !== 'segment' || (s.kind !== 'wall' && s.kind !== 'lintel')) continue
+    const { top, bottom } = s
+    const atTop = (p: Vec3) => p.z > top - 1e-6
+    if (!s.faces.some((f) => f.pts.some((p) => atTop(p) && ceiling(p) < p.z - 1e-3))) continue
+    s.faces = s.faces.map((f) => {
+      const pts = f.pts.map((p) => (atTop(p) ? { ...p, z: Math.max(bottom, Math.min(p.z, ceiling(p))) } : p))
+      return f.normal.z > 0.99 ? { ...f, pts, normal: upward(pts) } : { ...f, pts }
+    })
+    s.top = Math.max(...s.faces.flatMap((f) => f.pts.map((p) => p.z)))
+  }
 
   // walls that face outside rise to the roof over them: a gable end's triangle, a shed's high side
   for (const id of wallIds) {
