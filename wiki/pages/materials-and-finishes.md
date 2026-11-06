@@ -1,8 +1,8 @@
 ---
 title: Materials and finishes
 type: component
-summary: "A materials catalogue (src/model/materials.ts: 32 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares, tile sizes, a stone pool lining under water; brick, wood, lawn, standing seam metal, square tiles and stacked stone textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides, area floors, roofs and fireplaces (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish, area.floor and roof.finish/soffit in the plan), set by the Material tool, library drags, the Selection panel or the Roofs section, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
-tags: [model, materials, finishes, walls, areas, roof, ui, 3d, library, lots, textures, pool, fireplace]
+summary: "A materials catalogue (src/model/materials.ts: 33 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares, tile sizes, a stone pool lining under water; brick, wood, lawn, standing seam metal, square tiles, stacked stone and dirt road textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides, area floors, roofs and fireplaces (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish, area.floor and roof.finish/soffit in the plan), set by the Material tool, library drags, the Selection panel or the Roofs section, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
+tags: [model, materials, finishes, walls, areas, roof, ui, 3d, library, lots, textures, pool, fireplace, roads]
 sources: []
 updated: 2026-11-05
 ---
@@ -15,7 +15,7 @@ material can go on, and materials shown in groups.
 
 ## Catalogue (`src/model/materials.ts`)
 
-- `MATERIALS`: 32 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
+- `MATERIALS`: 33 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
   concrete, wood, ceramic, metal, glass, roofing, ground and garden. Each has `surfaces` (`wall`, `floor`,
   `ceiling`, `roof`, `door`, `frame`), `indoor`/`outdoor` flags, and `color`, `roughness`, `metalness`, `clear` for
   the renderers. `wall`, `floor`, `roof` (a roof's covering) and `ceiling` (its soffit) are used so far.
@@ -40,8 +40,11 @@ material can go on, and materials shown in groups.
   - Relief depth 0.006 for natural stone (family Brick and stone, or `water`), else 0.003.
   - `stone` (`paintStone`, used by `stone-cladding`): stacked stone in courses 0.08–0.20 m high filling a 2 × 1 m
     repeat, stones 0.18–0.6 m long wrapping round the edge, dark recessed joints, bulging faces, depth 0.015.
-- **No sunken pool**: the 3-D ground plane is opaque at height 0, so a pool is a floor slab with its lining painted
-  into the "water" texture. A deliberate approximation, not a bug.
+- `dirt` ("Dirt road", Ground and garden, floor, outdoor; `506fd9e`, for the streets round the user's lot):
+  `paintDirt`, an 8 m repeat at 128 px/m like the lawn, drier and damper patches wrapping round the edges, pebbles
+  as bumps, depth 0.006.
+- Pools sink since `506fd9e`: an area with a `depth` gets a basin lined in its floor material and a water slab
+  ([House solids](house-solids.md)); the `water` material (clear) as floor leaves the basin plain `ceramic`.
 - `checker: {colors: [dark, light], tile}` (since `64f59b7`, only `tile-checkered`: Ceramic, floors, indoors and
   out, 0.3 m squares) is drawn as real squares in the swatch, the plan and 3-D (see below). Its `color` holds the
   mix of the two colours, for places where the squares don't show (the elevations).

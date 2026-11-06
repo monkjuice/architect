@@ -1,10 +1,10 @@
 ---
 title: Furniture and fixtures
 type: component
-summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips), square, round and coffee tables, chairs; src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
-tags: [model, furniture, ui, canvas, 3d]
+summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips), square, round and coffee tables, chairs, trees (shade, slender); src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
+tags: [model, furniture, ui, canvas, 3d, trees]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-05
 ---
 
 # Furniture and fixtures
@@ -58,6 +58,9 @@ the Argentine *mesa ratona*).
     corner (meant for the room's corner; radius `min(width, depth)`, `quarterDisc`), and its s 1–3 runs round the
     curved front. `showerAt` walks the rim in 24 short steps per side so it follows that curve. New heads: tub 3.5
     (left end), corner tub 3.85 (left wall near the corner), shower 0.5 (back middle).
+  - **Trees** (`TreeSchema`, kind `tree`, `506fd9e`, for the street verges round the user's lot): styles `shade`
+    (6 × 6 m, 7 m high) and `slender` (3.5 m, 11 m high), snap `none`, in a library box *Trees*. Picked as a disc;
+    symbol: crown ellipse (`soft`), inner ring (`detail`), trunk circle (`heavy`).
   - `furnitureSymbol`: the plan symbol as parts with roles `outline`, `detail`, `soft`, `heavy` (CSS
     `.furniture-<role>`), shared by the plan, the placing ghost and the library icons. A shower is a tray with
     diagonals, a drain, a screen line on two thirds of its front and the head; a toilet a cistern and bowl ellipses.
@@ -95,7 +98,9 @@ tubs with real holes (a corner tub: quarter-disc rim and basin, smooth), a showe
 the rim or tray to 1.95 m, a shower's 0.05 m tray and 2.0 m glass screen with a metal edge post, a toilet (pedestal,
 bowl ring at 0.30–0.40 m, cistern to 0.78 m), a bidet with its tap, beds, sofas (wood plinth to 0.10 m, then fabric:
 seat over the outline to 0.45, back to 0.85, arms to 0.62, none on a sectional's return; `mirror` via a min/max box
-helper), tables (a coffee table: rounded top at 0.38–0.42 m, a shelf at 0.10–0.12, four legs) and chairs, in the new `ceramic`, `wood` and `fabric` materials.
+helper), tables (a coffee table: rounded top at 0.38–0.42 m, a shelf at 0.10–0.12, four legs) and chairs, in the new `ceramic`, `wood` and `fabric` materials. A tree's height scales with its width at
+the catalogue's ratio: a `bark` trunk frustum under a `foliage` crown of smooth ellipsoid lobes (one for slender,
+three for shade trees).
 
 ## Limits (2026-11-04)
 

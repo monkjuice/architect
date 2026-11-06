@@ -278,3 +278,14 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/exterior-tab.md (tile and stacked stone textures, pool painted into its floor; summary)
 - updated: pages/opening-styles.md (parrilla row in STYLES; summary)
 - updated: index.md (Fireplaces, Door/window/gate styles, Materials and finishes, House solids, Exterior tab summaries)
+
+## [2026-11-05] update | Pool depth, trees, dirt road, parrilla firewood and hearth fix
+- updated: pages/furniture.md (trees: TreeSchema, shade/slender, symbol, 3-D trunk and crown; summary, tags)
+- updated: pages/materials-and-finishes.md (33 materials, dirt and paintDirt; "no sunken pool" replaced by pool basins; summary, tags)
+- updated: pages/house-solids.md (pool basin, water slab, Solid.hole, lawn covers cut over pools; foliage/bark palette; parrilla hearth z-fight; summary, tags)
+- updated: pages/exterior-tab.md (HouseModel.holes; ground rebuilt as a ShapeGeometry with pool holes, lawn repeat px/width; dirt texture; summary, tags)
+- updated: pages/fireplaces.md (firewood logs; hearth at FLOOR + 0.02 and why)
+- updated: pages/areas.md (area depth and setAreaDepth; overlapping roads: crossing owned by one road; tags)
+- updated: pages/lots.md (lawn cover open over pools; tags)
+- updated: pages/elevations.md (solids topping out at ≤ 0.01 m skipped, why not 0, layer-4 caveat; FILL foliage/bark; tags)
+- updated: index.md (Furniture, Materials and finishes, House solids, Exterior tab summaries)

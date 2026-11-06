@@ -2,9 +2,9 @@
 title: Elevations tab
 type: component
 summary: "Four facades drawn automatically from the house solids, view only: src/model/elevations.ts (main direction from the walls, four views square to it named by compass bearing through site.north, back-face culling on explicit normals, painter's sort by each face's nearest point, facing and smooth per polygon, level marks) and src/ui/ElevationsTab.tsx (fills shaded by facing, in a finish's colour where there is one, smooth facets without outlines, All four or one, layer visibility checkboxes, Save SVG as a standalone drawing)."
-tags: [ui, model, elevations, svg, 3d]
+tags: [ui, model, elevations, svg, 3d, pool]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-05
 ---
 
 # Elevations tab
@@ -25,6 +25,9 @@ edit. No three.js: the tab is not lazy-loaded.
   not face the viewer are culled. The rest are painted farthest first, ordered by each face's **nearest** point:
   ordering by centroid let a wall's top overdraw the eave that overhangs it. This assumes faces do not
   interpenetrate. Levels: the ground, wall tops, roof bottoms and tops, parapet tops, merged within 15 cm.
+- Solids whose top is at most 0.01 m are skipped (`506fd9e`), so sunk pool basins and water stay out of the
+  facades (a lot's 1 cm cover on the first layer too). Not 0 because each layer is lifted by `LAYER_LIFT` (4 mm);
+  a pool on the fourth layer or higher (lift > 0.01) would still be drawn.
 - Each drawn polygon carries `facing` (how squarely its normal faces the viewer, 0.01 to 1) and `smooth` (from
   `Face.smooth`, the side facets of round columns, [House solids](house-solids.md)).
 
@@ -34,6 +37,7 @@ edit. No three.js: the tab is not lazy-loaded.
   through `updateLayer`, an undoable plan edit that hides the layer on every tab, so the boundary wall can be left
   out; *Save SVG* (one facade only) downloads `<file>-<facade>-elevation.svg`.
 - Paper colours (`FILL` per material, `INK`, `PAPER`) are SVG attributes, not CSS, so the saved SVG is standalone.
+  `FILL` and `house.ts`'s palette must list the same materials (`foliage` and `bark` were added to both).
   A polygon with a `finish` (from its face or solid) is filled in that catalogue colour instead of `FILL`
   ([Materials and finishes](materials-and-finishes.md)).
   `shade` darkens a fill as its face turns away (0.72 + 0.28 × facing), so a round column reads round.

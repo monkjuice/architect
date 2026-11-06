@@ -1,8 +1,8 @@
 ---
 title: "House solids: the plan in 3-D"
 type: component
-summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces and parrillas with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
-tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery]
+summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, pools sunk to their depth with water under the rim, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces and parrillas with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
+tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool]
 sources: []
 updated: 2026-11-05
 ---
@@ -30,7 +30,7 @@ Kinds: `wall`, `lintel`, `sill`, `infill`, `beam`, `column`, `frame`, `glass`, `
 `fireplace`, `chimney`, `furniture`. Materials are a fixed palette ([Exterior kept basic](exterior-kept-basic.md)): `facade`
 (exterior walls and structure), `interior`, `roof` (pitched, terracotta), `slab` (flat, grey), `frame`, `glass`,
 `door`, `gate`, `floor` (covered), `paving` (open), since 2026-11-04 `stone`, `metal`, `brick` and `soot`, and for
-furniture `ceramic`, `wood` and `fabric`. Their
+furniture `ceramic`, `wood` and `fabric` (since `506fd9e` also `foliage` and `bark`, trees and firewood). Their
 colours are set twice, in `src/render/house.ts` and `src/ui/ElevationsTab.tsx`.
 
 Finishes override the palette ([Materials and finishes](materials-and-finishes.md)): `Face.finish` (wall pieces, roof faces) and
@@ -47,6 +47,12 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
 - A lot ([Lots](lots.md)) is the ground itself and gets no slab. When finished (lawn, say), it gets a `GROUND`
   (0.01 m) `paving` prism carrying its finish, under the 0.03 m floors. Before lots, a walled-in site got a 3 cm
   `floor` slab that hid the pool's water.
+- Pools (`506fd9e`): an area with `depth` ([Areas](areas.md)) is not a slab but a basin, `prismFaces` from −depth to
+  0 without its top and with normals flipped to face in (kind `floor`, palette `ceramic`, `Solid.finish` = its floor
+  unless that is the clear `water`), plus a 1 cm `glass` slab finished `water` `POOL_WATER` (0.1 m) under the rim.
+  `Solid.hole` (the rim) tells the renderer to cut the ground ([Exterior tab](exterior-tab.md)). `houseSolids` first
+  collects every visible layer's pool rims, so a lot's lawn cover on another layer is cut too (pools wholly inside
+  its outline become holes).
 - No automatic roof: roofs come only from `layer.roofs` ([Roofs are drawn outlines](roofs-drawn-outlines.md)).
   Each gives one `roof` solid ([Roofs: model and geometry](roofs.md)); a flat one with a parapet adds a `parapet`
   ring on its eaves, `PARAPET_WALL` thick, from `height + SLAB`. Since `20dcb35` the roof's `finish` (covering)
@@ -102,7 +108,9 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
 ## Gotcha: coplanar faces flicker
 
 Two faces at the same height z-fight in WebGL, hence `LAYER_LIFT`: each layer's floors sit 4 mm × layer index
-higher. (The 1 cm roof lip went with the automatic roof.)
+higher. (The 1 cm roof lip went with the automatic roof.) The parrilla's hearth topped out at 0.03 m, level with
+the area floors (`FLOOR`), and flickered; it now stands at `FLOOR + 0.02` ([Fireplaces](fireplaces.md)). Keep new
+ground-level parts off 0, `GROUND` and `FLOOR`.
 
 ## Caching
 

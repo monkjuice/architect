@@ -57,7 +57,10 @@ roof's thickness, plus the parapet on a flat roof. With no roof it ends 1 m over
 **Parrilla** (`4097821`, from the user's photos of Argentine gallery grills; `PARRILLA` heights in `solids.ts`): a
 plinth, a firewood niche with a dark back up to 0.75 m, a 4 cm stone counter at 0.9 m overhanging 5 cm, a fire
 opening to 1.7 m with a soot back and floor, a metal grill (two rails, bars every 7 cm front to back, ~1.13 m) and a
-brasero box in a back corner, then a hood block to 2.3 m. Its chimney starts at the hood top (`base`).
+brasero box in a back corner, then a hood block to 2.3 m. Its chimney starts at the hood top (`base`). Since
+`506fd9e` the niche holds firewood: 8-sided `bark` logs (r 0.055 m) running front to back, in offset rows up to
+0.62 m. Its stone hearth stands at `FLOOR + 0.02`: at 0.03 m it was level with the area floors and flickered
+([House solids](house-solids.md)).
 
 **Finish**: `fireplaceSolids`' `put` sets `Solid.finish` only on `brick` parts, so the masonry and chimney take the
 material while stone, soot and metal parts keep theirs. An id not in the catalogue is ignored.

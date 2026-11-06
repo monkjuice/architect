@@ -82,8 +82,9 @@ export function elevation(solids: readonly Solid[], view: ElevationView): Elevat
   const r = { x: -d.y, y: d.x }
   const drawn: (ElevationPolygon & { depth: number })[] = []
   for (const solid of solids) {
-    // what is under the ground (a pool's lining and water) does not show in an elevation
-    if (solid.top <= 0.01) continue
+    // what is under the ground (a pool's lining and water) does not show in an elevation: anything reaching below
+    // it that does not rise past the floors (a layer's lift puts a pool's rim a few mm up)
+    if (solid.bottom < -1e-6 && solid.top <= 0.05) continue
     for (const face of solid.faces) {
       // facing the viewer, not edge on
       const facing = -(face.normal.x * d.x + face.normal.y * d.y)
