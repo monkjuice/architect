@@ -40,10 +40,10 @@ the wall and floor finishes it draws.
     along its eaves and up its slope at any pitch. The cut-off was 0.9 before `20dcb35`: faces under about 26° took
     the plan's X axis, and standing seams ran sideways on half the slopes. Level floors and walls are unaffected.
   - `Face.grain` (`81ba2bd`) overrides that: u is the grain projected into the face's plane. Without it a table's
-    oak ran across its boards or sideways on its legs, depending on how the table was turned. Pitfall (read from the
-    code, not seen in a render): there is no fallback, so on a face whose normal is parallel to its grain the
-    projection is zero, the UVs collapse and `addFace` skips the face as zero-area. The trestle gives one grain to
-    all of a block's faces, so its board and rail ends are at risk (exactly parallel when the table is at 0° or 180°).
+    oak ran across its boards or sideways on its legs, depending on how the table was turned. A face across its grain
+    (a board's end, normal parallel to the grain) projects it to nothing; since `467b865` `addFace` then falls back
+    on the usual axes. Before, the UVs collapsed and the face was skipped as zero-area, so board and rail ends went
+    missing.
   - Pools (`506fd9e`): `buildHouse` returns `holes`, the `Solid.hole` rims of the pool basins
     ([House solids](house-solids.md)), and the engine cuts them out of the ground. Since `f565552` a pool's parts
     share one union ring, deduped by identity with a `Set`: separate touching holes could break the ground's

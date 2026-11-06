@@ -1,8 +1,8 @@
 ---
 title: Furniture and fixtures
 type: component
-summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips), square, round, coffee and oak trestle tables, chairs, trees (shade, slender); src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
-tags: [model, furniture, ui, canvas, 3d, trees, oak]
+summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips, teak outdoor sofa and armchair), square, round, coffee, teak coffee and oak trestle tables, chairs, trees (shade, slender), potted plants (olive, shrub); src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
+tags: [model, furniture, ui, canvas, 3d, trees, oak, teak, plants]
 sources: []
 updated: 2026-11-06
 ---
@@ -40,7 +40,10 @@ the Argentine *mesa ratona*).
     `sofaCushions` gives 1, 2 or 3 seats. `sofaOutline` is a rectangle, or for a sectional an L whose return reaches
     the full depth at its right end. The optional `mirror` (sofa-only) puts the return at the left end by flipping x
     in the local frame: a quarter turn cannot move an L's return to the other end, and a general mirror on all
-    furniture was not wanted. A sectional's return has a soft line instead of an arm.
+    furniture was not wanted. A sectional's return has a soft line instead of an arm. Teak outdoor styles
+    (`07f856e`, from the user's photo of a gallery set): `teak-sofa` 2.2 × 0.9 m, snap `wall`, and `teak-armchair`
+    0.85 m square, snap `none` (so it can face anywhere), both 0.75 m high; `sofaCushions` counts any style ending in
+    `armchair` as one place.
   - `furnitureTarget`: `wall` pieces back up to the nearest wall face (not open edges or outlines) within
     `depth + FURNITURE_REACH_M` (0.4 m),
     facing into the room and kept from hanging past the wall's ends; a chair faces a nearby table (round: radially;
@@ -48,7 +51,9 @@ the Argentine *mesa ratona*).
     tables are free. A **coffee table** (`table` style `coffee`, 1.20 × 0.60 m, 0.42 m high, snap `sofa`) put
     within reach of the space in front of a sofa's main seat (the first such sofa on the layer) is centred in front
     of that seat `COFFEE_GAP` (0.40 m) out, squared to the sofa; a sectional's main seat stops short of its return
-    (`SOFA.chaise`) and is only `SOFA.seat` deep, mirrored with `mirror`; elsewhere it stands free. A **trestle**
+    (`SOFA.chaise`) and is only `SOFA.seat` deep, mirrored with `mirror`; elsewhere it stands free. `teak-coffee`
+    (1.3 × 0.7 m, 0.4 m high, snap `sofa`, symbol with its slats) behaves the same; test with `isCoffee(f)`, not
+    `style === 'coffee'` (chairs gather round tables except coffee ones). A **trestle**
     table (`81ba2bd`, from the user's photo of a reclaimed-oak farmhouse table, to replace their 7 m gallery table):
     "Oak trestle", 3.2 × 1.1 m, 0.78 m high, snap `none`, so the Style field switches it with square and round ones
     and chairs gather round it. `trestleBoards(depth)` (boards ~0.35 m wide) and `trestleFrames(width)` (in from each
@@ -66,6 +71,9 @@ the Argentine *mesa ratona*).
   - **Trees** (`TreeSchema`, kind `tree`, `506fd9e`, for the street verges round the user's lot): styles `shade`
     (6 × 6 m, 7 m high) and `slender` (3.5 m, 11 m high), snap `none`, in a library box *Trees*. Picked as a disc;
     symbol: crown ellipse (`soft`), inner ring (`detail`), trunk circle (`heavy`).
+  - **Plants** (`PlantSchema`, kind `plant`, `07f856e`): styles `olive` ("Olive tree in a pot", 1.2 m, 2 m high) and
+    `shrub` (0.6 m), snap `none`, library box *Plants*. Pot diameter `potSize(width)` = min(0.6, width/2). Picked as a
+    disc; symbol: pot circle plus a soft foliage ellipse.
   - `furnitureSymbol`: the plan symbol as parts with roles `outline`, `detail`, `soft`, `heavy` (CSS
     `.furniture-<role>`), shared by the plan, the placing ghost and the library icons. A shower is a tray with
     diagonals, a drain, a screen line on two thirds of its front and the head; a toilet a cistern and bowl ellipses.
@@ -109,7 +117,10 @@ bearer under the top; a stretcher at 0.20–0.32 m; and two slanted braces (`pro
 `wood` with `FurniturePart.finish` `oak-solid` and a per-part `Face.grain` (along, up, across or along the slant), so
 the oak's grain follows each piece ([Materials and finishes](materials-and-finishes.md)). A tree's height scales with its width at
 the catalogue's ratio: a `bark` trunk frustum under a `foliage` crown of smooth ellipsoid lobes (one for slender,
-three for shade trees).
+three for shade trees). Teak pieces: a frame (posts, slatted arms, rails, back boards; a coffee table's slats, 7 cm
+legs and apron) in palette `wood`, finish `teak`, grain from `axes(pl)` (x along the piece, y front to back, z up),
+under rounded `linen` seat and back cushions per place. A plant: a tapering `stone` pot, a `bark` soil disc, then an
+olive (thin `bark` trunk, three `olive` ellipsoid lobes) or a shrub (two `foliage` lobes on the pot).
 
 ## Limits (2026-11-04)
 

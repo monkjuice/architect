@@ -31,7 +31,8 @@ Kinds: `wall`, `lintel`, `sill`, `infill`, `beam`, `column`, `frame`, `glass`, `
 `fireplace`, `chimney`, `furniture`. Materials are a fixed palette ([Exterior kept basic](exterior-kept-basic.md)): `facade`
 (exterior walls and structure), `interior`, `roof` (pitched, terracotta), `slab` (flat, grey), `frame`, `glass`,
 `door`, `gate`, `floor` (covered), `paving` (open), since 2026-11-04 `stone`, `metal`, `brick` and `soot`, and for
-furniture `ceramic`, `wood` and `fabric` (since `506fd9e` also `foliage` and `bark`, trees and firewood). Their
+furniture `ceramic`, `wood` and `fabric` (since `506fd9e` also `foliage` and `bark`, trees and firewood; since
+`07f856e` `linen` cushions and `olive` foliage). Their
 colours are set twice, in `src/render/house.ts` and `src/ui/ElevationsTab.tsx`.
 
 Finishes override the palette ([Materials and finishes](materials-and-finishes.md)): `Face.finish` (wall pieces, roof faces) and

@@ -307,3 +307,6 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 
 ## [2026-11-06] update | Oak trestle table
 - updated: pages/furniture.md (trestle style, boards/frames, 3-D parts), pages/materials-and-finishes.md (oak-solid, grain texture), pages/exterior-tab.md (Face.grain sets texture u; parallel-grain pitfall), pages/house-solids.md (Face.grain, furniture part finish), index.md (three summaries)
+
+## [2026-11-06] update | Teak outdoor living set and potted plants
+- updated: pages/furniture.md (teak sofa, armchair and coffee table, isCoffee, plants, 3-D parts), pages/materials-and-finishes.md (teak, 35 materials), pages/house-solids.md (linen, olive palettes), pages/elevations.md (FILL linen/olive), pages/exterior-tab.md (467b865 grain fallback replaces the pitfall), index.md (two summaries)

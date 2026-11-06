@@ -1,8 +1,8 @@
 ---
 title: Materials and finishes
 type: component
-summary: "A materials catalogue (src/model/materials.ts: 34 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares, tile sizes, a stone pool lining under water, solid oak for furniture; brick, wood, lawn, standing seam metal, square tiles, stacked stone, dirt road and oak grain textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides, area floors, roofs and fireplaces (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish, area.floor and roof.finish/soffit in the plan), set by the Material tool, library drags, the Selection panel or the Roofs section, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
-tags: [model, materials, finishes, walls, areas, roof, ui, 3d, library, lots, textures, pool, fireplace, roads, furniture, oak]
+summary: "A materials catalogue (src/model/materials.ts: 35 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares, tile sizes, a stone pool lining under water, solid oak and teak for furniture; brick, wood, lawn, standing seam metal, square tiles, stacked stone, dirt road and oak and teak grain textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides, area floors, roofs and fireplaces (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish, area.floor and roof.finish/soffit in the plan), set by the Material tool, library drags, the Selection panel or the Roofs section, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
+tags: [model, materials, finishes, walls, areas, roof, ui, 3d, library, lots, textures, pool, fireplace, roads, furniture, oak, teak]
 sources: []
 updated: 2026-11-06
 ---
@@ -15,7 +15,7 @@ material can go on, and materials shown in groups.
 
 ## Catalogue (`src/model/materials.ts`)
 
-- `MATERIALS`: 34 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
+- `MATERIALS`: 35 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
   concrete, wood, ceramic, metal, glass, roofing, ground and garden. Each has `surfaces` (`wall`, `floor`,
   `ceiling`, `roof`, `door`, `frame`), `indoor`/`outdoor` flags, and `color`, `roughness`, `metalness`, `clear` for
   the renderers. `wall`, `floor`, `roof` (a roof's covering) and `ceiling` (its soffit) are used so far.
@@ -47,7 +47,8 @@ material can go on, and materials shown in groups.
   ([Furniture](furniture.md)). Its surfaces are `door` and `frame` only, so it stays out of the wall and floor
   pickers. Pattern `grain` (`paintGrain`): 256 px/m, a 3 × 1 m repeat, depth 0.002; tone bands across the grain, 70
   wavy streaks in whole waves so the repeat's ends meet, and four knots with checks. Which way it runs is set per face
-  by `Face.grain` ([Exterior tab](exterior-tab.md)).
+  by `Face.grain` ([Exterior tab](exterior-tab.md)). `teak` (Wood, #a37a4f, `07f856e`) is the same kind of entry
+  (`door`/`frame` only, pattern `grain`) for the teak outdoor furniture.
 - Pools sink since `506fd9e`: an area with a `depth` gets a basin lined in its floor material and a water slab
   ([House solids](house-solids.md)); the `water` material (clear) as floor leaves the basin plain `ceramic`.
 - `checker: {colors: [dark, light], tile}` (since `64f59b7`, only `tile-checkered`: Ceramic, floors, indoors and
