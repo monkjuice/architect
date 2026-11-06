@@ -87,8 +87,10 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
   non-roof top faces above the gallery roof's underside found it quickly. Probe before trusting a screenshot.
 - `infill`: an exterior wall whose midpoint is under a roof that rises above the wall's top is filled up to the
   underside profile (`undersideAlong`): gable ends, a shed's high side. Walls between rooms are not filled.
-- Openings ([Doors, windows and gates](doors-and-windows.md)): wall over doors and windows from `DOOR_HEAD` 2.10 m
-  (capped at the wall's height); windows on a sill up to `WINDOW_SILL` 0.90 m (awnings `HIGH_SILL` 1.50 m); frames,
+- Openings ([Doors, windows and gates](doors-and-windows.md)): wall over doors and windows from `DOOR_HEAD` 2.10 m,
+  or a door's own `height`, capped at the wall's height; the lintel is built only with more than 1 mm of wall above
+  the head, so a door as tall as its wall gets none (no zero-height lintel). A door in a 2.70 m wall set to 3.5 m
+  comes out 2.70 m. Windows on a sill up to `WINDOW_SILL` 0.90 m (awnings `HIGH_SILL` 1.50 m); frames,
   glass and closed leaves by style. Gates have no lintel: as tall as their wall, or `GATE_HEIGHT` 1.8 m in an open
   edge.
 - Colonnades ([Colonnades](colonnades.md)): a beam `COLUMNS[style].beam` deep (Roman: stone, 1.1 × the shaft wide;

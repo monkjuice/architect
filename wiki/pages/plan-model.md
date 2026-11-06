@@ -49,7 +49,8 @@ updated: 2026-11-06
   `GATE_STYLES` / `FIREPLACE_STYLES` and the common fields `segment`, a centre `offset` from the segment's `a` end,
   `width`, `hinge` (for a sliding gate: the end it slides towards) and `swing` (for a fireplace: the side it stands
   on) ([Doors, windows and gates](doors-and-windows.md), [Door, window and gate styles](opening-styles.md),
-  [hosted by a segment](openings-hosted-by-segment.md)). A fireplace cuts no gap ([Fireplaces](fireplaces.md)).
+  [hosted by a segment](openings-hosted-by-segment.md)). A fireplace cuts no gap ([Fireplaces](fireplaces.md)). A
+  door may carry its own `height` (positive, at most 6 m; absent = `DOOR_HEAD` 2.10 m), set through `OpeningPatch`.
 - `roofs` (id → `RoofSchema`: `outline`, `type`, `pitch`, `height`, `overhang`, `edge`, `parapet`, and optional
   `finish` and `soffit` material ids): outlines drawn on the Roof tab, independent of the lines, so they do not
   follow moved walls ([Roofs: model and geometry](roofs.md)).

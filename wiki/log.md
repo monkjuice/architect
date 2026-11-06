@@ -298,3 +298,6 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/plan-model.md (optional layer level, format history; tags)
 - updated: pages/areas.md (pool steps by outline and depth, not walls)
 - updated: pages/exterior-tab.md (one union hole per pool, Set dedupe, touching holes break triangulation)
+
+## [2026-11-06] update | A door's own height
+- updated: pages/plan-model.md (optional door height), pages/opening-styles.md (Height field, capped at the wall), pages/house-solids.md (door head, lintel only above 1 mm)
