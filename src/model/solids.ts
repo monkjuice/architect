@@ -3,13 +3,13 @@ import { band, clipFace, frustumFaces, norm, prismFaces, profileFaces, ring, smo
 import { COLUMNS, heldByWall, layerColonnades } from './colonnades'
 import { placeFurniture } from './furniture'
 import { furnitureParts } from './furniture3d'
-import { sideNormal } from './finishes'
+import { sideNormal, wallSide, type WallSide } from './finishes'
 import { findMaterial } from './materials'
 import { besideWall, FIREPLACE_DEPTH, fireplaceShape, HEARTH, hasHinge, PARRILLA_CHEEK, PARRILLA_DEPTH, placeOpening, type PlacedOpening } from './openings'
 import { segmentKind, type ColumnStyle, type Layer, type Opening, type Plan, type Ref, type Roof } from './plan'
 import { layerFaces, pointInPolygon, regionAt, type LayerFaces, type Region } from './regions'
-import { eavesOf, offsetPolygon, PARAPET_WALL, roofFaces, roofPlanes, roofThickness, SLAB, underside, undersideAlong } from './roofs'
-import { INTERIOR_WALL, layerWalls, WALL_HEIGHT, wallHeight, type LayerWalls } from './walls'
+import { eavesOf, offsetPolygon, PARAPET_WALL, roofFaces, roofPlanes, roofThickness, SLAB, underside, undersideAlong, unionOutlines } from './roofs'
+import { EXTERIOR_WALL, INTERIOR_WALL, layerWalls, WALL_HEIGHT, wallHeight, type LayerWalls } from './walls'
 
 /**
  * The house in 3-D, for the Exterior and Elevations tabs: solids made of flat faces, each solid of one material
@@ -127,18 +127,101 @@ const direct: SolidsSource = { faces: layerFaces, walls: (layer) => layerWalls(l
 
 export function houseSolids(plan: Plan, source: SolidsSource = direct): Solid[] {
   const out: Solid[] = []
-  // pools, wherever they are drawn, open the ground and the lawns over them
+  // pools, wherever they are drawn, open the ground and the lawns over them: each pool whole, its steps with it
   const pools = plan.layers.flatMap((layer) => {
     if (!layer.visible) return []
     const regions = source.faces(layer).regions
-    return Object.values(layer.areas).flatMap((a) => {
+    const deep = Object.values(layer.areas).flatMap((a) => {
       const r = a.depth ? regionAt(regions, a.at) : null
       return r ? [r.outer] : []
     })
+    return deep.length ? unionOutlines(deep) : []
   })
   plan.layers.forEach((layer, index) => {
-    if (layer.visible) layerSolids(layer, index * LAYER_LIFT, source, out, pools)
+    if (!layer.visible) return
+    const start = out.length
+    layerSolids(layer, index * LAYER_LIFT, source, out, pools)
+    // a raised layer: everything on it up to its floor level (but what is under the ground), on its groundworks
+    const level = layer.level ?? 0
+    if (level <= 0) return
+    for (const s of out.slice(start)) if (s.bottom >= -1e-6) raise(s, level)
+    out.push(...groundworks(layer, level, source))
   })
+  return out
+}
+
+function raise(s: Solid, dz: number) {
+  const up = (p: Vec3): Vec3 => ({ ...p, z: p.z + dz })
+  s.faces = s.faces.map((f) => ({ ...f, pts: f.pts.map(up), holes: f.holes.map((h) => h.map(up)) }))
+  s.bottom += dz
+  s.top += dz
+}
+
+/** Steps: each this high at most and this deep, m. */
+const STEP = { rise: 0.18, tread: 0.3 }
+
+/**
+ * What a raised layer stands on: a plinth under its covered areas (rooms and galleries) out to its walls' outside
+ * faces, from the ground to its floor level; and steps down to the ground outside its doors to the outside and along
+ * its galleries' open edges, as many as keep each under STEP.rise.
+ */
+function groundworks(layer: Layer, level: number, source: SolidsSource): Solid[] {
+  const faces = source.faces(layer)
+  const out: Solid[] = []
+  const placed = Object.entries(layer.areas).flatMap(([id, a]) => {
+    const r = regionAt(faces.regions, a.at)
+    return r && isCovered(r) && !a.lot && !a.depth ? [{ id, r }] : []
+  })
+  if (!placed.length) return out
+  const covered = new Set(placed.map((p) => p.r))
+  const areaRef: Ref = { layer: layer.id, kind: 'area', id: placed[0].id }
+  for (const ring of unionOutlines([...covered].map((r) => r.outer))) out.push(prism('floor', offsetPolygon(ring, EXTERIOR_WALL / 2), [], 0, level, 'slab', areaRef))
+
+  const risers = Math.max(1, Math.ceil(level / STEP.rise - 1e-9))
+  const rise = level / risers
+  /** The steps before a stretch of `w` m, `rect` giving rectangles out from it (along, from, to). */
+  const steps = (rect: (u0: number, u1: number, v0: number, v1: number) => Vec[], w: number, ref: Ref) => {
+    for (let k = 1; k < risers; k++) out.push(prism('floor', rect(0, w, (k - 1) * STEP.tread, k * STEP.tread), [], 0, level - k * rise, 'stone', ref))
+  }
+  const outside = (q: Vec) => {
+    const r = regionAt(faces.regions, q)
+    return !r || !covered.has(r)
+  }
+  // doors to the outside
+  for (const [id, o] of Object.entries(layer.openings)) {
+    const s = layer.segments[o.segment]
+    const p = o.kind === 'door' && s ? placeOpening(layer, o) : null
+    if (!p) continue
+    const half = (faces.thickness.get(o.segment) ?? INTERIOR_WALL) / 2
+    for (const side of ['left', 'right'] as WallSide[]) {
+      const { region } = wallSide(layer, faces.regions, half, o.segment, side)
+      if (region && covered.has(region)) continue
+      const w = dist(p.start, p.end) + 0.3
+      const rect = besideWall({ ...p, start: add(p.start, mul(p.dir, -0.15)) }, { swing: side }, half)
+      steps(rect, w, { layer: layer.id, kind: 'opening', id })
+    }
+  }
+  // the open edges of galleries
+  for (const [id, s] of Object.entries(layer.segments)) {
+    if (segmentKind(s) !== 'open') continue
+    const [a, b] = [layer.vertices[s.a], layer.vertices[s.b]]
+    const w = dist(a, b)
+    if (w < EPS) continue
+    const dir = mul(sub(b, a), 1 / w)
+    const mid = lerp(a, b, 0.5)
+    for (const side of ['left', 'right'] as WallSide[]) {
+      const n = sideNormal(a, b, side)
+      if (outside(add(mid, mul(n, -0.3))) || !outside(add(mid, mul(n, 0.3)))) continue
+      const rect = (u0: number, u1: number, v0: number, v1: number): Vec[] =>
+        [
+          [u0, v0],
+          [u1, v0],
+          [u1, v1],
+          [u0, v1],
+        ].map(([u, v]) => add(add(a, mul(dir, u)), mul(n, EXTERIOR_WALL / 2 + v)))
+      steps(rect, w, { layer: layer.id, kind: 'segment', id })
+    }
+  }
   return out
 }
 
@@ -220,6 +303,12 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   const wallIds = Object.keys(layer.segments).filter((id) => segmentKind(layer.segments[id]) === 'wall')
   const finish = (id: string): SolidMaterial => (faces.exterior.has(id) ? 'facade' : 'interior')
 
+  // the depth of each pool (and step of one) on the layer, by its region
+  const poolDepths = new Map<Region, number>()
+  for (const a of Object.values(layer.areas)) {
+    const r = a.depth ? regionAt(faces.regions, a.at) : null
+    if (r) poolDepths.set(r, a.depth!)
+  }
   for (const [id, area] of Object.entries(layer.areas)) {
     const region = regionAt(faces.regions, area.at)
     if (!region) continue
@@ -234,12 +323,29 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
     // lining is its floor material (white tile when that is water itself)
     if (area.depth) {
       const material = findMaterial(area.floor)
-      const lining = prismFaces(region.outer, region.holes, lift - area.depth, lift)
-        .filter((f) => f.normal.z < 0.5)
-        .map((f) => ({ ...f, normal: { x: -f.normal.x, y: -f.normal.y, z: -f.normal.z } }))
+      const deep = area.depth
+      // its floor, and its sides: down from the rim, or from the floor of a shallower part of the pool beside it (a
+      // step), so no wall stands up through the water between them
+      const bottom = prismFaces(region.outer, region.holes, lift - deep, lift).find((f) => f.normal.z < -0.5)!
+      const lining: Face[] = [{ ...bottom, normal: { x: 0, y: 0, z: 1 } }]
+      const inside = (q: Vec) => pointInPolygon(q, region.outer) && !region.holes.some((h) => pointInPolygon(q, h))
+      for (const ring of [region.outer, ...region.holes]) {
+        ring.forEach((a, i) => {
+          const b = ring[(i + 1) % ring.length]
+          const len = dist(a, b)
+          if (len < EPS) return
+          const mid = lerp(a, b, 0.5)
+          let n = { x: (b.y - a.y) / len, y: -(b.x - a.x) / len }
+          if (inside(add(mid, mul(n, 0.02)))) n = mul(n, -1)
+          const beside = regionAt(faces.regions, add(mid, mul(n, 0.05)))
+          const next = (beside && poolDepths.get(beside)) ?? 0
+          if (next >= deep - 1e-9) return
+          lining.push({ pts: [v3(a, lift - deep), v3(b, lift - deep), v3(b, lift - next), v3(a, lift - next)], holes: [], normal: { x: -n.x, y: -n.y, z: 0 } })
+        })
+      }
       const basin = solid('floor', lining, 'ceramic', ref('area', id))
       if (material && !material.clear) basin.finish = area.floor
-      basin.hole = region.outer
+      basin.hole = pools.find((ring) => pointInPolygon(area.at, ring)) ?? region.outer
       out.push(basin)
       out.push({ ...prism('floor', region.outer, region.holes, lift - POOL_WATER - 0.01, lift - POOL_WATER, 'glass', ref('area', id)), finish: 'water' })
       continue

@@ -98,6 +98,12 @@ thickness set by hand.
 Heights are not drawn in plan, as on paper. Each wall's shadow uses its own height (see Sun), and so does the
 Exterior tab's 3-D view.
 
+A layer can stand above the ground: its **floor level** (the Layers section, for the active layer) raises everything
+on it in 3-D and the elevations (floors, walls, doors and windows, roofs, furniture) onto a plinth under its rooms
+and galleries, out to the walls' outside faces, with steps down to the ground (each at most 0.18 m high, 0.30 m
+deep) outside its doors to the outside and along its galleries' open edges. A house usually stands 0.15 to 0.45 m
+up.
+
 An **area** is a name pinned inside a region: its outline is whatever its layer's lines enclose around that
 point, worked out from the lines (they close where they meet or cross, with or without a shared point). Its
 label sits at the middle of the region and shows its **floor area inside the walls** (each wall's half
@@ -223,7 +229,9 @@ tile, 0.30 m squares), large stone slabs (0.60 m squares, for steps and outdoor 
 ground gravel, lawn, a dirt road, pool water and a **stone pool** (its lining of 0.20 m green stones seen through the
 water). An outdoor area can be a **pool**: give it a *Pool depth* in the Selection panel and in 3-D it sinks into the
 ground that deep, lined in its floor material (white tile when that is just water) under water 0.1 m below its rim,
-with the ground and a lot's lawn opened over it; the elevations leave it out. Pick one under *Walls* and click the side of a wall it goes on (hovering marks that face and
+with the ground and a lot's lawn opened over it; the elevations leave it out. For **steps** in a pool, divide it with
+outline lines and name each part as an area with its own (shallower) depth: between two parts a riser goes from one
+floor to the other, with no wall up through the water, and the water is one surface. Pick one under *Walls* and click the side of a wall it goes on (hovering marks that face and
 names what it faces: a room, or the outside), or pick one under *Floors* and click inside a named area; or drag
 it there. A material that does not suit the place is refused with the reason: a wall side or floor is outdoors
 unless it is in a room (so a gallery is outdoors, and a [lot](#walls-open-edges-outlines-and-areas)), and stone cladding, decks, pavers and lawn are for outdoors

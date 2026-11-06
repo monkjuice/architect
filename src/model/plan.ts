@@ -245,6 +245,11 @@ export const LayerSchema = z.strictObject({
   roofs: z.record(z.string(), RoofSchema).default({}),
   /** Furniture and fixtures in this layer's rooms. Files from before furniture lack it. */
   furniture: z.record(z.string(), FurnitureSchema).default({}),
+  /**
+   * Its floor level above the ground, m: everything on it stands that high, on a plinth under its rooms and
+   * galleries, with steps down to the ground outside its doors to the outside and along its galleries' open edges.
+   */
+  level: z.number().min(0).max(3).optional(),
 })
 
 /** A known length on the image: two points in image pixels and the real distance between them in meters. */

@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { addLayer, moveLayer, removeLayer, updateLayer, type LayerPatch } from '../../model/edit'
 import type { Layer } from '../../model/plan'
 import { getStore, useEditor } from '../../state/store'
-import { Box } from '../fields'
+import { Box, NumberField } from '../fields'
 
 /** Layers, top of the stack first. Click a row to draw on it; lines connect only within a layer. */
 export function LayersPanel() {
   const store = getStore()
   const layers = useEditor((s) => s.plan.layers)
   const activeLayer = useEditor((s) => s.activeLayer)
+  const active = layers.find((l) => l.id === activeLayer)
 
   const add = () => {
     const result = addLayer(store.getState().plan)
@@ -31,6 +32,16 @@ export function LayersPanel() {
           <LayerRow key={layer.id} layer={layer} active={layer.id === activeLayer} top={i === 0} bottom={i === layers.length - 1} />
         ))}
       </ul>
+      {active && (
+        <div className="fields">
+          <NumberField
+            label={`${active.name}: floor level above the ground`}
+            value={active.level ?? 0}
+            min={0}
+            onCommit={(level) => store.edit((p) => updateLayer(p, active.id, { level: Math.min(3, level) }))}
+          />
+        </div>
+      )}
     </Box>
   )
 }

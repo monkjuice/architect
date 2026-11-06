@@ -98,7 +98,8 @@ export function buildHouse(solids: readonly Solid[]): HouseModel {
   return {
     root,
     box,
-    holes: solids.flatMap((s) => (s.hole ? [s.hole] : [])),
+    // a pool and its steps share one opening
+    holes: [...new Set(solids.flatMap((s) => (s.hole ? [s.hole] : [])))],
     dispose() {
       for (const g of geometries) g.dispose()
       // textures stay: they are painted once a session (textures.ts)
