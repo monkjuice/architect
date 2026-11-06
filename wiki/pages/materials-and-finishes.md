@@ -1,7 +1,7 @@
 ---
 title: Materials and finishes
 type: component
-summary: "A materials catalogue (src/model/materials.ts: 35 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares, tile sizes, a stone pool lining under water, solid oak and teak for furniture; brick, wood, lawn, standing seam metal, square tiles, stacked stone, dirt road and oak and teak grain textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides, area floors, roofs and fireplaces (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish, area.floor and roof.finish/soffit in the plan), set by the Material tool, library drags, the Selection panel or the Roofs section, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
+summary: "A materials catalogue (src/model/materials.ts: 36 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares, tile sizes, a stone pool lining under water, solid oak and teak for furniture; brick, wood, lawn, standing seam metal, square tiles, stacked stone, dirt road, garden-bed mulch and oak and teak grain textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides, area floors, roofs and fireplaces (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish, area.floor and roof.finish/soffit in the plan), set by the Material tool, library drags, the Selection panel or the Roofs section, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
 tags: [model, materials, finishes, walls, areas, roof, ui, 3d, library, lots, textures, pool, fireplace, roads, furniture, oak, teak]
 sources: []
 updated: 2026-11-06
@@ -15,7 +15,7 @@ material can go on, and materials shown in groups.
 
 ## Catalogue (`src/model/materials.ts`)
 
-- `MATERIALS`: 35 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
+- `MATERIALS`: 36 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
   concrete, wood, ceramic, metal, glass, roofing, ground and garden. Each has `surfaces` (`wall`, `floor`,
   `ceiling`, `roof`, `door`, `frame`), `indoor`/`outdoor` flags, and `color`, `roughness`, `metalness`, `clear` for
   the renderers. `wall`, `floor`, `roof` (a roof's covering) and `ceiling` (its soffit) are used so far.
@@ -42,7 +42,8 @@ material can go on, and materials shown in groups.
     repeat, stones 0.18–0.6 m long wrapping round the edge, dark recessed joints, bulging faces, depth 0.015.
 - `dirt` ("Dirt road", Ground and garden, floor, outdoor; `506fd9e`, for the streets round the user's lot):
   `paintDirt`, an 8 m repeat at 128 px/m like the lawn, drier and damper patches wrapping round the edges, pebbles
-  as bumps, depth 0.006.
+  as bumps, depth 0.006. `mulch` ("Garden bed (mulch)", same family and settings, #4b3a2b; `d5c7fb7`, for planting
+  beds, [Furniture](furniture.md)) reuses pattern `dirt`, so `paintDirt` in its own colour.
 - `oak-solid` ("Solid reclaimed oak", Wood, #8b7259; `81ba2bd`) finishes the trestle table
   ([Furniture](furniture.md)). Its surfaces are `door` and `frame` only, so it stays out of the wall and floor
   pickers. Pattern `grain` (`paintGrain`): 256 px/m, a 3 × 1 m repeat, depth 0.002; tone bands across the grain, 70

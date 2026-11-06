@@ -39,7 +39,7 @@ edit. No three.js: the tab is not lazy-loaded.
   out; *Save SVG* (one facade only) downloads `<file>-<facade>-elevation.svg`.
 - Paper colours (`FILL` per material, `INK`, `PAPER`) are SVG attributes, not CSS, so the saved SVG is standalone.
   `FILL` and `house.ts`'s palette must list the same materials (`foliage` and `bark`, later `linen` and `olive`,
-  were added to both).
+  then `flower`, `lavender` and `blossom`, were added to both).
   A polygon with a `finish` (from its face or solid) is filled in that catalogue colour instead of `FILL`
   ([Materials and finishes](materials-and-finishes.md)).
   `shade` darkens a fill as its face turns away (0.72 + 0.28 × facing), so a round column reads round.

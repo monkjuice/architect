@@ -32,7 +32,7 @@ Kinds: `wall`, `lintel`, `sill`, `infill`, `beam`, `column`, `frame`, `glass`, `
 (exterior walls and structure), `interior`, `roof` (pitched, terracotta), `slab` (flat, grey), `frame`, `glass`,
 `door`, `gate`, `floor` (covered), `paving` (open), since 2026-11-04 `stone`, `metal`, `brick` and `soot`, and for
 furniture `ceramic`, `wood` and `fabric` (since `506fd9e` also `foliage` and `bark`, trees and firewood; since
-`07f856e` `linen` cushions and `olive` foliage). Their
+`07f856e` `linen` cushions and `olive` foliage; since `d5c7fb7` `flower`, `lavender` and `blossom` for plants). Their
 colours are set twice, in `src/render/house.ts` and `src/ui/ElevationsTab.tsx`.
 
 Finishes override the palette ([Materials and finishes](materials-and-finishes.md)): `Face.finish` (wall pieces, roof faces) and

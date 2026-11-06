@@ -1,8 +1,8 @@
 ---
 title: Furniture and fixtures
 type: component
-summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips, teak outdoor sofa and armchair), square, round, coffee, teak coffee and oak trestle tables, chairs, trees (shade, slender), potted plants (olive, shrub); src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
-tags: [model, furniture, ui, canvas, 3d, trees, oak, teak, plants]
+summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips, teak outdoor sofa and armchair), square, round, coffee, teak coffee and oak trestle tables, chairs, trees (shade, slender), potted plants (olive, shrub), in-ground plants (bush, agapanthus, lavender, a climber up a wall); src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
+tags: [model, furniture, ui, canvas, 3d, trees, oak, teak, plants, garden]
 sources: []
 updated: 2026-11-06
 ---
@@ -73,7 +73,11 @@ the Argentine *mesa ratona*).
     symbol: crown ellipse (`soft`), inner ring (`detail`), trunk circle (`heavy`).
   - **Plants** (`PlantSchema`, kind `plant`, `07f856e`): styles `olive` ("Olive tree in a pot", 1.2 m, 2 m high) and
     `shrub` (0.6 m), snap `none`, library box *Plants*. Pot diameter `potSize(width)` = min(0.6, width/2). Picked as a
-    disc; symbol: pot circle plus a soft foliage ellipse.
+    disc; symbol: pot circle plus a soft foliage ellipse. In-ground styles (`d5c7fb7`, from the user's photos of
+    planted borders): `bush` (1.0 m, 0.9 m high), `agapanthus` (0.7, 0.9), `lavender` (0.6, 0.5), snap `none`, and
+    `climber` ("Climber (up a wall)", 1.6 × 0.3 m, 2.6 m high, snap `wall`, picked as a rectangle, not a disc).
+    `potted(style)` (true for olive and shrub only) tells the two apart. Symbols: a soft ellipse (agapanthus adds five
+    flower dots); a climber is a soft rounded strip along its wall with three dots.
   - `furnitureSymbol`: the plan symbol as parts with roles `outline`, `detail`, `soft`, `heavy` (CSS
     `.furniture-<role>`), shared by the plan, the placing ghost and the library icons. A shower is a tray with
     diagonals, a drain, a screen line on two thirds of its front and the head; a toilet a cistern and bowl ellipses.
@@ -121,6 +125,17 @@ three for shade trees). Teak pieces: a frame (posts, slatted arms, rails, back b
 legs and apron) in palette `wood`, finish `teak`, grain from `axes(pl)` (x along the piece, y front to back, z up),
 under rounded `linen` seat and back cushions per place. A plant: a tapering `stone` pot, a `bark` soil disc, then an
 olive (thin `bark` trunk, three `olive` ellipsoid lobes) or a shrub (two `foliage` lobes on the pot).
+In-ground plants are smooth `blob` ellipsoids (five frustum bands), as tall as the catalogue's height/width ratio ×
+their size, varied by a random sequence seeded from their position so a row does not repeat: a bush is a main lobe
+plus three random ones; lavender a `foliage` mound under a `lavender` top; agapanthus a leaf mound and seven thin
+stems with `flower` heads; a climber a `bark` stem and 16 foliage blobs up the wall plane at its back, about 60 %
+with a `blossom` dot. The ratios are hard-coded in `furniture3d.ts`: change them with the `FURNITURE` heights.
+
+**Garden beds** (`d5c7fb7`): the user's plan has a layer *Jardín* with three outline-bounded areas *Cantero*
+floored in `mulch`, about 1.25 m deep: inside the bottom boundary wall either side of its gate, and along the east
+wall. 80 plants: climbers on the wall, bushes behind, agapanthus and lavender alternating in front (the west side is
+the quincho and parking). Visual check: a bed behind the 2.7 m boundary wall is hidden from the default `aerial`
+camera on the street side; the *North* preset shows it ([Exterior tab](exterior-tab.md)).
 
 ## Limits (2026-11-04)
 

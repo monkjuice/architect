@@ -310,3 +310,6 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 
 ## [2026-11-06] update | Teak outdoor living set and potted plants
 - updated: pages/furniture.md (teak sofa, armchair and coffee table, isCoffee, plants, 3-D parts), pages/materials-and-finishes.md (teak, 35 materials), pages/house-solids.md (linen, olive palettes), pages/elevations.md (FILL linen/olive), pages/exterior-tab.md (467b865 grain fallback replaces the pitfall), index.md (two summaries)
+
+## [2026-11-06] update | Bushes, agapanthus, lavender, climbers; mulch beds
+- updated: pages/furniture.md (in-ground plant styles, potted(), seeded blob 3-D, Jardín beds, aerial-camera check), pages/materials-and-finishes.md (mulch, 36 materials), pages/house-solids.md (flower, lavender, blossom palettes), pages/elevations.md (FILL), index.md (two summaries)
