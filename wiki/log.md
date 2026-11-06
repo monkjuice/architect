@@ -289,3 +289,6 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/lots.md (lawn cover open over pools; tags)
 - updated: pages/elevations.md (solids topping out at ≤ 0.01 m skipped, why not 0, layer-4 caveat; FILL foliage/bark; tags)
 - updated: index.md (Furniture, Materials and finishes, House solids, Exterior tab summaries)
+
+## [2026-11-05] update | Elevations leave out pools on any layer
+- updated: pages/elevations.md (underground rule bottom < 0 and top ≤ 0.05 replaces the 0.01 threshold and its layer-4 caveat)

@@ -25,9 +25,10 @@ edit. No three.js: the tab is not lazy-loaded.
   not face the viewer are culled. The rest are painted farthest first, ordered by each face's **nearest** point:
   ordering by centroid let a wall's top overdraw the eave that overhangs it. This assumes faces do not
   interpenetrate. Levels: the ground, wall tops, roof bottoms and tops, parapet tops, merged within 15 cm.
-- Solids whose top is at most 0.01 m are skipped (`506fd9e`), so sunk pool basins and water stay out of the
-  facades (a lot's 1 cm cover on the first layer too). Not 0 because each layer is lifted by `LAYER_LIFT` (4 mm);
-  a pool on the fourth layer or higher (lift > 0.01) would still be drawn.
+- Underground solids are skipped: `bottom < -1e-6 && top <= 0.05` (`ac5f601`), so pool basins and water stay out
+  of the facades. The first rule (`506fd9e`), top ≤ 0.01 m, missed pools from the fourth layer up, whose rims the
+  4 mm per layer `LAYER_LIFT` raised past it; 5 cm covers about a dozen layers. Floors, walls and a lot's 1 cm
+  cover never match: their bottoms are at or above the layer's lift.
 - Each drawn polygon carries `facing` (how squarely its normal faces the viewer, 0.01 to 1) and `smooth` (from
   `Face.smooth`, the side facets of round columns, [House solids](house-solids.md)).
 
