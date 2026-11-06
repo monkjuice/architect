@@ -55,17 +55,20 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
   stays plain on flat ones, where gravel or a membrane on the fascia would look wrong.
 - Walls: one prism per `layerWalls` fill at its own wall's height (`LayerWalls.owners`, [Walls](walls.md)).
 - Under overlapping roofs, the one with the highest underside at a point counts.
-- Walls stop at roofs (`b5b8220`). After the roofs are listed, the top points of segment `wall` and `lintel` solids
-  are lowered to `ceiling(p)`. Inside one or more roof outlines, that is the highest underside among them. Elsewhere,
-  it is the lowest underside among the roofs whose eaves cover the point, because a wall cannot pass through any
-  roof. Top faces get a new normal from `upward` (Newell's method). This was added because a gallery's 3.5 m end
-  walls poked through its tucked-under roof. Two simpler rules were rejected. Taking the highest roof everywhere left
-  a corner piece poking through. Taking the lowest everywhere cut the house wall under the gallery's overhang and
-  opened a gap below the house roof. A wall under its own roof keeps its height, because the underside at the walls'
-  outside faces equals the wall height.
-- Not a bug: in 3-D, a white patch between a gallery roof and the house eaves is the house's own wall (a wing's
-  gable-end infill) seen in the gap between the two roofs. A node probe on 2026-11-05 confirmed that nothing pokes
-  through the gallery roof.
+- Walls stop at roofs (`b5b8220`, per wall since `96a2afa`). After the roofs are listed, each segment's `wall` and
+  `lintel` solids get one roof, `roofOver(midpoint)`: the highest underside among the roofs whose outline contains
+  the midpoint, else the lowest among those whose eaves cover it, else none (no trim). That roof's underside caps
+  every top point of those solids (only lowers them); top faces get a new normal from `upward` (Newell's method).
+  Added because a gallery's 3.5 m end walls poked through its tucked-under roof. Rejected: the highest roof
+  everywhere (a corner piece poked through); the lowest everywhere (cut the house wall under the gallery's overhang,
+  opening a gap below the house roof); and the first version's per-point choice. Per point, the gallery end wall's
+  mitre reached into the house wall corner, inside the house roof's outline, so its top sloped up from 3.2 to 3.5 m
+  through the gallery roof. A wall under its own roof keeps its height, because the underside at the walls' outside
+  faces equals the wall height. The wall the gallery leans on is inside the house roof, so it keeps its height too,
+  which is why `galleryRoof` stops at its face ([Roofs](roofs.md)).
+- Debugging lesson: a white patch where a gallery roof meets the house was twice misjudged from screenshots, once
+  as a gable infill seen between the roofs; it was the end wall poking through, as above. A node probe over `houseSolids` listing
+  non-roof top faces above the gallery roof's underside found it quickly. Probe before trusting a screenshot.
 - `infill`: an exterior wall whose midpoint is under a roof that rises above the wall's top is filled up to the
   underside profile (`undersideAlong`): gable ends, a shed's high side. Walls between rooms are not filled.
 - Openings ([Doors, windows and gates](doors-and-windows.md)): wall over doors and windows from `DOOR_HEAD` 2.10 m

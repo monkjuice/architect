@@ -1,7 +1,7 @@
 ---
 title: "Roofs: model and geometry"
 type: component
-summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip, pitch, height at the eaves sides, overhang, reference edge, parapet, covering and soffit materials; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning and unionOutlines for Roof the house."
+summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip, pitch, height at the eaves sides, overhang, reference edge, parapet, covering and soffit materials; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning, unionOutlines for Roof the house, and galleryRoof (a 2° shed overhanging only its open sides, via offsetEdges)."
 tags: [model, roof, geometry, schema, finishes, gallery]
 sources: []
 updated: 2026-11-05
@@ -42,6 +42,8 @@ recomputed. `planFile.ts` rounds outline points to 0.1 mm on save.
   advice for an L is two overlapping roofs.
 - Thickness, measured vertically: `SLAB` 0.20 m (flat), `COVERING` 0.15 m (pitched); `PARAPET_WALL` 0.15 m.
 - `eavesOf` = `offsetPolygon(outline, overhang)`, mitred corners.
+- `offsetEdges(pts, d(edge))` (`96a2afa`): moves each edge of the normalized ring out by its own distance (in when
+  negative). Corners go where the moved lines meet. Two edges in line with different distances leave a step.
 - `roofFaces`: each plane's face is the eaves polygon clipped (Sutherland–Hodgman) by the half-planes where another
   plane is lower; planes that coincide (sides in line) keep the first. Every face goes through `normalized`
   (drops repeated and collinear points, runs clockwise on screen): clipping leaves a corner twice where it lies on a
@@ -52,10 +54,19 @@ recomputed. `planFile.ts` rounds outline points to 0.1 mm on save.
 - `roofSummary`: plan area, sloped surface, lowest eaves, top.
 - `unionOutlines`: puts rooms together by cancelling edges that a neighbour runs the other way (each ring first made
   clockwise). It needs shared corners, as a layer's regions have, and drops holes (courtyards).
-- `galleryRoof(outline, rooms, top)` (`b5b8220`, for *Roof the house*): a shed at `GALLERY_PITCH` (2°). Its `edge`
-  (low side) is the longest outline side whose midpoint is not within `EXTERIOR_WALL` of a room ring, which is the
-  open front. Its `height` = `top` − 0.1 − `COVERING` − depth·tan(pitch), where depth is the farthest outline point
-  from that edge. That puts the high side's top 0.1 m under the wall tops, tucked under the rooms' eaves.
+- `galleryRoof(ring, rooms, top)` (`b5b8220`, reworked in `96a2afa`; for *Roof the house*): a shed at
+  `GALLERY_PITCH` (2°) over the gallery's centreline ring (`actions.ts` passes the raw region ring). An edge is
+  "along the rooms" when its midpoint is within `EXTERIOR_WALL` of a room ring. Through `offsetEdges`, those edges
+  move in by `EXTERIOR_WALL`/2, to the house wall's face. Free edges move out by `EXTERIOR_WALL`/2 +
+  `GALLERY_OVERHANG` (0.5 m). The overhang is drawn into the outline, so the roof's `overhang` is 0. Why: with a
+  uniform overhang, the gallery roof ran into the house's 3.5 m walls, which keep their height
+  ([House solids](house-solids.md)), so they poked up through it. The `edge` (low side) is the longest side not
+  along the rooms, which is the open front. `height` = `top` − 0.1 − `COVERING` − depth·tan(pitch), where depth is
+  the farthest outline point from that edge. That puts the high side's top 0.1 m under the wall tops, tucked under
+  the rooms' eaves.
+- Caveat: setting such a roof's Overhang field above 0 later applies an overhang all round again, house side
+  included. Gallery roofs made before `96a2afa` keep their old outline until rebuilt; the user's plan's `r2` was
+  rebuilt (pitch, covering and soffit kept).
 
 `ROOF_TITLES` (a record) is exported from here, not from a component file: oxlint's `react/only-export-components`
 allows only literal constants ([Code conventions](code-conventions.md)).
