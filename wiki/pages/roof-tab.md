@@ -2,7 +2,7 @@
 title: Roof tab (roof plan)
 type: component
 summary: "The Roof tab: src/ui/RoofTab.tsx (Select V / Roof R / Pan H, the New roofs type = EditorState.roofType, Roof the house, Snap) over the shared Canvas in roof mode (floor plan faded, Roofs.tsx draws slopes shaded by aspect, eaves, dashed outline under an overhang, downhill arrows, labels, fireplaces' chimneys), the roof and roofSelect tools, RoofPanel (Box roofs), and the actions openTab, addRoofOutline and roofTheHouse."
-tags: [ui, roof, canvas, tools, tabs, fireplace, finishes]
+tags: [ui, roof, canvas, tools, tabs, fireplace, finishes, gallery]
 sources: []
 updated: 2026-11-05
 ---
@@ -41,9 +41,13 @@ roof plan over the floor plan ([Roofs are drawn outlines](roofs-drawn-outlines.m
   `roof-select`, entering Floor turns a `ROOF_TOOLS` tool into `select`, and the selection keeps only roof refs on
   Roof and only non-roof refs on Floor ([Tabs over one plan](tabs-over-one-plan.md)).
 - `addRoofOutline`: refuses an outline under 0.05 m², adds a `newRoof` of `roofType` to the active layer, selects it.
-- `roofTheHouse`: the active layer's covered named areas (`isCovered`, [House solids](house-solids.md)) put together
-  by `unionOutlines`, one roof per group that touches, offset by `EXTERIOR_WALL / 2` (the outside face of an
-  automatic 0.30 m wall: regions run on centrelines), as high as the tallest of their walls. One undo step.
+- `roofTheHouse`: takes the active layer's covered named areas (`isCovered`, [House solids](house-solids.md)). Since
+  `b5b8220`, indoor rooms and galleries (covered, not indoor) are put together separately by `unionOutlines`. Each
+  room group gets a `newRoof` of `roofType`. Each gallery group gets its own `galleryRoof`: a 2° shed sloping away
+  from the house, tucked under its eaves ([Roofs](roofs.md)). The reason is that the user wants the gallery nearly
+  flat (1–2°) and the house at 5–6°, which one roof cannot do. Outlines are offset by `EXTERIOR_WALL / 2` (the
+  outside face of an automatic 0.30 m wall: regions run on centrelines), and heights come from the tallest of the
+  covered areas' walls. The notice mentions the galleries. One undo step.
 
 ## Limits
 

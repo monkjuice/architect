@@ -2,7 +2,7 @@
 title: "Roofs: model and geometry"
 type: component
 summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip, pitch, height at the eaves sides, overhang, reference edge, parapet, covering and soffit materials; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning and unionOutlines for Roof the house."
-tags: [model, roof, geometry, schema, finishes]
+tags: [model, roof, geometry, schema, finishes, gallery]
 sources: []
 updated: 2026-11-05
 ---
@@ -52,6 +52,10 @@ recomputed. `planFile.ts` rounds outline points to 0.1 mm on save.
 - `roofSummary`: plan area, sloped surface, lowest eaves, top.
 - `unionOutlines`: puts rooms together by cancelling edges that a neighbour runs the other way (each ring first made
   clockwise). It needs shared corners, as a layer's regions have, and drops holes (courtyards).
+- `galleryRoof(outline, rooms, top)` (`b5b8220`, for *Roof the house*): a shed at `GALLERY_PITCH` (2°). Its `edge`
+  (low side) is the longest outline side whose midpoint is not within `EXTERIOR_WALL` of a room ring, which is the
+  open front. Its `height` = `top` − 0.1 − `COVERING` − depth·tan(pitch), where depth is the farthest outline point
+  from that edge. That puts the high side's top 0.1 m under the wall tops, tucked under the rooms' eaves.
 
 `ROOF_TITLES` (a record) is exported from here, not from a component file: oxlint's `react/only-export-components`
 allows only literal constants ([Code conventions](code-conventions.md)).

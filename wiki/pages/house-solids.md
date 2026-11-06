@@ -2,7 +2,7 @@
 title: "House solids: the plan in 3-D"
 type: component
 summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
-tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots]
+tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery]
 sources: []
 updated: 2026-11-05
 ---
@@ -55,6 +55,17 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
   stays plain on flat ones, where gravel or a membrane on the fascia would look wrong.
 - Walls: one prism per `layerWalls` fill at its own wall's height (`LayerWalls.owners`, [Walls](walls.md)).
 - Under overlapping roofs, the one with the highest underside at a point counts.
+- Walls stop at roofs (`b5b8220`). After the roofs are listed, the top points of segment `wall` and `lintel` solids
+  are lowered to `ceiling(p)`. Inside one or more roof outlines, that is the highest underside among them. Elsewhere,
+  it is the lowest underside among the roofs whose eaves cover the point, because a wall cannot pass through any
+  roof. Top faces get a new normal from `upward` (Newell's method). This was added because a gallery's 3.5 m end
+  walls poked through its tucked-under roof. Two simpler rules were rejected. Taking the highest roof everywhere left
+  a corner piece poking through. Taking the lowest everywhere cut the house wall under the gallery's overhang and
+  opened a gap below the house roof. A wall under its own roof keeps its height, because the underside at the walls'
+  outside faces equals the wall height.
+- Not a bug: in 3-D, a white patch between a gallery roof and the house eaves is the house's own wall (a wing's
+  gable-end infill) seen in the gap between the two roofs. A node probe on 2026-11-05 confirmed that nothing pokes
+  through the gallery roof.
 - `infill`: an exterior wall whose midpoint is under a roof that rises above the wall's top is filled up to the
   underside profile (`undersideAlong`): gable ends, a shed's high side. Walls between rooms are not filled.
 - Openings ([Doors, windows and gates](doors-and-windows.md)): wall over doors and windows from `DOOR_HEAD` 2.10 m

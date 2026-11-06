@@ -260,3 +260,8 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/roofs.md (finish and soffit fields, updateRoof deletes them when undefined; summary, tags)
 - updated: pages/roof-tab.md (Covering and Soffit fields, covered roofs tinted, Roof the house with hip on a non-convex house: draw convex pieces per wing; tags)
 - updated: index.md (Materials and finishes, Roofs summaries)
+
+## [2026-11-05] update | Galleries get their own near-flat roof; walls stop at roofs
+- updated: pages/roofs.md (galleryRoof and GALLERY_PITCH: low edge at the open front, height tucked 0.1 m under the wall tops; tags)
+- updated: pages/roof-tab.md (roofTheHouse roofs rooms and galleries separately, and why; tags)
+- updated: pages/house-solids.md (wall and lintel tops cut to ceiling(p), the two-rule choice and the rejected alternatives, white-patch gable infill is not a bug; tags)
