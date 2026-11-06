@@ -292,3 +292,9 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 
 ## [2026-11-05] update | Elevations leave out pools on any layer
 - updated: pages/elevations.md (underground rule bottom < 0 and top ≤ 0.05 replaces the 0.01 threshold and its layer-4 caveat)
+
+## [2026-11-06] update | Floor level per layer with plinth and steps; pool steps
+- updated: pages/house-solids.md (layer level: raise, groundworks plinth and steps, corner notch; pool lining with risers between parts, union-ring holes; tags)
+- updated: pages/plan-model.md (optional layer level, format history; tags)
+- updated: pages/areas.md (pool steps by outline and depth, not walls)
+- updated: pages/exterior-tab.md (one union hole per pool, Set dedupe, touching holes break triangulation)

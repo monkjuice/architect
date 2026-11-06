@@ -4,7 +4,7 @@ type: concept
 summary: "An area is a named point ({name, at} in layer.areas) whose outline is the region of its layer's lines enclosing the point, Revit-room style; a room shows its floor area inside the wall faces and a lot (lot: true) its area to the lot lines (areaSize); coveredArea totals indoor rooms with their walls, lots excluded; regions and placed areas are cached per object in src/state/derived.ts (planAreas per plan); one area per region, \"not enclosed\" when the lines open; Area tool and label dragging."
 tags: [model, areas, regions, state, ui, lots, pool]
 sources: []
-updated: 2026-11-05
+updated: 2026-11-06
 ---
 
 # Areas
@@ -23,7 +23,9 @@ updated: 2026-11-05
   of the room totals ([Lots](lots.md)).
 - An area may carry `depth` (m, positive, at most 5; `506fd9e`): it is a pool, built in 3-D as a sunk basin with
   water ([House solids](house-solids.md)). `setAreaDepth(plan, layer, id, depth)` (0 removes it); the Selection
-  panel shows *Pool depth* for outdoor areas that are not lots.
+  panel shows *Pool depth* for outdoor areas that are not lots. Pool steps (`f565552`): split the pool with an
+  outline and give each part its own depth; the parts meet at a riser under one water level. Steps drawn as walls
+  left thin walls standing in the water.
 - Overlapping areas: on one layer, crossing outlines split into new, unnamed regions; on two layers, the floors
   overlap and flicker. So where the two streets round the user's lot cross ("Calle Labarden" and "Calle Enrique
   Larreta", `dirt` floors on layers of their own, user data), the crossing belongs to one road and the other stops

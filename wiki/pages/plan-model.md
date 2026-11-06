@@ -2,9 +2,9 @@
 title: Plan model and file format
 type: component
 summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds, optional wall thickness and height, wall-side finishes and open-edge colonnades, named areas (rooms, or lots of land) with optional floor finishes, styled doors/windows/gates/fireplaces hosted by segments, drawn roofs and free-standing furniture with kitchen sinks kept in counters, embedded base image), with parsing, migrations and serialization in planFile.ts."
-tags: [model, file-format, schema, site, walls, roof, colonnades, fireplace, furniture, finishes, lots]
+tags: [model, file-format, schema, site, walls, roof, colonnades, fireplace, furniture, finishes, lots, levels]
 sources: []
-updated: 2026-11-05
+updated: 2026-11-06
 ---
 
 # Plan model and file format
@@ -29,7 +29,9 @@ updated: 2026-11-05
 - World units are meters, with +x to the right and +y down (as in SVG).
 - Each layer is a small graph: `id`, `name`, `color` (`#rrggbb`), `visible`, `locked`, `vertices` (id → `{x, y}`)
   and `segments` (id → `{a, b}` vertex ids). Lines that share a vertex are connected, and connections exist only
-  within a layer ([Snapping and connections](snapping-and-connections.md)).
+  within a layer ([Snapping and connections](snapping-and-connections.md)). An optional `level` (0 to 3 m, set
+  through `LayerPatch`) raises the layer's floor above the ground on a plinth with steps
+  ([House solids](house-solids.md)).
 - A segment may carry `kind: "open"` (an open edge) or `kind: "outline"` (a ground-level edge such as a pool).
   Without the key it is a wall ([Open edges and outlines are segment kinds](segment-kind-not-layer.md)).
 - A segment may also carry a positive `thickness` and `height` in meters, used only while it is a wall. Vertices
@@ -114,4 +116,5 @@ On 2026-11-04 the optional segment `colonnade` and the `fireplace` opening kind 
 ([Colonnades are an open-edge setting; fireplaces are an opening kind](colonnade-setting-fireplace-opening.md)).
 Later that day layer `furniture` (`.default({})`) came, also at version 1, and then the optional segment `finish`
 and area `floor`, and after them the optional area `lot` (`z.literal(true)`), all still at version 1. On
-2026-11-05 the optional roof `finish` and `soffit` came, also at version 1.
+2026-11-05 the optional roof `finish` and `soffit` came, also at version 1, and on 2026-11-06 the optional layer
+`level`.

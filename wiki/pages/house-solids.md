@@ -2,9 +2,9 @@
 title: "House solids: the plan in 3-D"
 type: component
 summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, pools sunk to their depth with water under the rim, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces and parrillas with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
-tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool]
+tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool, levels, steps]
 sources: []
-updated: 2026-11-05
+updated: 2026-11-06
 ---
 
 # House solids: the plan in 3-D
@@ -47,12 +47,22 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
 - A lot ([Lots](lots.md)) is the ground itself and gets no slab. When finished (lawn, say), it gets a `GROUND`
   (0.01 m) `paving` prism carrying its finish, under the 0.03 m floors. Before lots, a walled-in site got a 3 cm
   `floor` slab that hid the pool's water.
-- Pools (`506fd9e`): an area with `depth` ([Areas](areas.md)) is not a slab but a basin, `prismFaces` from −depth to
-  0 without its top and with normals flipped to face in (kind `floor`, palette `ceramic`, `Solid.finish` = its floor
-  unless that is the clear `water`), plus a 1 cm `glass` slab finished `water` `POOL_WATER` (0.1 m) under the rim.
-  `Solid.hole` (the rim) tells the renderer to cut the ground ([Exterior tab](exterior-tab.md)). `houseSolids` first
-  collects every visible layer's pool rims, so a lot's lawn cover on another layer is cut too (pools wholly inside
-  its outline become holes).
+- Pools (`506fd9e`, steps since `f565552`): an area with `depth` ([Areas](areas.md)) is not a slab but a basin
+  (kind `floor`, palette `ceramic`, `Solid.finish` = its floor unless that is the clear `water`), plus a 1 cm
+  `glass` slab finished `water` `POOL_WATER` (0.1 m) under the rim. The lining is the bottom face turned to face up
+  plus one side per ring edge, from −depth up to −(depth of the pool region across that edge, `poolDepths`, else 0),
+  left out when that neighbour is as deep or deeper. So pool parts split by an outline meet at a riser, never a wall
+  through the water, under one water level. `Solid.hole` tells the renderer to cut the ground
+  ([Exterior tab](exterior-tab.md)): `houseSolids` first takes `unionOutlines` of each visible layer's pool regions,
+  and a basin's hole is the union ring containing its `at`, so a pool and its steps open one hole. A lot's lawn cover
+  on any layer is cut by the rings wholly inside its outline.
+- Floor level (`f565552`): on a layer with `level` > 0 ([Plan model](plan-model.md); Layers panel, active layer
+  only) every solid `layerSolids` made with bottom ≥ 0 is lifted by `raise`; pool basins stay in the ground. Then
+  `groundworks` adds a `slab` plinth from 0 to `level` under the union of the covered named areas (no lots or pools),
+  offset `EXTERIOR_WALL/2` to the walls' outside faces, and `stone` steps (`STEP`: rise ≤ 0.18 m, tread 0.30 m;
+  ceil(level/0.18) − 1 treads, lower further out): outside each door whose side (`wallSide`) faces no covered
+  region, door width + 0.3 m wide from the wall face, and along each open edge with a covered region on one side
+  only, from `EXTERIOR_WALL/2` out. Limit: two such open edges meeting at a corner leave a notch there.
 - No automatic roof: roofs come only from `layer.roofs` ([Roofs are drawn outlines](roofs-drawn-outlines.md)).
   Each gives one `roof` solid ([Roofs: model and geometry](roofs.md)); a flat one with a parapet adds a `parapet`
   ring on its eaves, `PARAPET_WALL` thick, from `height + SLAB`. Since `20dcb35` the roof's `finish` (covering)

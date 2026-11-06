@@ -4,7 +4,7 @@ type: component
 summary: "The Exterior tab: src/ui/exterior/ExteriorTab.tsx (camera presets, Roof toggle for the drawn roofs and parapets, sun season and time, Save image) over a three.js view in src/render/ (house.ts triangulates each solid face in its own plane and winds it to the face's explicit normal, plan y as three z; engine.ts, adapted from the Forge H1 planner, lights it with the plan's sun and real shadows, draws on demand and keeps the camera pose across tab switches; textures.ts paints brick, wood, lawn, dirt, standing seam, square tile, stacked stone and checker textures with normal maps, cached for the session; the ground is cut open over pools); three.js is a separate chunk loaded only when the tab opens."
 tags: [ui, 3d, three, render, sun, exterior, roof, finishes, textures, pool]
 sources: []
-updated: 2026-11-05
+updated: 2026-11-06
 ---
 
 # Exterior tab (3-D view)
@@ -40,7 +40,9 @@ the wall and floor finishes it draws.
     along its eaves and up its slope at any pitch. The cut-off was 0.9 before `20dcb35`: faces under about 26° took
     the plan's X axis, and standing seams ran sideways on half the slopes. Level floors and walls are unaffected.
   - Pools (`506fd9e`): `buildHouse` returns `holes`, the `Solid.hole` rims of the pool basins
-    ([House solids](house-solids.md)), and the engine cuts them out of the ground.
+    ([House solids](house-solids.md)), and the engine cuts them out of the ground. Since `f565552` a pool's parts
+    share one union ring, deduped by identity with a `Set`: separate touching holes could break the ground's
+    triangulation.
   - Gotcha: on walls v points world-down (u = n × up, v = n × u), so textures show upside down. This is harmless,
     and the relief stays right because three builds the tangent frame from the UVs. A normal map's green points up the
     texture (canvas y runs down; canvases are flipped on upload).
