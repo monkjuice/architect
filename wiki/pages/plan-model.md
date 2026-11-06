@@ -4,7 +4,7 @@ type: component
 summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds, optional wall thickness and height, wall-side finishes and open-edge colonnades, named areas (rooms, or lots of land) with optional floor finishes, styled doors/windows/gates/fireplaces hosted by segments, drawn roofs and free-standing furniture with kitchen sinks kept in counters, embedded base image), with parsing, migrations and serialization in planFile.ts."
 tags: [model, file-format, schema, site, walls, roof, colonnades, fireplace, furniture, finishes, lots]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-05
 ---
 
 # Plan model and file format
@@ -48,9 +48,9 @@ updated: 2026-11-04
   `width`, `hinge` (for a sliding gate: the end it slides towards) and `swing` (for a fireplace: the side it stands
   on) ([Doors, windows and gates](doors-and-windows.md), [Door, window and gate styles](opening-styles.md),
   [hosted by a segment](openings-hosted-by-segment.md)). A fireplace cuts no gap ([Fireplaces](fireplaces.md)).
-- `roofs` (id → `RoofSchema`: `outline`, `type`, `pitch`, `height`, `overhang`, `edge`, `parapet`): outlines drawn
-  on the Roof tab, independent of the lines, so they do not follow moved walls
-  ([Roofs: model and geometry](roofs.md)).
+- `roofs` (id → `RoofSchema`: `outline`, `type`, `pitch`, `height`, `overhang`, `edge`, `parapet`, and optional
+  `finish` and `soffit` material ids): outlines drawn on the Roof tab, independent of the lines, so they do not
+  follow moved walls ([Roofs: model and geometry](roofs.md)).
 - `furniture` (id → `FurnitureSchema`, a union on `kind`: counter, sink, bathtub, shower, toilet, bidet, bed, sofa,
   table, chair, with sinks a nested union on `style`): standing pieces have `at`, `angle`, `width`, `depth` (bathtubs
   and showers also `shower`; a counter may have `style: 'island'`, absent = against a wall; a sofa an optional
@@ -113,4 +113,5 @@ since the automatic roof was removed at the same time ([Roofs are drawn outlines
 On 2026-11-04 the optional segment `colonnade` and the `fireplace` opening kind came, still at version 1
 ([Colonnades are an open-edge setting; fireplaces are an opening kind](colonnade-setting-fireplace-opening.md)).
 Later that day layer `furniture` (`.default({})`) came, also at version 1, and then the optional segment `finish`
-and area `floor`, and after them the optional area `lot` (`z.literal(true)`), all still at version 1.
+and area `floor`, and after them the optional area `lot` (`z.literal(true)`), all still at version 1. On
+2026-11-05 the optional roof `finish` and `soffit` came, also at version 1.

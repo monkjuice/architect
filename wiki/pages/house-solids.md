@@ -4,7 +4,7 @@ type: component
 summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
 tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-05
 ---
 
 # House solids: the plan in 3-D
@@ -33,7 +33,7 @@ Kinds: `wall`, `lintel`, `sill`, `infill`, `beam`, `column`, `frame`, `glass`, `
 furniture `ceramic`, `wood` and `fabric`. Their
 colours are set twice, in `src/render/house.ts` and `src/ui/ElevationsTab.tsx`.
 
-Finishes override the palette ([Materials and finishes](materials-and-finishes.md)): `Face.finish` (wall pieces) and
+Finishes override the palette ([Materials and finishes](materials-and-finishes.md)): `Face.finish` (wall pieces, roof faces) and
 `Solid.finish` (floors) hold a catalogue id, and only ids `findMaterial` knows are set. `house.ts` makes one mesh
 per material key (palette name or `"finish:<id>"`), so a wall finished on one side is two meshes.
 `ElevationPolygon.finish` (face's, else solid's) gives the elevation fill.
@@ -49,7 +49,10 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
   `floor` slab that hid the pool's water.
 - No automatic roof: roofs come only from `layer.roofs` ([Roofs are drawn outlines](roofs-drawn-outlines.md)).
   Each gives one `roof` solid ([Roofs: model and geometry](roofs.md)); a flat one with a parapet adds a `parapet`
-  ring on its eaves, `PARAPET_WALL` thick, from `height + SLAB`.
+  ring on its eaves, `PARAPET_WALL` thick, from `height + SLAB`. Since `20dcb35` the roof's `finish` (covering)
+  goes on faces with `normal.z > 0.01` and its `soffit` on faces with `normal.z < -0.01`, which covers both the
+  underside of the eaves and a gallery's ceiling. The eaves edge (fascia) takes the covering on pitched roofs and
+  stays plain on flat ones, where gravel or a membrane on the fascia would look wrong.
 - Walls: one prism per `layerWalls` fill at its own wall's height (`LayerWalls.owners`, [Walls](walls.md)).
 - Under overlapping roofs, the one with the highest underside at a point counts.
 - `infill`: an exterior wall whose midpoint is under a roof that rises above the wall's top is filled up to the

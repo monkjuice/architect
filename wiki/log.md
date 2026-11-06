@@ -251,3 +251,12 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/exterior-tab.md (textures.ts replaces checkerTexture, textured helper, maps cached not disposed, upside-down wall UVs and normal-map green, ground in lawn clones; summary, tags)
 - updated: pages/development-and-testing.md (194 tests, textures.test.ts, 69111af, iteration mode: no new tests until asked, cheap visual checks; summary)
 - updated: index.md
+
+## [2026-11-05] update | Roof covering and soffit, standing seam metal
+- updated: pages/materials-and-finishes.md (30 materials, metal-standing-seam, seams texture, roof and ceiling surfaces in use, roof.finish/soffit, MaterialField in fields.tsx, RoofPanel fields; summary, tags)
+- updated: pages/house-solids.md (roof faces tagged by normal.z: covering on top, soffit underneath incl. gallery ceilings, fascia covered only on pitched roofs)
+- updated: pages/exterior-tab.md (seams texture; addFace u = n × up unless |n.y| ≥ 0.999, was 0.9, which turned seams sideways under ~26°)
+- updated: pages/plan-model.md (RoofSchema finish and soffit, additive at version 1)
+- updated: pages/roofs.md (finish and soffit fields, updateRoof deletes them when undefined; summary, tags)
+- updated: pages/roof-tab.md (Covering and Soffit fields, covered roofs tinted, Roof the house with hip on a non-convex house: draw convex pieces per wing; tags)
+- updated: index.md (Materials and finishes, Roofs summaries)

@@ -1,8 +1,8 @@
 ---
 title: Materials and finishes
 type: component
-summary: "A materials catalogue (src/model/materials.ts: 29 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares; brick, wood and lawn textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides and area floors (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish and area.floor in the plan), set by the Material tool, library drags or the Selection panel, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
-tags: [model, materials, finishes, walls, areas, ui, 3d, library, lots, textures]
+summary: "A materials catalogue (src/model/materials.ts: 30 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares; brick, wood, lawn and standing seam metal textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides, area floors and roofs (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish, area.floor and roof.finish/soffit in the plan), set by the Material tool, library drags, the Selection panel or the Roofs section, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
+tags: [model, materials, finishes, walls, areas, roof, ui, 3d, library, lots, textures]
 sources: []
 updated: 2026-11-05
 ---
@@ -15,13 +15,16 @@ material can go on, and materials shown in groups.
 
 ## Catalogue (`src/model/materials.ts`)
 
-- `MATERIALS`: 29 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
+- `MATERIALS`: 30 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
   concrete, wood, ceramic, metal, glass, roofing, ground and garden. Each has `surfaces` (`wall`, `floor`,
   `ceiling`, `roof`, `door`, `frame`), `indoor`/`outdoor` flags, and `color`, `roughness`, `metalness`, `clear` for
-  the renderers. Only `wall` and `floor` are used so far.
+  the renderers. `wall`, `floor`, `roof` (a roof's covering) and `ceiling` (its soffit) are used so far.
+  `metal-standing-seam` (Metal; roof and wall; outdoor; dark grey, metalness 0.55) came in `20dcb35`, after the user
+  showed photos of a dark standing seam roof over a wood soffit.
 - `pattern` draws the library swatch (`MaterialIcon`) and, since `69111af`, picks the 3-D texture for `brick`,
-  `planks` and `grass` (src/render/textures.ts): real-size canvases (brick 512 px/m, a 1 × 0.516 m repeat; boards
-  256 px/m, 2.5 × 0.9375 m; lawn 128 px/m, 8 m, as 4 m showed as a grid from above) with a normal map from a painted
+  `planks`, `grass` and (since `20dcb35`) `seams` (src/render/textures.ts): real-size canvases (brick 512 px/m, a
+  1 × 0.516 m repeat; boards 256 px/m, 2.5 × 0.9375 m; lawn 128 px/m, 8 m, as 4 m showed as a grid from above;
+  standing seam 256 px/m, four 0.45 m panels × 1 m, 2.5 cm ribs lit on one flank) with a normal map from a painted
   height field. Normal maps, not bump maps: three's bump strength follows screen pixels (it normalises the surface
   derivatives), so relief would come and go with zoom; brick arrises are rounded over 3 px because a 1 px edge only
   shows up close. Painted once per material and cached for the session (`finishTextures`, never disposed with the
@@ -48,10 +51,11 @@ material can go on, and materials shown in groups.
 
 ## In the plan
 
-`segment.finish` `{left?, right?}` and `area.floor`, both material ids. They are additive at schemaVersion 1
+`segment.finish` `{left?, right?}`, `area.floor` and (since `20dcb35`) `roof.finish` (the covering) and
+`roof.soffit` (the underside), all material ids. They are additive at schemaVersion 1
 ([Plan model and file format](plan-model.md)). Ids are not checked against the catalogue: an unknown id is kept in
-the file but drawn plain. Edits in `edit.ts`: `setWallFinish` (walls only; `null` clears a side) and
-`setAreaFloor(refs)`. A split keeps a→b, so finishes survive splits and wall → open edge → wall switches.
+the file but drawn plain. Edits in `edit.ts`: `setWallFinish` (walls only; `null` clears a side),
+`setAreaFloor(refs)` and `updateRoof` (patching `finish` or `soffit` to undefined deletes the key). A split keeps a→b, so finishes survive splits and wall → open edge → wall switches.
 
 Suitability is checked only when a finish is applied. If the plan changes later (for example, a room becomes a
 gallery), the finish stays, and the Selection panel lists it as "(does not suit it)".
@@ -72,10 +76,14 @@ gallery), the finish stays, and the Selection panel lists it as "(does not suit 
   `AreaFills` gets `materials={false}` (layer tint only). This affects the plan only. The Exterior and the elevations
   still show materials.
 - Selection panel: one `MaterialField` per wall side, labelled by screen side and what it faces ("Top side, facing
-  Cocina"), plus a floor field on areas.
+  Cocina"), plus a floor field on areas. `MaterialField` lives in `src/ui/fields.tsx` (since `20dcb35`) and takes
+  any `Surface`.
+- Roofs section (`RoofPanel`): *Covering* (roof materials that work outdoors) and *Soffit (its underside)* (ceiling
+  materials outdoors). The roof plan tints a covered roof's slopes in the material's colour ([Roof tab](roof-tab.md)).
 - Library: the Materials group, with Walls and Floors boxes (family subheadings and a count of wall sides or floors
   per material) ([Code conventions](code-conventions.md)). `.library-name` ellipsizes long names. The catalogue title
   "Checkered tile" was shortened for that reason: the full name overflowed.
 
-3-D and elevations: [House solids](house-solids.md) (face tagging and the reveal split, lot covers),
-[Exterior tab](exterior-tab.md) (textures, face UVs and the upside-down wall UVs), [Elevations tab](elevations.md).
+3-D and elevations: [House solids](house-solids.md) (face tagging and the reveal split, roof covering, soffit and
+fascia, lot covers), [Exterior tab](exterior-tab.md) (textures, face UVs along a slope, the upside-down wall UVs),
+[Elevations tab](elevations.md).

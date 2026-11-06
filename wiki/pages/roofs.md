@@ -1,10 +1,10 @@
 ---
 title: "Roofs: model and geometry"
 type: component
-summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip, pitch, height at the eaves sides, overhang, reference edge, parapet; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning and unionOutlines for Roof the house."
-tags: [model, roof, geometry, schema]
+summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip, pitch, height at the eaves sides, overhang, reference edge, parapet, covering and soffit materials; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning and unionOutlines for Roof the house."
+tags: [model, roof, geometry, schema, finishes]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-05
 ---
 
 # Roofs: model and geometry
@@ -24,8 +24,11 @@ are planes: [Roofs are drawn outlines](roofs-drawn-outlines.md). They are built 
 - `overhang` (0–3 m): the eaves stand that far beyond the outline.
 - `edge`: an outline side index: a shed's low side, a gable's ridge direction.
 - `parapet` (0–2 m): flat roofs only.
+- `finish`, `soffit` (optional, since `20dcb35`): material ids of the covering and the underside
+  ([Materials and finishes](materials-and-finishes.md)); where they go in 3-D: [House solids](house-solids.md).
 
-Edits in `src/model/edit.ts`: `addRoof`, `updateRoof` (wraps `edge` modulo the outline's length), `moveRoofs`
+Edits in `src/model/edit.ts`: `addRoof`, `updateRoof` (wraps `edge` modulo the outline's length; patching `finish`
+or `soffit` to undefined deletes the key), `moveRoofs`
 (from the plan before the drag), `deleteItems`. They replace only the layer's `roofs` map, so regions are not
 recomputed. `planFile.ts` rounds outline points to 0.1 mm on save.
 

@@ -30,12 +30,15 @@ the wall and floor finishes it draws.
   mesh each: the palette name, or `"finish:<id>"` for a finished face or floor, built by `finishMaterial` from the
   catalogue's colour, roughness, metalness and `clear` (transparency) ([Materials and finishes](materials-and-finishes.md)). Glass casts no shadow. Roofs receive none: the old per-room slabs
   drew dark seams where they met.
-  - Textures (`69111af`): `src/render/textures.ts` paints checker, brick, planks and lawn finishes on real-size
+  - Textures (`69111af`): `src/render/textures.ts` paints checker, brick, planks, lawn and (`20dcb35`) standing seam finishes on real-size
     canvases, with normal maps for relief ([Materials and finishes](materials-and-finishes.md)); `textured(id, color)`
     sets colour white plus `map` and `normalMap`. `facesGeometry`/`addFace` emit a `uv` attribute in metres (each
     vertex's in-plane coordinates in the triangulation's u/v basis, so a floor's UVs follow the plan axes), and a
     texture's repeat is px per metre / canvas width. `finishTextures` caches per material id for the session and never
     disposes: the house's `dispose` frees materials but not their maps.
+  - Face axes: `addFace` takes u = n × up unless |n.y| ≥ 0.999 (then the plan's X), so a sloped face is mapped
+    along its eaves and up its slope at any pitch. The cut-off was 0.9 before `20dcb35`: faces under about 26° took
+    the plan's X axis, and standing seams ran sideways on half the slopes. Level floors and walls are unaffected.
   - Gotcha: on walls v points world-down (u = n × up, v = n × u), so textures show upside down. This is harmless,
     and the relief stays right because three builds the tangent frame from the UVs. A normal map's green points up the
     texture (canvas y runs down; canvases are flipped on upload).
