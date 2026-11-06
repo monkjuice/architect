@@ -2,9 +2,9 @@
 title: "Roofs: model and geometry"
 type: component
 summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip, pitch, height at the eaves sides, overhang, reference edge, parapet, covering and soffit materials; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning, unionOutlines for Roof the house, and galleryRoof (a 2° shed overhanging only its open sides, via offsetEdges)."
-tags: [model, roof, geometry, schema, finishes, gallery]
+tags: [model, roof, geometry, schema, finishes, gallery, skylights]
 sources: []
-updated: 2026-11-05
+updated: 2026-11-06
 ---
 
 # Roofs: model and geometry
@@ -26,9 +26,11 @@ are planes: [Roofs are drawn outlines](roofs-drawn-outlines.md). They are built 
 - `parapet` (0–2 m): flat roofs only.
 - `finish`, `soffit` (optional, since `20dcb35`): material ids of the covering and the underside
   ([Materials and finishes](materials-and-finishes.md)); where they go in 3-D: [House solids](house-solids.md).
+- `skylights` (optional, since `8d33d0b`): `{count, width}`, glazed strips (count a whole number 1–40, width ≤ 10 m).
+  Asked for as "window holes" in the gallery roof, like the strips over a quincho's dining table.
 
-Edits in `src/model/edit.ts`: `addRoof`, `updateRoof` (wraps `edge` modulo the outline's length; patching `finish`
-or `soffit` to undefined deletes the key), `moveRoofs`
+Edits in `src/model/edit.ts`: `addRoof`, `updateRoof` (wraps `edge` modulo the outline's length; patching `finish`,
+`soffit` or `skylights` to undefined deletes the key), `moveRoofs`
 (from the plan before the drag), `deleteItems`. They replace only the layer's `roofs` map, so regions are not
 recomputed. `planFile.ts` rounds outline points to 0.1 mm on save.
 
@@ -49,6 +51,12 @@ recomputed. `planFile.ts` rounds outline points to 0.1 mm on save.
   (drops repeated and collinear points, runs clockwise on screen): clipping leaves a corner twice where it lies on a
   clipping line, which a test caught.
 - `undersideAlong(roof, a, b)`: heights at the ends and wherever the lowest plane changes (ridge, hip).
+- `skylights(roof, slope?)` (`8d33d0b`): `count` strips spaced evenly along `edge`, each `width` wide (at most
+  step − 0.3), running across the roof over its full depth, cut to the outline inset by `SKYLIGHT_MARGIN` (0.5 m).
+  Given a face's points (`slope`), also cut to that face inset by 0.15 m, so a strip over a gable's ridge becomes one
+  hole per side. Cutting uses a private Sutherland–Hodgman `clipConvex` when the area is convex; otherwise a strip is
+  kept only if wholly inside (even-odd `pointIn`). Strips under 0.05 m² are dropped. Used by the plan (no `slope`)
+  and the solids (per face).
 - `nextEdge`: *Turn the slope / ridge*; a gable skips sides parallel to its ridge.
 - `newRoof`: `edge` = longest side; pitch 25° (shed 10°); overhang 0.5 m; flat gets overhang 0 and a 0.30 m parapet.
 - `roofSummary`: plan area, sloped surface, lowest eaves, top.

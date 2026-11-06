@@ -2,7 +2,7 @@
 title: "House solids: the plan in 3-D"
 type: component
 summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, pools sunk to their depth with water under the rim, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces and parrillas with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
-tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool, levels, steps]
+tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool, levels, steps, skylights]
 sources: []
 updated: 2026-11-06
 ---
@@ -69,6 +69,11 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
   goes on faces with `normal.z > 0.01` and its `soffit` on faces with `normal.z < -0.01`, which covers both the
   underside of the eaves and a gallery's ceiling. The eaves edge (fascia) takes the covering on pitched roofs and
   stays plain on flat ones, where gravel or a membrane on the fascia would look wrong.
+- Skylights (`8d33d0b`): `roofSolidFaces` cuts each face's `skylights(roof, face.pts)` ([Roofs](roofs.md)) as holes
+  in its top and bottom faces, and adds vertical sides facing into each hole; with `normal.z` 0 they are tagged like
+  the fascia (covering on pitched roofs). A separate `glass` solid (ref the roof) holds a pane per hole at
+  mid-thickness, as two faces (up and down) so it shows from above and below. `house.ts` gives glass no shadow, so
+  the sun falls through onto the floor.
 - Walls: one prism per `layerWalls` fill at its own wall's height (`LayerWalls.owners`, [Walls](walls.md)).
 - Under overlapping roofs, the one with the highest underside at a point counts.
 - Walls stop at roofs (`b5b8220`, per wall since `96a2afa`). After the roofs are listed, each segment's `wall` and

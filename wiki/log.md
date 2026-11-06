@@ -301,3 +301,6 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 
 ## [2026-11-06] update | A door's own height
 - updated: pages/plan-model.md (optional door height), pages/opening-styles.md (Height field, capped at the wall), pages/house-solids.md (door head, lintel only above 1 mm)
+
+## [2026-11-06] update | Roof skylights
+- updated: pages/roofs.md (skylights field and layout), pages/roof-tab.md (plan paths, panel fields), pages/house-solids.md (holes, sides, glass pane, no shadow), pages/plan-model.md (roof skylights, format history)

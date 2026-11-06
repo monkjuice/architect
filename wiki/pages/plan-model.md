@@ -52,7 +52,7 @@ updated: 2026-11-06
   [hosted by a segment](openings-hosted-by-segment.md)). A fireplace cuts no gap ([Fireplaces](fireplaces.md)). A
   door may carry its own `height` (positive, at most 6 m; absent = `DOOR_HEAD` 2.10 m), set through `OpeningPatch`.
 - `roofs` (id → `RoofSchema`: `outline`, `type`, `pitch`, `height`, `overhang`, `edge`, `parapet`, and optional
-  `finish` and `soffit` material ids): outlines drawn on the Roof tab, independent of the lines, so they do not
+  `finish` and `soffit` material ids and `skylights: {count, width}`): outlines drawn on the Roof tab, independent of the lines, so they do not
   follow moved walls ([Roofs: model and geometry](roofs.md)).
 - `furniture` (id → `FurnitureSchema`, a union on `kind`: counter, sink, bathtub, shower, toilet, bidet, bed, sofa,
   table, chair, with sinks a nested union on `style`): standing pieces have `at`, `angle`, `width`, `depth` (bathtubs
@@ -118,4 +118,4 @@ On 2026-11-04 the optional segment `colonnade` and the `fireplace` opening kind 
 Later that day layer `furniture` (`.default({})`) came, also at version 1, and then the optional segment `finish`
 and area `floor`, and after them the optional area `lot` (`z.literal(true)`), all still at version 1. On
 2026-11-05 the optional roof `finish` and `soffit` came, also at version 1, and on 2026-11-06 the optional layer
-`level`.
+`level` and roof `skylights`.
