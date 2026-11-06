@@ -1,8 +1,8 @@
 ---
 title: Exterior tab (3-D view)
 type: component
-summary: "The Exterior tab: src/ui/exterior/ExteriorTab.tsx (camera presets, Roof toggle for the drawn roofs and parapets, sun season and time, Save image) over a three.js view in src/render/ (house.ts triangulates each solid face in its own plane and winds it to the face's explicit normal, plan y as three z; engine.ts, adapted from the Forge H1 planner, lights it with the plan's sun and real shadows, draws on demand and keeps the camera pose across tab switches; textures.ts paints brick, wood, lawn, dirt, standing seam, square tile, stacked stone and checker textures with normal maps, cached for the session; the ground is cut open over pools); three.js is a separate chunk loaded only when the tab opens."
-tags: [ui, 3d, three, render, sun, exterior, roof, finishes, textures, pool]
+summary: "The Exterior tab: src/ui/exterior/ExteriorTab.tsx (camera presets, Roof toggle for the drawn roofs and parapets, sun season and time, Save image) over a three.js view in src/render/ (house.ts triangulates each solid face in its own plane and winds it to the face's explicit normal, plan y as three z; engine.ts, adapted from the Forge H1 planner, lights it with the plan's sun and real shadows, draws on demand and keeps the camera pose across tab switches; textures.ts paints brick, wood, lawn, dirt, standing seam, square tile, stacked stone, oak grain and checker textures with normal maps, cached for the session, laid along a face's grain when it has one; the ground is cut open over pools); three.js is a separate chunk loaded only when the tab opens."
+tags: [ui, 3d, three, render, sun, exterior, roof, finishes, textures, pool, grain]
 sources: []
 updated: 2026-11-06
 ---
@@ -31,7 +31,7 @@ the wall and floor finishes it draws.
   catalogue's colour, roughness, metalness and `clear` (transparency) ([Materials and finishes](materials-and-finishes.md)). Glass casts no shadow. Roofs receive none: the old per-room slabs
   drew dark seams where they met.
   - Textures (`69111af`): `src/render/textures.ts` paints checker, brick, planks, lawn, (`20dcb35`) standing seam
-    (`4097821`) square tile and stacked stone and (`506fd9e`) dirt finishes on real-size canvases, with normal maps for relief ([Materials and finishes](materials-and-finishes.md)); `textured(id, color)`
+    (`4097821`) square tile and stacked stone, (`506fd9e`) dirt and (`81ba2bd`) oak grain finishes on real-size canvases, with normal maps for relief ([Materials and finishes](materials-and-finishes.md)); `textured(id, color)`
     sets colour white plus `map` and `normalMap`. `facesGeometry`/`addFace` emit a `uv` attribute in metres (each
     vertex's in-plane coordinates in the triangulation's u/v basis, so a floor's UVs follow the plan axes), and a
     texture's repeat is px per metre / canvas width. `finishTextures` caches per material id for the session and never
@@ -39,6 +39,11 @@ the wall and floor finishes it draws.
   - Face axes: `addFace` takes u = n × up unless |n.y| ≥ 0.999 (then the plan's X), so a sloped face is mapped
     along its eaves and up its slope at any pitch. The cut-off was 0.9 before `20dcb35`: faces under about 26° took
     the plan's X axis, and standing seams ran sideways on half the slopes. Level floors and walls are unaffected.
+  - `Face.grain` (`81ba2bd`) overrides that: u is the grain projected into the face's plane. Without it a table's
+    oak ran across its boards or sideways on its legs, depending on how the table was turned. Pitfall (read from the
+    code, not seen in a render): there is no fallback, so on a face whose normal is parallel to its grain the
+    projection is zero, the UVs collapse and `addFace` skips the face as zero-area. The trestle gives one grain to
+    all of a block's faces, so its board and rail ends are at risk (exactly parallel when the table is at 0° or 180°).
   - Pools (`506fd9e`): `buildHouse` returns `holes`, the `Solid.hole` rims of the pool basins
     ([House solids](house-solids.md)), and the engine cuts them out of the ground. Since `f565552` a pool's parts
     share one union ring, deduped by identity with a `Set`: separate touching holes could break the ground's

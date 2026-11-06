@@ -1,10 +1,10 @@
 ---
 title: Furniture and fixtures
 type: component
-summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips), square, round and coffee tables, chairs, trees (shade, slender); src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
-tags: [model, furniture, ui, canvas, 3d, trees]
+summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips), square, round, coffee and oak trestle tables, chairs, trees (shade, slender); src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
+tags: [model, furniture, ui, canvas, 3d, trees, oak]
 sources: []
-updated: 2026-11-05
+updated: 2026-11-06
 ---
 
 # Furniture and fixtures
@@ -48,7 +48,12 @@ the Argentine *mesa ratona*).
     tables are free. A **coffee table** (`table` style `coffee`, 1.20 × 0.60 m, 0.42 m high, snap `sofa`) put
     within reach of the space in front of a sofa's main seat (the first such sofa on the layer) is centred in front
     of that seat `COFFEE_GAP` (0.40 m) out, squared to the sofa; a sectional's main seat stops short of its return
-    (`SOFA.chaise`) and is only `SOFA.seat` deep, mirrored with `mirror`; elsewhere it stands free. A kitchen sink goes in a
+    (`SOFA.chaise`) and is only `SOFA.seat` deep, mirrored with `mirror`; elsewhere it stands free. A **trestle**
+    table (`81ba2bd`, from the user's photo of a reclaimed-oak farmhouse table, to replace their 7 m gallery table):
+    "Oak trestle", 3.2 × 1.1 m, 0.78 m high, snap `none`, so the Style field switches it with square and round ones
+    and chairs gather round it. `trestleBoards(depth)` (boards ~0.35 m wide) and `trestleFrames(width)` (in from each
+    end by min(0.4 m, 9 %), plus a middle frame over 4 m) are shared by the plan symbol (soft board joints and frame
+    boxes) and 3-D. A kitchen sink goes in a
     counter within reach or gets a `problem` (no counter; counter shorter than the sink), with or without snap/Alt.
     Wall thickness comes in as a callback (`hostThickness`).
   - `furnitureAt`: the smallest piece under the point (a sink beats its counter), top layer first.
@@ -98,7 +103,11 @@ tubs with real holes (a corner tub: quarter-disc rim and basin, smooth), a showe
 the rim or tray to 1.95 m, a shower's 0.05 m tray and 2.0 m glass screen with a metal edge post, a toilet (pedestal,
 bowl ring at 0.30–0.40 m, cistern to 0.78 m), a bidet with its tap, beds, sofas (wood plinth to 0.10 m, then fabric:
 seat over the outline to 0.45, back to 0.85, arms to 0.62, none on a sectional's return; `mirror` via a min/max box
-helper), tables (a coffee table: rounded top at 0.38–0.42 m, a shelf at 0.10–0.12, four legs) and chairs, in the new `ceramic`, `wood` and `fabric` materials. A tree's height scales with its width at
+helper), tables (a coffee table: rounded top at 0.38–0.42 m, a shelf at 0.10–0.12, four legs) and chairs, in the new `ceramic`, `wood` and `fabric` materials.
+A trestle is 0.09 m top boards with 6 mm gaps; per frame two 0.14 m square legs, a foot rail at 0.05–0.17 m and a
+bearer under the top; a stretcher at 0.20–0.32 m; and two slanted braces (`profileFaces`). Every part is palette
+`wood` with `FurniturePart.finish` `oak-solid` and a per-part `Face.grain` (along, up, across or along the slant), so
+the oak's grain follows each piece ([Materials and finishes](materials-and-finishes.md)). A tree's height scales with its width at
 the catalogue's ratio: a `bark` trunk frustum under a `foliage` crown of smooth ellipsoid lobes (one for slender,
 three for shade trees).
 

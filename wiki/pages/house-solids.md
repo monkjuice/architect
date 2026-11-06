@@ -2,7 +2,7 @@
 title: "House solids: the plan in 3-D"
 type: component
 summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, pools sunk to their depth with water under the rim, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces and parrillas with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
-tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool, levels, steps, skylights]
+tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool, levels, steps, skylights, grain]
 sources: []
 updated: 2026-11-06
 ---
@@ -17,7 +17,8 @@ faces in `finishes.test.ts`).
 ## Output
 
 `houseSolids(plan, source)` returns `Solid[]`: `{kind, faces, bottom, top, material, ref}`. A `Face` has `pts`
-(`Vec3`: plan x, y with +y down, z up), `holes` and an explicit unit `normal` pointing out of the solid. Consumers
+(`Vec3`: plan x, y with +y down, z up), `holes` and an explicit unit `normal` pointing out of the solid (optional:
+`smooth`, `finish`, and since `81ba2bd` `grain`, the way a texture runs, [Exterior tab](exterior-tab.md)). Consumers
 use the normals, never the winding: the three.js renderer winds triangles to them and the elevations cull by them.
 The types `Face`/`Vec3` and the generic builders live in `src/model/faces.ts` (moved out of `solids.ts`, which
 re-exports the types, so `furniture3d.ts` can use them while `solids.ts` imports `furniture3d.ts`, with no import
@@ -34,7 +35,7 @@ furniture `ceramic`, `wood` and `fabric` (since `506fd9e` also `foliage` and `ba
 colours are set twice, in `src/render/house.ts` and `src/ui/ElevationsTab.tsx`.
 
 Finishes override the palette ([Materials and finishes](materials-and-finishes.md)): `Face.finish` (wall pieces, roof faces) and
-`Solid.finish` (floors; a fireplace's `brick` parts, since `4097821`) hold a catalogue id, and only ids `findMaterial` knows are set. `house.ts` makes one mesh
+`Solid.finish` (floors; a fireplace's `brick` parts, since `4097821`; a furniture part's `finish`, since `81ba2bd`) hold a catalogue id, and only ids `findMaterial` knows are set. `house.ts` makes one mesh
 per material key (palette name or `"finish:<id>"`), so a wall finished on one side is two meshes.
 `ElevationPolygon.finish` (face's, else solid's) gives the elevation fill.
 

@@ -304,3 +304,6 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 
 ## [2026-11-06] update | Roof skylights
 - updated: pages/roofs.md (skylights field and layout), pages/roof-tab.md (plan paths, panel fields), pages/house-solids.md (holes, sides, glass pane, no shadow), pages/plan-model.md (roof skylights, format history)
+
+## [2026-11-06] update | Oak trestle table
+- updated: pages/furniture.md (trestle style, boards/frames, 3-D parts), pages/materials-and-finishes.md (oak-solid, grain texture), pages/exterior-tab.md (Face.grain sets texture u; parallel-grain pitfall), pages/house-solids.md (Face.grain, furniture part finish), index.md (three summaries)
