@@ -44,11 +44,16 @@ export const FURNITURE: readonly FurnitureInfo[] = [
   { kind: 'sofa', style: 'loveseat', title: 'Loveseat', width: 1.6, depth: 0.9, height: 0.85, snap: 'wall' },
   { kind: 'sofa', style: 'three-seater', title: 'Three-seater', width: 2.2, depth: 0.95, height: 0.85, snap: 'wall' },
   { kind: 'sofa', style: 'sectional', title: 'Sectional', width: 2.8, depth: 1.7, height: 0.85, snap: 'wall' },
+  { kind: 'sofa', style: 'teak-sofa', title: 'Teak outdoor sofa', width: 2.2, depth: 0.9, height: 0.75, snap: 'wall' },
+  { kind: 'sofa', style: 'teak-armchair', title: 'Teak outdoor armchair', width: 0.85, depth: 0.85, height: 0.75, snap: 'none' },
   { kind: 'table', style: 'square', title: 'Square', width: 0.9, depth: 0.9, height: 0.75, snap: 'none' },
   { kind: 'table', style: 'trestle', title: 'Oak trestle', width: 3.2, depth: 1.1, height: 0.78, snap: 'none' },
   { kind: 'table', style: 'circle', title: 'Circle', width: 1.1, depth: 1.1, height: 0.75, snap: 'none' },
   { kind: 'table', style: 'coffee', title: 'Coffee', width: 1.2, depth: 0.6, height: 0.42, snap: 'sofa' },
+  { kind: 'table', style: 'teak-coffee', title: 'Teak coffee table', width: 1.3, depth: 0.7, height: 0.4, snap: 'sofa' },
   { kind: 'chair', title: 'Chair', width: 0.45, depth: 0.5, height: 0.9, snap: 'table' },
+  { kind: 'plant', style: 'olive', title: 'Olive tree in a pot', width: 1.2, depth: 1.2, height: 2.0, snap: 'none' },
+  { kind: 'plant', style: 'shrub', title: 'Shrub in a pot', width: 0.6, depth: 0.6, height: 0.9, snap: 'none' },
   { kind: 'tree', style: 'shade', title: 'Shade tree', width: 6, depth: 6, height: 7, snap: 'none' },
   { kind: 'tree', style: 'slender', title: 'Tall tree', width: 3.5, depth: 3.5, height: 11, snap: 'none' },
 ]
@@ -116,7 +121,7 @@ export function placeFurniture(layer: Layer, f: Furniture): Placement | null {
 /** Whether a plan point is on a piece (a round table is a disc, the rest rectangles). */
 export function onFurniture(f: Furniture, pl: Placement, p: Vec): boolean {
   const q = toLocal(pl, p)
-  if ((f.kind === 'table' && f.style === 'circle') || f.kind === 'tree') return (q.x / (pl.width / 2)) ** 2 + (q.y / (pl.depth / 2)) ** 2 <= 1
+  if ((f.kind === 'table' && f.style === 'circle') || f.kind === 'tree' || f.kind === 'plant') return (q.x / (pl.width / 2)) ** 2 + (q.y / (pl.depth / 2)) ** 2 <= 1
   return Math.abs(q.x) <= pl.width / 2 && Math.abs(q.y) <= pl.depth / 2
 }
 
@@ -245,7 +250,7 @@ export function furnitureTarget(plan: Plan, p: Vec, opts: FurnitureOptions): Fur
   if (info.snap === 'table') {
     for (const [id, f] of Object.entries(layer.furniture)) {
       // chairs gather round dining tables, not coffee tables
-      if (f.kind !== 'table' || f.style === 'coffee' || id === opts.ignore) continue
+      if (f.kind !== 'table' || isCoffee(f) || id === opts.ignore) continue
       const t = placement(f.at, f.angle, f.width, f.depth)
       const q = toLocal(t, p)
       if (f.style === 'circle') {
@@ -298,7 +303,13 @@ export const SOFA = {
 }
 
 /** How many seat cushions a sofa has along its main seat. */
-export const sofaCushions = (style: string): number => (style === 'armchair' ? 1 : style === 'loveseat' ? 2 : 3)
+export const sofaCushions = (style: string): number => (style.endsWith('armchair') ? 1 : style === 'loveseat' ? 2 : 3)
+
+/** A low table that stands before a sofa (not one chairs gather round). */
+export const isCoffee = (f: Furniture): boolean => f.kind === 'table' && (f.style === 'coffee' || f.style === 'teak-coffee')
+
+/** A plant's pot, across, m. */
+export const potSize = (width: number): number => Math.min(0.6, width * 0.5)
 
 /**
  * A sofa's footprint, local and before turning: a rectangle, or for a sectional an L, its return reaching the
@@ -484,6 +495,11 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
       return parts
     }
     case 'table':
+      if (f.style === 'teak-coffee') {
+        // its slats
+        const n = Math.max(3, Math.round(pl.depth / 0.1))
+        return [outline, ...Array.from({ length: n - 1 }, (_, i): SymbolPart => ({ pts: [local(pl, -hw, -hd + (pl.depth * (i + 1)) / n), local(pl, hw, -hd + (pl.depth * (i + 1)) / n)], closed: false, role: 'soft' }))]
+      }
       if (f.style === 'coffee') return [{ pts: rounded(pl, -hw, -hd, hw, hd, 0.06), closed: true, role: 'outline' }, { pts: rounded(pl, -hw + 0.06, -hd + 0.06, hw - 0.06, hd - 0.06, 0.04), closed: true, role: 'soft' }]
       if (f.style === 'trestle') {
         // its top's boards, and the leg frames under it
@@ -520,6 +536,14 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
         drain(0, 0.05),
         { c: local(pl, 0, -hd + 0.08), r: 0.02, role: 'soft' },
       ]
+    case 'plant': {
+      // its pot, and its foliage over it
+      const r = potSize(pl.width) / 2
+      return [
+        { c: local(pl, 0, 0), r, role: 'outline' },
+        { pts: ellipse(pl, -hw, -hd, hw, hd, 28), closed: true, role: 'soft' },
+      ]
+    }
     case 'tree':
       // its crown from above, and its trunk
       return [

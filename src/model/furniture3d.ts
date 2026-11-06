@@ -1,6 +1,6 @@
 import { frustumFaces, prismFaces, profileFaces, ring, smoothSides, type Face, type Vec3 } from './faces'
 import type { Vec } from './geometry'
-import { ellipse, ISLAND_OVERHANG, local, quarterDisc, rounded, showerPoint, SOFA, sofaOutline, trestleBoards, trestleFrames, type Placement } from './furniture'
+import { ellipse, ISLAND_OVERHANG, local, potSize, quarterDisc, rounded, showerPoint, SOFA, sofaCushions, sofaOutline, trestleBoards, trestleFrames, type Placement } from './furniture'
 import type { Furniture } from './plan'
 import type { SolidMaterial } from './solids'
 
@@ -23,6 +23,13 @@ const VANITY = 0.86
 const SHOWER_HEAD = 1.95
 
 const sub2 = (a: Vec, b: Vec): Vec => ({ x: a.x - b.x, y: a.y - b.y })
+
+/** A piece's own axes in plan, for the grain of its parts: along it, across it (front to back), and up. */
+function axes(pl: Placement): { x: Vec3; y: Vec3; z: Vec3 } {
+  const o = local(pl, 0, 0)
+  const [x, y] = [sub2(local(pl, 1, 0), o), sub2(local(pl, 0, 1), o)]
+  return { x: { x: x.x, y: x.y, z: 0 }, y: { x: y.x, y: y.y, z: 0 }, z: { x: 0, y: 0, z: 1 } }
+}
 const mul2 = (a: Vec, k: number): Vec => ({ x: a.x * k, y: a.y * k })
 
 export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
@@ -156,6 +163,35 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
       break
     }
     case 'sofa': {
+      if (f.style === 'teak-sofa' || f.style === 'teak-armchair') {
+        // an outdoor sofa: a teak frame (posts, rails, slatted arms and back) under thick linen cushions
+        const { x: X, y: Y, z: Z } = axes(pl)
+        const wood = (x0: number, y0: number, x1: number, y1: number, z0: number, z1: number, grain: Vec3) =>
+          parts.push({ faces: prismFaces(box(x0, y0, x1, y1), [], z0, z1).map((g) => ({ ...g, grain })), material: 'wood', finish: 'teak' })
+        const [arm, post] = [0.09, 0.06]
+        for (const x of [-hw, hw - post]) {
+          for (const y of [-hd, hd - post]) wood(x, y, x + post, y + post, 0, y < 0 ? 0.7 : 0.6, Z)
+          // the arm: a board on slats
+          wood(x + (x < 0 ? 0 : post - arm), -hd, x + (x < 0 ? arm : post), hd, 0.6, 0.64, Y)
+          for (let k = 1; k <= 4; k++) {
+            const y = -hd + post + ((pl.depth - 2 * post) * k) / 5
+            wood(x + 0.015, y - 0.02, x + post - 0.015, y + 0.02, 0.18, 0.6, Z)
+          }
+          wood(x, -hd + post, x + post, hd - post, 0.14, 0.2, Y)
+        }
+        wood(-hw + post, hd - 0.05, hw - post, hd, 0.14, 0.3, X)
+        wood(-hw + post, -hd, hw - post, -hd + 0.05, 0.14, 0.3, X)
+        for (const z of [0.36, 0.48, 0.6]) wood(-hw + post, -hd, hw - post, -hd + 0.04, z, z + 0.08, X)
+        // the cushions: one seat and one back cushion to each place
+        const n = sofaCushions(f.style)
+        const [x0, x1] = [-hw + arm + 0.01, hw - arm - 0.01]
+        for (let i = 0; i < n; i++) {
+          const [a, b] = [x0 + ((x1 - x0) * i) / n + 0.005, x0 + ((x1 - x0) * (i + 1)) / n - 0.005]
+          put(rounded(pl, a, -hd + 0.06, b, hd - 0.02, 0.04), 0.3, 0.44, 'linen')
+          put(rounded(pl, a, -hd + 0.05, b, -hd + 0.22, 0.04), 0.44, 0.8, 'linen')
+        }
+        break
+      }
       // a plinth, the seat, the back along it and the arms, all upholstered (a sectional's return has no arm)
       const m = f.mirror ? -1 : 1
       const mb = (x0: number, y0: number, x1: number, y1: number) => box(Math.min(m * x0, m * x1), y0, Math.max(m * x0, m * x1), y1)
@@ -169,6 +205,27 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
       break
     }
     case 'table':
+      if (f.style === 'teak-coffee') {
+        // a low teak table: slats on a frame, four square legs
+        const { x: X, y: Y, z: Z } = axes(pl)
+        const wood = (x0: number, y0: number, x1: number, y1: number, z0: number, z1: number, grain: Vec3) =>
+          parts.push({ faces: prismFaces(box(x0, y0, x1, y1), [], z0, z1).map((g) => ({ ...g, grain })), material: 'wood', finish: 'teak' })
+        const n = Math.max(3, Math.round(pl.depth / 0.1))
+        for (let i = 0; i < n; i++) wood(-hw, -hd + (pl.depth * i) / n + 0.008, hw, -hd + (pl.depth * (i + 1)) / n - 0.008, 0.37, 0.4, X)
+        for (const [x, y] of [
+          [-hw + 0.04, -hd + 0.04],
+          [hw - 0.11, -hd + 0.04],
+          [hw - 0.11, hd - 0.11],
+          [-hw + 0.04, hd - 0.11],
+        ]) {
+          wood(x, y, x + 0.07, y + 0.07, 0, 0.37, Z)
+        }
+        wood(-hw + 0.04, -hd + 0.06, hw - 0.04, -hd + 0.09, 0.3, 0.37, X)
+        wood(-hw + 0.04, hd - 0.09, hw - 0.04, hd - 0.06, 0.3, 0.37, X)
+        wood(-hw + 0.06, -hd + 0.04, -hw + 0.09, hd - 0.04, 0.3, 0.37, Y)
+        wood(hw - 0.09, -hd + 0.04, hw - 0.06, hd - 0.04, 0.3, 0.37, Y)
+        break
+      }
       if (f.style === 'trestle') {
         // a farmhouse trestle in solid oak: a thick top of long boards over leg frames (two square legs on a foot
         // rail, a bearer under the top), a stretcher low along the middle, and braces from it up to the top
@@ -239,6 +296,37 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
         }
       }
       break
+    case 'plant': {
+      // a tapering stone pot, its soil, and the plant: a small olive tree (a trunk under a crown of grey-green
+      // lobes), or a shrub of a few lobes sitting on the pot
+      const pot = potSize(pl.width) / 2
+      const potTop = f.style === 'olive' ? 0.55 : 0.42
+      const c = local(pl, 0, 0)
+      parts.push({ faces: smoothSides(frustumFaces(c, pot * 0.78, pot, 0, potTop, 18)), material: 'stone' })
+      parts.push({ faces: frustumFaces(c, pot * 0.9, pot * 0.9, potTop - 0.05, potTop - 0.03, 18), material: 'bark' })
+      const lobe = (dx: number, dy: number, r: number, z0: number, z1: number, material: SolidMaterial) => {
+        const at = local(pl, dx, dy)
+        const faces: Face[] = []
+        for (let i = 0; i < 6; i++) {
+          const [a0, a1] = [-Math.PI / 2 + (Math.PI * i) / 6, -Math.PI / 2 + (Math.PI * (i + 1)) / 6]
+          const [zm, h] = [(z0 + z1) / 2, (z1 - z0) / 2]
+          faces.push(...frustumFaces(at, Math.max(0.02, r * Math.cos(a0)), Math.max(0.02, r * Math.cos(a1)), zm + h * Math.sin(a0), zm + h * Math.sin(a1), 12))
+        }
+        parts.push({ faces: smoothSides(faces), material })
+      }
+      const r = Math.max(hw, hd)
+      if (f.style === 'olive') {
+        const crown = 1.15
+        parts.push({ faces: smoothSides(frustumFaces(c, 0.05, 0.035, potTop - 0.05, crown + 0.2, 8)), material: 'bark' })
+        lobe(0, 0, r * 0.75, crown, 2.0, 'olive')
+        lobe(r * 0.3, r * 0.2, r * 0.5, crown + 0.15, 1.9, 'olive')
+        lobe(-r * 0.3, -r * 0.15, r * 0.5, crown + 0.2, 1.95, 'olive')
+      } else {
+        lobe(0, 0, r * 0.9, potTop - 0.05, potTop + 0.5, 'foliage')
+        lobe(r * 0.3, 0, r * 0.6, potTop + 0.05, potTop + 0.48, 'foliage')
+      }
+      break
+    }
     case 'tree': {
       // a trunk, and a crown of a few rounded lobes round the top of it, as tall as the catalogue's tree of its kind
       // is for its width

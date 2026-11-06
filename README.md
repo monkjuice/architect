@@ -206,6 +206,8 @@ Furniture and fixtures go where you click (pick one in the library, or drag it o
 | **Sofas** | *Armchair* 0.90 × 0.90 m, *Loveseat* 1.60 × 0.90 m, *Three-seater* 2.20 × 0.95 m, *Sectional* 2.80 × 1.70 m (an L whose return, at its right end, *Flip* moves to its left), 0.85 m high | back up to a wall |
 | **Tables** | *Square* 0.90 × 0.90 m, *Circle* Ø 1.10 m, 0.75 m high; *Coffee* (mesa ratona) 1.20 × 0.60 m, 0.42 m high, with a shelf; *Oak trestle* 3.20 × 1.10 m, 0.78 m high, any length: a 9 cm top of long boards over leg frames (square legs on a foot rail, a third frame in the middle when over 4 m), a low stretcher and braces, in solid reclaimed oak with its grain along each piece | stand where they are put; a coffee table stands centred 0.40 m in front of a sofa it is put by (a sectional's main seat), squared to it |
 | **Chairs** | 0.45 × 0.50 m | turn to face a dining table they are put by |
+| **Outdoor living** | *Teak outdoor sofa* 2.20 × 0.90 m and *armchair* 0.85 m square (sofa styles): a teak frame with slatted arms and back under thick linen cushions; *Teak coffee table* 1.30 × 0.70 m, 0.40 m high (a table style), slatted | the sofa backs up to a wall; the armchair stands where it is put; the table stands before a sofa like a coffee table |
+| **Plants** | *Olive tree in a pot* (foliage 1.20 m across, 2 m high) and *Shrub in a pot* (0.60 m): a tapering stone pot with its plant | stand where they are put |
 | **Trees** | *Shade tree* a crown 6 m across, 7 m high; *Tall tree* 3.5 m across, 11 m high (taller as they are wider) | stand where they are put, for gardens and streets |
 
 Near a wall, a piece that goes against one turns its back to the wall and stands flush with its face (`Alt`

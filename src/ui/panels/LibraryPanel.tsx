@@ -30,6 +30,7 @@ const FURNITURE_GROUPS: { kinds: FurnitureKind[]; title: string }[] = [
   { kinds: ['sofa'], title: 'Sofas' },
   { kinds: ['table'], title: 'Tables' },
   { kinds: ['chair'], title: 'Chairs' },
+  { kinds: ['plant'], title: 'Plants' },
   { kinds: ['tree'], title: 'Trees' },
 ]
 

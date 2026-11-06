@@ -137,8 +137,8 @@ export const OpeningSchema = z.discriminatedUnion('kind', [DoorSchema, WindowSch
 export const SINK_STYLES = ['outdoor', 'kitchen', 'bathroom'] as const
 export const BATHTUB_STYLES = ['alcove', 'clawfoot', 'drop-in', 'corner'] as const
 export const BED_STYLES = ['single', 'double', 'queen', 'king'] as const
-export const SOFA_STYLES = ['armchair', 'loveseat', 'three-seater', 'sectional'] as const
-export const TABLE_STYLES = ['square', 'circle', 'coffee', 'trestle'] as const
+export const SOFA_STYLES = ['armchair', 'loveseat', 'three-seater', 'sectional', 'teak-sofa', 'teak-armchair'] as const
+export const TABLE_STYLES = ['square', 'circle', 'coffee', 'trestle', 'teak-coffee'] as const
 
 const Standing = {
   /** Its centre on the plan, in m. */
@@ -196,6 +196,11 @@ export const ChairSchema = z.strictObject({ kind: z.literal('chair'), ...Standin
 
 export const TREE_STYLES = ['shade', 'slender'] as const
 
+export const PLANT_STYLES = ['olive', 'shrub'] as const
+
+/** A plant in a pot, `width` its foliage across: a small olive tree, or a shrub. */
+export const PlantSchema = z.strictObject({ kind: z.literal('plant'), style: z.enum(PLANT_STYLES), ...Standing })
+
 /** A tree, its crown `width` across (its trunk at `at`): a broad shade tree, or a tall slender one. */
 export const TreeSchema = z.strictObject({ kind: z.literal('tree'), style: z.enum(TREE_STYLES), ...Standing })
 
@@ -211,6 +216,7 @@ export const FurnitureSchema = z.discriminatedUnion('kind', [
   TableSchema,
   ChairSchema,
   TreeSchema,
+  PlantSchema,
 ])
 
 export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip'] as const
