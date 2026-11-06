@@ -79,6 +79,22 @@ export function offsetPolygon(pts: readonly Vec[], d: number): Vec[] {
   })
 }
 
+/**
+ * A ring with each edge moved out by its own distance (in, for a negative one), its corners where the moved edges
+ * meet; where two edges in line move by different distances, the corner becomes a step.
+ */
+export function offsetEdges(pts: readonly Vec[], d: (edge: number) => number): Vec[] {
+  const ring = normalized(pts)
+  const n = ring.length
+  const line = (i: number) => ({ p: add(ring[i], mul(inward(ring, i), -d(i))), dir: sub(ring[(i + 1) % n], ring[i]) })
+  return ring.flatMap((p, i) => {
+    const [a, b] = [line((i + n - 1) % n), line(i)]
+    const den = cross(a.dir, b.dir)
+    if (Math.abs(den) < 1e-9) return Math.abs(d(i) - d((i + n - 1) % n)) < 1e-9 ? [b.p] : [add(p, mul(inward(ring, (i + n - 1) % n), -d((i + n - 1) % n))), b.p]
+    return [add(a.p, mul(a.dir, cross(sub(b.p, a.p), b.dir) / den))]
+  })
+}
+
 export function isConvex(pts: readonly Vec[]): boolean {
   const ring = normalized(pts)
   return ring.every((p, i) => cross(sub(p, ring[(i + ring.length - 1) % ring.length]), sub(ring[(i + 1) % ring.length], p)) >= -1e-9)
@@ -230,26 +246,31 @@ export function newRoof(outline: readonly Vec[], type: RoofType, height = WALL_H
   return { outline: pts, type, pitch: type === 'shed' ? 10 : 25, height, overhang: flat ? 0 : 0.5, edge, parapet: flat ? 0.3 : 0 }
 }
 
-/** The pitch a gallery's roof starts at, in degrees: as near flat as still sheds water. */
+/** The pitch a gallery's roof starts at, in degrees: as near flat as still sheds water; and its overhang, m. */
 export const GALLERY_PITCH = 2
+const GALLERY_OVERHANG = 0.5
 
 /**
- * A gallery's own roof, apart from the rooms' so it can be nearly flat: a shed sloping down away from the house, to
- * its longest side that does not run along the rooms (`rooms`, their outlines), and 0.1 m under the top of the
- * walls (`top`) where it meets them, so it tucks under the eaves of the rooms' roof.
+ * A gallery's own roof, apart from the rooms' so it can be nearly flat: a shed over `ring` (the gallery, to the
+ * lines' centres) sloping down away from the house, to its longest side that does not run along the rooms (`rooms`,
+ * their outlines), and 0.1 m under the top of the walls (`top`) where it meets them, so it tucks under the eaves of
+ * the rooms' roof. It overhangs on its open sides only (its overhang is drawn into its outline): along the house it
+ * stops at the face of the house's walls, which stand taller than it, so as not to run into them.
  */
-export function galleryRoof(outline: readonly Vec[], rooms: readonly (readonly Vec[])[], top: number): Roof {
-  const roof = newRoof(outline, 'shed')
-  const pts = roof.outline
-  const next = (i: number) => pts[(i + 1) % pts.length]
-  const alongRooms = (i: number) => {
-    const m = lerp(pts[i], next(i), 0.5)
+export function galleryRoof(ring: readonly Vec[], rooms: readonly (readonly Vec[])[], top: number): Roof {
+  const near = (a: Vec, b: Vec) => {
+    const m = lerp(a, b, 0.5)
     return rooms.some((r) => r.some((p, j) => closestOnSegment(m, p, r[(j + 1) % r.length]).dist < EXTERIOR_WALL))
   }
+  const centres = normalized(ring)
+  const outline = offsetEdges(centres, (i) => (near(centres[i], centres[(i + 1) % centres.length]) ? -EXTERIOR_WALL / 2 : EXTERIOR_WALL / 2 + GALLERY_OVERHANG))
+  const roof = { ...newRoof(outline, 'shed'), overhang: 0 }
+  const pts = roof.outline
+  const next = (i: number) => pts[(i + 1) % pts.length]
   let edge = roof.edge
   let longest = -1
   pts.forEach((p, i) => {
-    if (!alongRooms(i) && dist(p, next(i)) > longest) [edge, longest] = [i, dist(p, next(i))]
+    if (!near(p, next(i)) && dist(p, next(i)) > longest) [edge, longest] = [i, dist(p, next(i))]
   })
   const [a, b] = [pts[edge], next(edge)]
   const depth = Math.max(...pts.map((p) => Math.abs(cross(sub(b, a), sub(p, a))) / dist(a, b)))

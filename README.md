@@ -274,8 +274,10 @@ covers, usually the walls' outside faces) on a layer, and its eaves stand an **o
   centrelines), as high as their tallest wall: one roof of the type picked under *New roofs* per group of rooms
   that touch, and apart from them, so it can have its own pitch, a nearly flat shed (2°) per group of galleries
   (bounded by walls and open edges), sloping down away from the house and tucked 0.1 m under the top of its walls,
-  under the house's eaves. Walls stop at the underside of the roof they stand in (the highest, where two cover
-  them), or of the lowest overhang over them: a gallery's end walls stop under its roof.
+  under the house's eaves. A gallery's roof overhangs 0.5 m on its open sides only (drawn into its outline): along
+  the house it stops at the face of the house's walls. Each wall stops at the underside of the roof over its middle
+  (the highest one whose outline it is in, or the lowest overhang over it) where that is lower than its top, all
+  along it: a gallery's end walls stop under its roof.
 - **Roof** (`R`) draws one: click its corners (they snap to the plan's points and lines; `Shift` keeps 45°), then
   click the first corner or press `Enter`. `Backspace` takes a corner back, `Esc` cancels.
 - **Select** (`V`): click a roof (`Shift` adds), drag it to move it, drag a corner of a selected roof to reshape

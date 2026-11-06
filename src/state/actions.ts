@@ -112,7 +112,7 @@ export function roofTheHouse() {
   const galleries = unionOutlines(covered.filter((r) => !r.indoor).map((r) => r.outer))
   const roofs = [
     ...rooms.map((ring) => newRoof(offsetPolygon(ring, EXTERIOR_WALL / 2), roofType, height)),
-    ...galleries.map((ring) => galleryRoof(offsetPolygon(ring, EXTERIOR_WALL / 2), rooms, height)),
+    ...galleries.map((ring) => galleryRoof(ring, rooms, height)),
   ]
   for (const roof of roofs) {
     const result = addRoof(plan, layer.id, roof)

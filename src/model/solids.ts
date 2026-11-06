@@ -259,17 +259,22 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   /** A wall or edge's underside profile under `roof`, as (distance along it, height). */
   const profile = (roof: Roof, a: Vec, b: Vec): [number, number][] => undersideAlong(roof, a, b).map(({ t, z }) => [t * dist(a, b), z])
 
-  // walls (and the wall over their doors and windows) stop at the underside of the highest roof whose outline they
-  // stand in, or of the lowest overhang over them when they stand in none, where it is lower than their tops: a
-  // gallery's end walls under its nearly flat roof, tucked under the house's eaves. The wall the gallery leans on
-  // stands in the house's roof too, which is higher, so it keeps its height
-  const ceiling = (p: Vec): number => {
-    const heights = (rs: typeof roofs) => rs.map((r) => underside(r.roof, r.planes, p))
-    const within = roofs.filter((r) => covers(r.roof.outline, p))
-    return within.length ? Math.max(...heights(within)) : Math.min(...heights(roofs.filter((r) => covers(r.eaves, p))))
+  // walls (and the wall over their doors and windows) stop at the underside of the roof over their middle where it
+  // is lower than their tops, all along them (a wall's end can reach into a corner under another roof): the highest
+  // roof whose outline the middle is in, or the lowest overhang over it when it is in none. A gallery's end walls stop
+  // under its nearly flat roof, tucked under the house's eaves; the wall the gallery leans on stands in the house's
+  // roof, which is higher, so it keeps its height
+  const roofOver = (m: Vec) => {
+    const at = (r: (typeof roofs)[number]) => underside(r.roof, r.planes, m)
+    const within = roofs.filter((r) => covers(r.roof.outline, m)).sort((a, b) => at(b) - at(a))
+    return within[0] ?? roofs.filter((r) => covers(r.eaves, m)).sort((a, b) => at(a) - at(b))[0]
   }
   for (const s of roofs.length ? out : []) {
     if (s.ref.layer !== layer.id || s.ref.kind !== 'segment' || (s.kind !== 'wall' && s.kind !== 'lintel')) continue
+    const seg = layer.segments[s.ref.id]
+    const r = seg && roofOver(lerp(layer.vertices[seg.a], layer.vertices[seg.b], 0.5))
+    if (!r) continue
+    const ceiling = (p: Vec) => underside(r.roof, r.planes, p)
     const { top, bottom } = s
     const atTop = (p: Vec3) => p.z > top - 1e-6
     if (!s.faces.some((f) => f.pts.some((p) => atTop(p) && ceiling(p) < p.z - 1e-3))) continue
