@@ -19,7 +19,15 @@ material can go on, and materials shown in groups.
   concrete, wood, ceramic, metal, glass, roofing, ground and garden. Each has `surfaces` (`wall`, `floor`,
   `ceiling`, `roof`, `door`, `frame`), `indoor`/`outdoor` flags, and `color`, `roughness`, `metalness`, `clear` for
   the renderers. Only `wall` and `floor` are used so far.
-- `pattern` is drawn only in the library swatch (`MaterialIcon`); 3-D and the elevations use the flat colour.
+- `pattern` draws the library swatch (`MaterialIcon`) and, since `69111af`, picks the 3-D texture for `brick`,
+  `planks` and `grass` (src/render/textures.ts): real-size canvases (brick 512 px/m, a 1 × 0.516 m repeat; boards
+  256 px/m, 2.5 × 0.94 m; lawn 128 px/m, 8 m, as 4 m showed as a grid from above) with a normal map from a painted
+  height field. Normal maps, not bump maps: three's bump strength follows screen pixels (it normalises the surface
+  derivatives), so relief would come and go with zoom; brick arrises are rounded over 3 px because a 1 px edge only
+  shows up close. Painted once per material and cached for the session (`finishTextures`, never disposed with the
+  house); seeded by the material id so it looks the same each time. The engine's ground uses clones of the lawn's
+  textures, and palette `brick` (fireplaces, chimneys) uses `brick-red`'s. Other patterns and the elevations are
+  still flat colours.
 - `checker: {colors: [dark, light], tile}` (since `64f59b7`, only `tile-checkered`: Ceramic, floors, indoors and
   out, 0.3 m squares) is drawn as real squares in the swatch, the plan and 3-D (see below). Its `color` holds the
   mix of the two colours, for places where the squares don't show (the elevations).

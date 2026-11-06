@@ -245,3 +245,6 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/playwright-flow-checks.md (empty style="", shortcuts ignored on a focused checkbox, visible photo frames the survey, computed empty-canvas click, stale Vite modules again; summary quotes escaped, tags)
 - updated: overview.md (summary, what it does, open items)
 - updated: index.md (Lots added; summaries)
+
+## [2026-11-05] update | Brick, wood and lawn textures in 3-D
+- updated: pages/materials-and-finishes.md (src/render/textures.ts: real-size canvas textures and normal maps for brick, planks, grass; why normal not bump maps; lawn 8 m repeat; cached per session; ground and chimneys textured)
