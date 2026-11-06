@@ -2,7 +2,7 @@
 title: Roof tab (roof plan)
 type: component
 summary: "The Roof tab: src/ui/RoofTab.tsx (Select V / Roof R / Pan H, the New roofs type = EditorState.roofType, Roof the house, Snap) over the shared Canvas in roof mode (floor plan faded, Roofs.tsx draws slopes shaded by aspect, eaves, dashed outline under an overhang, downhill arrows, labels, fireplaces' chimneys), the roof and roofSelect tools, RoofPanel (Box roofs), and the actions openTab, addRoofOutline and roofTheHouse."
-tags: [ui, roof, canvas, tools, tabs, fireplace, finishes, gallery, skylights]
+tags: [ui, roof, canvas, tools, tabs, fireplace, finishes, gallery, skylights, pergola]
 sources: []
 updated: 2026-11-06
 ---
@@ -25,7 +25,8 @@ roof plan over the floor plan ([Roofs are drawn outlines](roofs-drawn-outlines.m
   "not convex"), corner handles when selected; a roof with a covering (`20dcb35`) has its slopes tinted in the
   material's colour. Since 2026-11-04 it also marks each fireplace's chimney: the flue
   from `fireplaceShape`, crossed (`flueMark`, class `.roof-chimney`; [Fireplaces](fireplaces.md)). Since `8d33d0b`
-  each skylight (`skylights(roof)`, [Roofs](roofs.md)) is a `.roof-skylight` path, filled translucent blue.
+  each skylight (`skylights(roof)`, [Roofs](roofs.md)) is a `.roof-skylight` path, filled translucent blue. A
+  pergola (`59bcfa6`) draws its rafters (`pergolaRafters`) as one `.roof-rafter` path and no skylights.
 - `src/ui/canvas/tools/roof.ts`: click corners (snap, Shift 45°, the first corner is an extra snap point); click
   the first corner or press Enter to close (a right click also closes), Backspace drops a corner, Esc cancels.
 - `src/ui/canvas/tools/roofSelect.ts`: a click inside the eaves or outline picks the smallest roof on an editable
@@ -36,7 +37,8 @@ roof plan over the floor plan ([Roofs are drawn outlines](roofs-drawn-outlines.m
   *Turn the slope / ridge* (`nextEdge`), *Covering* and *Soffit (its underside)* material fields (`20dcb35`;
   [Materials and finishes](materials-and-finishes.md)), *Skylights (0: none)* (a whole number; 0 removes the key)
   and *Skylight width* (default 1 m, shown only with skylights; `8d33d0b`), areas and heights, the convexity warning
-  and Delete.
+  and Delete. For a pergola, *Turn the slope* applies (only a gable's button says "ridge"), a hint explains the
+  rafters, and Skylights and Soffit are hidden.
 
 ## Actions (`src/state/actions.ts`)
 

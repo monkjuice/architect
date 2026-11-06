@@ -1,10 +1,10 @@
 ---
 title: Code conventions
 type: convention
-summary: "Rules inherited from the Forge H1 planner: pure model layer with no import cycles, state never imports ui, three.js only in src/render, explicit face normals in 3-D, immutable edits through layer drafts (same plan = no undo step), derived data cached by object identity, saved data in the plan, UI state in the store and view settings in prefs, foldable panel sections with Box ids, erasable-only TypeScript, tools without React refs, compound .opening.<kind> CSS selectors, oxlint rules (helpers out of component files), ids and rounding."
-tags: [convention, model, state, ui, lint, typescript, css]
+summary: "Rules inherited from the Forge H1 planner: pure model layer with no import cycles, state never imports ui, three.js only in src/render, explicit face normals in 3-D, immutable edits through layer drafts (same plan = no undo step), derived data cached by object identity, saved data in the plan, UI state in the store and view settings in prefs, foldable panel sections with Box ids, erasable-only TypeScript, tools without React refs, compound .opening.<kind> CSS selectors, oxlint rules (helpers out of component files), no formatter (indent by hand), ids and rounding."
+tags: [convention, model, state, ui, lint, typescript, css, formatting]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-06
 ---
 
 # Code conventions
@@ -102,6 +102,9 @@ and comes later, so selection still wins. Per App.css, 0,3,0 also beats the libr
 table such as `ROOF_TITLES` goes in the model (`src/model/roofs.ts`), not in a component file. A drawing helper
 two components share goes in a plain module, such as `flueMark` in `src/ui/canvas/symbols.ts`. `npm run lint` prints
 nothing when the code is clean.
+
+There is no formatter: no Prettier config, and many files would not conform to one. Indent edits by hand to match the
+surrounding code; do not reformat whole files.
 
 ## Numbers and ids
 

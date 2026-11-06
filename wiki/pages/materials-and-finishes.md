@@ -15,7 +15,7 @@ material can go on, and materials shown in groups.
 
 ## Catalogue (`src/model/materials.ts`)
 
-- `MATERIALS`: 36 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
+- `MATERIALS`: 37 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
   concrete, wood, ceramic, metal, glass, roofing, ground and garden. Each has `surfaces` (`wall`, `floor`,
   `ceiling`, `roof`, `door`, `frame`), `indoor`/`outdoor` flags, and `color`, `roughness`, `metalness`, `clear` for
   the renderers. `wall`, `floor`, `roof` (a roof's covering) and `ceiling` (its soffit) are used so far.

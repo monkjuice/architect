@@ -1,8 +1,8 @@
 ---
 title: "Roofs: model and geometry"
 type: component
-summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip, pitch, height at the eaves sides, overhang, reference edge, parapet, covering and soffit materials; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning, unionOutlines for Roof the house, and galleryRoof (a 2° shed overhanging only its open sides, via offsetEdges)."
-tags: [model, roof, geometry, schema, finishes, gallery, skylights]
+summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip/pergola, pitch, height at the eaves sides, overhang, reference edge, parapet, covering and soffit materials; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning, unionOutlines for Roof the house, galleryRoof (a 2° shed overhanging only its open sides, via offsetEdges), and a pergola's rafters (pergolaRafters)."
+tags: [model, roof, geometry, schema, finishes, gallery, skylights, pergola]
 sources: []
 updated: 2026-11-06
 ---
@@ -19,7 +19,8 @@ are planes: [Roofs are drawn outlines](roofs-drawn-outlines.md). They are built 
 [Plan model and file format](plan-model.md)). Ref kind `'roof'`, ids `r1`, `r2`… per layer.
 
 - `outline` (≥ 3 points): what the roof covers, usually the walls' outside faces. It does not follow the walls.
-- `type`: one of `ROOF_TYPES` (`flat`, `shed`, `gable`, `hip`); `pitch` in degrees (0–70, unused when flat).
+- `type`: one of `ROOF_TYPES` (`flat`, `shed`, `gable`, `hip`, and since `59bcfa6` `pergola`); `pitch` in degrees
+  (0–70, unused when flat).
 - `height`: the underside where it crosses the outline at an eaves side (usually the wall tops).
 - `overhang` (0–3 m): the eaves stand that far beyond the outline.
 - `edge`: an outline side index: a shed's low side, a gable's ridge direction.
@@ -40,9 +41,10 @@ recomputed. `planFile.ts` rounds outline points to 0.1 mm on save.
   `height` + tan(pitch) · min f, so slopes meet where they cross (ridges, hips) and continue lower over the overhang.
   A flat roof is one level plane.
 - `roofPlanes`: shed and gable come from the reference edge's normal and the outline's extremes along it, so they
-  work on any outline. Hip has one plane per side, exact only on convex outlines; `roofProblem` warns, and the
+  work on any outline. A pergola is one slope, like a shed. Hip has one plane per side, exact only on convex outlines; `roofProblem` warns, and the
   advice for an L is two overlapping roofs.
-- Thickness, measured vertically: `SLAB` 0.20 m (flat), `COVERING` 0.15 m (pitched); `PARAPET_WALL` 0.15 m.
+- Thickness, measured vertically (`roofThickness`): `SLAB` 0.20 m (flat), `COVERING` 0.15 m (pitched),
+  `RAFTER.depth` + `PERGOLA_SHEET` = 0.212 m (pergola); `PARAPET_WALL` 0.15 m.
 - `eavesOf` = `offsetPolygon(outline, overhang)`, mitred corners.
 - `offsetEdges(pts, d(edge))` (`96a2afa`): moves each edge of the normalized ring out by its own distance (in when
   negative). Corners go where the moved lines meet. Two edges in line with different distances leave a step.
@@ -58,7 +60,8 @@ recomputed. `planFile.ts` rounds outline points to 0.1 mm on save.
   kept only if wholly inside (even-odd `pointIn`). Strips under 0.05 m² are dropped. Used by the plan (no `slope`)
   and the solids (per face).
 - `nextEdge`: *Turn the slope / ridge*; a gable skips sides parallel to its ridge.
-- `newRoof`: `edge` = longest side; pitch 25° (shed 10°); overhang 0.5 m; flat gets overhang 0 and a 0.30 m parapet.
+- `newRoof`: `edge` = longest side; pitch 25° (shed 10°, pergola 2°); overhang 0.5 m (pergola 0.3 m); flat gets
+  overhang 0 and a 0.30 m parapet.
 - `roofSummary`: plan area, sloped surface, lowest eaves, top.
 - `unionOutlines`: puts rooms together by cancelling edges that a neighbour runs the other way (each ring first made
   clockwise). It needs shared corners, as a layer's regions have, and drops holes (courtyards).
@@ -75,6 +78,21 @@ recomputed. `planFile.ts` rounds outline points to 0.1 mm on save.
 - Caveat: setting such a roof's Overhang field above 0 later applies an overhang all round again, house side
   included. Gallery roofs made before `96a2afa` keep their old outline until rebuilt; the user's plan's `r2` was
   rebuilt (pitch, covering and soffit kept).
+
+## Pergola (`59bcfa6`)
+
+Asked for as an outdoor pergola or carport (photos: steel posts and beams with timber rafters under polycarbonate;
+timber posts under a metal shed roof). The user's recipe, built from what exists: enclose the area with open edges,
+add columns (the automatic ones at ends no wall holds, or a colonnade; [Colonnades](colonnades.md)) and give it a
+`pergola` roof. Its open edges' beams follow the roof's underside, and the rafters sit on them.
+
+- `RAFTER` {depth 0.2, width 0.07, spacing 0.6} and `PERGOLA_SHEET` 0.012 m.
+- `pergolaRafters(roof)`: plan segments spread evenly along `edge` (the eaves) over the eaves' extent,
+  n = max(2, round((span − width) / spacing) + 1). Each runs across the roof and is cut to the eaves polygon at its
+  first and last crossing.
+- No slab, skylights or soffit; 3-D in [House solids](house-solids.md).
+- Checked visually (on a copy of the user's plan): a 6 × 5.5 m test pergola with open edges, a metal colonnade, a
+  named area and a 2.6 m polycarbonate pergola roof showed translucent cover, rafters, columns and striped shadows.
 
 `ROOF_TITLES` (a record) is exported from here, not from a component file: oxlint's `react/only-export-components`
 allows only literal constants ([Code conventions](code-conventions.md)).
