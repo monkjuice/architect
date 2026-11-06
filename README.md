@@ -224,6 +224,12 @@ its colour (a checkered one in its squares); *Materials* in the View section hid
 (over and under doors and windows, a gable end), the wall's ends and the reveals of its openings half in each
 side's material. A wall keeps its finishes when it is split, or turned into an open edge and back.
 
+In the Exterior, brick, wood and lawn are drawn at their real size with a texture and relief: brick in running bond
+(0.24 × 0.055 m with 1 cm recessed joints, each brick a slightly different tone), boards 0.156 m wide with
+staggered ends, grain and seams, and a lawn of grass blades and patches; the checkered tile in its squares. The
+open ground around the site is the same lawn, and fireplaces and chimneys are exposed brick. The other materials
+are still flat colours.
+
 ### Sun
 
 The **Sun** section (right panel, `S` shows and hides it) puts the sun over the plan: a dotted disc that travels
@@ -310,8 +316,8 @@ across tabs):
 Its toolbar has the camera (*Aerial*, *Top* as the plan, and the four facades by the plan's north), *Roof* to hide
 the roofs and look into the rooms, the sun's season and time (the same as the Floor tab's Sun section, with its site and
 cloudiness) and *Save image* (a PNG at twice the screen resolution). Drag to orbit, right-drag to pan, wheel to
-zoom. Finished walls and floors are drawn in their materials' colours (see [Materials](#materials)); the rest is a
-fixed basic palette. three.js loads only when the tab opens.
+zoom. Finished walls and floors are drawn in their materials (see [Materials](#materials); brick, wood and lawn
+with a texture and relief); the rest is a fixed basic palette. three.js loads only when the tab opens.
 
 ## Tools and keys
 
@@ -394,5 +400,6 @@ changes.
   `src/ui/TopBar.tsx` is the tab row; `FloorTab.tsx`, `RoofTab.tsx` (with `canvas/Roofs.tsx` and
   `panels/RoofPanel.tsx`) and `ElevationsTab.tsx` lay out those tabs.
 - `src/ui/exterior/ExteriorTab.tsx` and `src/render/`: the Exterior tab and its three.js engine (lights from the
-  sun, shadows, camera presets) and house meshes, adapted from the Forge H1 planner's render tab and loaded on
+  sun, shadows, camera presets), house meshes and `textures.ts` (brick, wood, lawn and checkered textures and
+  their relief, painted on canvases once a session), adapted from the Forge H1 planner's render tab and loaded on
   demand.

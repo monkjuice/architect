@@ -1,10 +1,12 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
+import { findMaterial } from '../model/materials'
 import type { Site } from '../model/plan'
 import type { Solid } from '../model/solids'
 import { planAngle, planDirection, SEASON_DAY, sunPosition, type Season } from '../model/sun'
 import { buildHouse, GRASS, type HouseModel } from './house'
+import { finishTextures, textureRecipe } from './textures'
 
 /**
  * The Exterior tab's 3-D view: the house on a lawn, lit by the plan's sun with real shadows, orbit controls
@@ -69,8 +71,16 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
   const sky = new THREE.HemisphereLight('#cfe2f5', '#5b6b45', 0.6)
   scene.add(sky)
 
+  // the ground in the lawn's texture (its own copies, to repeat over however big the ground is drawn), so a lot laid
+  // to lawn runs on into it
+  const lawn = findMaterial('grass')!
+  const lawnTextures = finishTextures(lawn)
+  const lawnRecipe = textureRecipe(lawn)
+  const groundMaps = lawnTextures ? [lawnTextures.map.clone(), ...(lawnTextures.normalMap ? [lawnTextures.normalMap.clone()] : [])] : []
   const groundGeometry = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
-  const groundMaterial = new THREE.MeshStandardMaterial({ color: GRASS, roughness: 1 })
+  const groundMaterial = new THREE.MeshStandardMaterial(
+    groundMaps.length ? { color: '#ffffff', map: groundMaps[0], normalMap: groundMaps[1] ?? null, roughness: 1 } : { color: GRASS, roughness: 1 },
+  )
   const ground = new THREE.Mesh(groundGeometry, groundMaterial)
   ground.receiveShadow = true
   scene.add(ground)
@@ -165,7 +175,9 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
       scene.add(model.root)
       const size = model.box.getSize(new THREE.Vector3())
       const center = model.box.getCenter(new THREE.Vector3())
-      ground.scale.setScalar(Math.max(150, 5 * Math.max(size.x, size.z)))
+      const extent = Math.max(150, 5 * Math.max(size.x, size.z))
+      ground.scale.setScalar(extent)
+      if (lawnRecipe) for (const t of groundMaps) t.repeat.setScalar((extent * lawnRecipe.px) / lawnRecipe.width)
       ground.position.set(center.x, 0, center.z)
       aim()
       if (pending) view(pending.preset, pending.site)
@@ -208,6 +220,7 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
       pmrem.dispose()
       groundGeometry.dispose()
       groundMaterial.dispose()
+      for (const t of groundMaps) t.dispose()
       renderer.dispose()
       renderer.domElement.remove()
     },

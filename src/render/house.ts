@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { findMaterial } from '../model/materials'
 import type { Face, Solid, SolidMaterial, Vec3 } from '../model/solids'
+import { finishTextures } from './textures'
 
 /**
  * The house's solids as three.js meshes. Plan x is x, plan y (down on screen) is z, and heights are y, all in m,
@@ -38,33 +39,19 @@ export interface HouseModel {
 }
 
 /**
- * A finish's material: its catalogue colour, roughness and metalness, see-through when it is (water); a checkered
- * one gets its squares as a texture (faces are mapped in metres, see addFace).
+ * A finish's material: its catalogue colour, roughness and metalness, see-through when it is (water); brick, wood,
+ * lawn and checkered tile get their texture and relief (textures.ts; faces are mapped in metres, see addFace).
  */
 function finishMaterial(id: string): THREE.MeshStandardMaterialParameters {
   const m = findMaterial(id)!
   const base = { roughness: m.roughness, metalness: m.metalness, ...(m.clear ? { transparent: true, opacity: 1 - m.clear, depthWrite: false } : {}) }
-  return m.checker ? { ...base, color: '#ffffff', map: checkerTexture(m.checker.colors, m.checker.tile) } : { ...base, color: m.color }
+  return { ...base, ...textured(m.id, m.color) }
 }
 
-/** Two squares by two in two colours, repeating every two tiles. */
-function checkerTexture([dark, light]: readonly [string, string], tile: number): THREE.Texture {
-  const canvas = document.createElement('canvas')
-  canvas.width = canvas.height = 64
-  const g = canvas.getContext('2d')!
-  g.fillStyle = light
-  g.fillRect(0, 0, 64, 64)
-  g.fillStyle = dark
-  g.fillRect(0, 0, 32, 32)
-  g.fillRect(32, 32, 32, 32)
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping
-  texture.repeat.set(1 / (2 * tile), 1 / (2 * tile))
-  texture.colorSpace = THREE.SRGBColorSpace
-  // sharp edges between squares close up, no shimmer far off
-  texture.magFilter = THREE.NearestFilter
-  texture.anisotropy = 8
-  return texture
+/** A material's colour as its texture (the colour then white, not to tint it twice) and relief when it has them. */
+function textured(id: string, color: string): THREE.MeshStandardMaterialParameters {
+  const t = finishTextures(findMaterial(id)!)
+  return t ? { color: '#ffffff', map: t.map, ...(t.normalMap ? { normalMap: t.normalMap } : {}) } : { color }
 }
 
 export function buildHouse(solids: readonly Solid[]): HouseModel {
@@ -74,7 +61,11 @@ export function buildHouse(solids: readonly Solid[]): HouseModel {
   const geometries: THREE.BufferGeometry[] = []
   const material = (key: string) => {
     let m = materials.get(key)
-    if (!m) materials.set(key, (m = new THREE.MeshStandardMaterial(key.startsWith('finish:') ? finishMaterial(key.slice(7)) : PALETTE[key as SolidMaterial])))
+    if (!m) {
+      // fireplaces and chimneys are in exposed brick
+      const params = key.startsWith('finish:') ? finishMaterial(key.slice(7)) : key === 'brick' ? { ...PALETTE.brick, ...textured('brick-red', PALETTE.brick.color as string) } : PALETTE[key as SolidMaterial]
+      materials.set(key, (m = new THREE.MeshStandardMaterial(params)))
+    }
     return m
   }
   for (const solid of solids) {
@@ -105,10 +96,8 @@ export function buildHouse(solids: readonly Solid[]): HouseModel {
     box,
     dispose() {
       for (const g of geometries) g.dispose()
-      for (const m of materials.values()) {
-        if (m instanceof THREE.MeshStandardMaterial) m.map?.dispose()
-        m.dispose()
-      }
+      // textures stay: they are painted once a session (textures.ts)
+      for (const m of materials.values()) m.dispose()
     },
   }
 }
