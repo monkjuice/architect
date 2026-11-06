@@ -332,7 +332,7 @@ The **Exterior** tab shows the house in 3-D, built again from the visible layers
 across tabs):
 
 - walls at their thickness and height, cut by their doors, windows and gates, with the wall over each door and
-  window and under each window; doors and windows are 2.10 m tall, windows sit on a 0.90 m sill (awnings on
+  window and under each window; doors are 2.10 m tall unless given a height of their own (Selection panel; up to their wall's, with no wall over them then) and windows reach 2.10 m, windows sit on a 0.90 m sill (awnings on
   1.50 m), gates are as tall as their wall (1.80 m in a fence drawn as an open edge);
 - frames, glass and closed door and gate leaves;
 - the floor of every named area (tiled under cover, paved where outlines bound it: a pool, a terrace; a lot only

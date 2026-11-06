@@ -23,6 +23,7 @@ import { fitOffset, hasHinge, hasSide, overlappingOpening, parkingRoom, placeOpe
 import { dist, screenAngleDeg } from '../../model/geometry'
 import { measureSegments } from '../../model/pick'
 import { COLUMN_STYLES, findLayer, segmentKind, type ColumnStyle, type OpeningKind, type OpeningStyle, type Ref, type SegmentKind } from '../../model/plan'
+import { DOOR_HEAD } from '../../model/solids'
 import { EXTERIOR_WALL, INTERIOR_WALL, wallHeight } from '../../model/walls'
 import { deleteSelection } from '../../state/actions'
 import { areaSize, facesOutside, getPlacedAreas, getRegions, getThickness } from '../../state/derived'
@@ -240,7 +241,16 @@ function OpeningDetails({ layerId, id }: { layerId: string; id: string }) {
           <span className="readout">{placed.length.toFixed(2)} m</span>
         </div>
         <NumberField label="Width" value={o.width} min={0.3} onCommit={(width) => change({ width })} />
-        <div />
+        {o.kind === 'door' ? (
+          <NumberField
+            label={`Height (wall ${wallHeight(layer.segments[o.segment]).toFixed(2)} m)`}
+            value={o.height ?? DOOR_HEAD}
+            min={0.5}
+            onCommit={(height) => store.edit((p) => updateOpening(p, layerId, id, { height: Math.min(height, wallHeight(layer.segments[o.segment])) }))}
+          />
+        ) : (
+          <div />
+        )}
         {aFirst ? [gapField('a'), gapField('b')] : [gapField('b'), gapField('a')]}
         {o.kind === 'fireplace' && (
           <MaterialField

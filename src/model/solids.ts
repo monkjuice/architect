@@ -653,8 +653,10 @@ function openingSolids(o: Opening, p: PlacedOpening, half: number, host: Host | 
     return
   }
 
-  const head = host ? Math.min(DOOR_HEAD, host.height) : DOOR_HEAD
-  if (host) put('lintel', whole, head, host.height, host.material, host.ref)
+  // a door its own height or the usual one; no taller than its wall, and with no wall over it when as tall
+  const height = o.kind === 'door' && o.height ? o.height : DOOR_HEAD
+  const head = host ? Math.min(height, host.height) : height
+  if (host && host.height - head > 1e-3) put('lintel', whole, head, host.height, host.material, host.ref)
 
   if (o.kind === 'window') {
     const sill = Math.min(o.style === 'awning' ? HIGH_SILL : WINDOW_SILL, head - 0.3)

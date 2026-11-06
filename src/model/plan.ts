@@ -110,7 +110,13 @@ const OpeningFields = {
 }
 
 // files from before door and window styles hold single doors and fixed windows, which is what they showed
-export const DoorSchema = z.strictObject({ kind: z.literal('door'), style: z.enum(DOOR_STYLES).default('single'), ...OpeningFields })
+export const DoorSchema = z.strictObject({
+  kind: z.literal('door'),
+  style: z.enum(DOOR_STYLES).default('single'),
+  ...OpeningFields,
+  /** Its height, m: 2.10 when not set (a sliding door is often taller, up to its wall's full height). */
+  height: z.number().positive().max(6).optional(),
+})
 
 export const WindowSchema = z.strictObject({ kind: z.literal('window'), style: z.enum(WINDOW_STYLES).default('fixed'), ...OpeningFields })
 
