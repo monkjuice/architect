@@ -95,6 +95,70 @@ export function offsetEdges(pts: readonly Vec[], d: (edge: number) => number): V
   })
 }
 
+/** How far skylights keep from a roof's outline, and from the edges of its slopes (a gable's ridge), m. */
+export const SKYLIGHT_MARGIN = 0.5
+const SKYLIGHT_SLOPE_MARGIN = 0.15
+
+/** The part of `subject` inside the convex polygon `clipper` (Sutherland-Hodgman). */
+function clipConvex(subject: readonly Vec[], clipper: readonly Vec[]): Vec[] {
+  const s = signedArea(clipper) > 0 ? 1 : -1
+  let out = [...subject]
+  clipper.forEach((c0, i) => {
+    const c1 = clipper[(i + 1) % clipper.length]
+    const side = (p: Vec) => s * cross(sub(c1, c0), sub(p, c0))
+    const input = out
+    out = []
+    input.forEach((p, j) => {
+      const q = input[(j + 1) % input.length]
+      const [dp, dq] = [side(p), side(q)]
+      if (dp >= 0) out.push(p)
+      if ((dp >= 0) !== (dq >= 0)) out.push(lerp(p, q, dp / (dp - dq)))
+    })
+  })
+  return out
+}
+
+/**
+ * A roof's skylights in plan: `count` strips evenly spaced along its `edge` (a shed's eaves), each `width` wide and
+ * running across the roof, kept SKYLIGHT_MARGIN in from its outline. With `slope` (one of its faces), only the part
+ * over that slope, a little in from its edges, so a strip over a gable's ridge becomes one opening on each side.
+ */
+export function skylights(roof: Roof, slope?: readonly Vec[]): Vec[][] {
+  const sk = roof.skylights
+  if (!sk) return []
+  const pts = normalized(roof.outline)
+  const [a, b] = [pts[roof.edge % pts.length], pts[(roof.edge + 1) % pts.length]]
+  const u = unit(sub(b, a))
+  let v = { x: -u.y, y: u.x }
+  const middle = mul(pts.reduce(add, { x: 0, y: 0 }), 1 / pts.length)
+  if (dot(sub(middle, a), v) < 0) v = mul(v, -1)
+  const us = pts.map((p) => dot(sub(p, a), u))
+  const depth = Math.max(...pts.map((p) => dot(sub(p, a), v)))
+  const [u0, u1] = [Math.min(...us), Math.max(...us)]
+  const step = (u1 - u0) / sk.count
+  const half = Math.min(sk.width, step - 0.3) / 2
+  if (half <= 0.05) return []
+  const at = (s: number, t: number) => add(add(a, mul(u, s)), mul(v, t))
+  const within = (poly: Vec[], area: readonly Vec[]) => (isConvex(area) ? clipConvex(poly, area) : poly.every((p) => pointIn(p, area)) ? poly : [])
+  const inner = offsetPolygon(pts, -SKYLIGHT_MARGIN)
+  return Array.from({ length: sk.count }, (_, i) => {
+    const c = u0 + (i + 0.5) * step
+    let poly = within([at(c - half, 0), at(c + half, 0), at(c + half, depth), at(c - half, depth)], inner)
+    if (slope && poly.length >= 3) poly = within(poly, offsetPolygon(slope, -SKYLIGHT_SLOPE_MARGIN))
+    return poly
+  }).filter((poly) => poly.length >= 3 && polygonArea(poly) > 0.05)
+}
+
+/** Whether `p` is inside the ring (even-odd). */
+function pointIn(p: Vec, ring: readonly Vec[]): boolean {
+  let inside = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [a, b] = [ring[i], ring[j]]
+    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) inside = !inside
+  }
+  return inside
+}
+
 export function isConvex(pts: readonly Vec[]): boolean {
   const ring = normalized(pts)
   return ring.every((p, i) => cross(sub(p, ring[(i + ring.length - 1) % ring.length]), sub(ring[(i + 1) % ring.length], p)) >= -1e-9)

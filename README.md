@@ -308,7 +308,10 @@ covers, usually the walls' outside faces) on a layer, and its eaves stand an **o
   heights of its eaves and top; and what it is made of: its **covering** (standing seam or corrugated metal,
   membrane, a green roof, gravel, concrete; on top and a pitched roof's fascia) and its **soffit** (its underside:
   under the eaves and over a gallery, in wood, plaster or concrete). In 3-D standing seam is drawn as 0.45 m panels
-  with raised seams running down each slope; the roof plan tints a covered roof in its colour.
+  with raised seams running down each slope; the roof plan tints a covered roof in its colour. **Skylights**: a
+  number of glazed strips, each the width set, evenly spaced along the roof's eaves side (a shed's low edge) and
+  running across it, 0.50 m in from its outline (on a gable, one opening each side of the ridge); in 3-D the slab is
+  open there with glass halfway through it, so the sun falls through onto the floor, and the roof plan shows them.
 - The roof plan shades each slope by the way it faces, with an arrow down it, the eaves line solid and the walls'
   line dashed under an overhang, and a label with the type, pitch and top. New roofs start with their slopes
   running off the outline's longest side, 25° (shed 10°) and a 0.50 m overhang (flat: none).

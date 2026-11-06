@@ -1771,3 +1771,11 @@ button.icon {
   justify-content: flex-end;
   margin-top: 14px;
 }
+
+/* a skylight in the roof plan: glass */
+.roof-skylight {
+  fill: rgba(168, 200, 216, 0.55);
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}

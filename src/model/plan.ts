@@ -233,6 +233,8 @@ export const RoofSchema = z.strictObject({
   finish: z.string().min(1).optional(),
   /** Its underside (the soffit under the eaves, a gallery's ceiling), a material id. */
   soffit: z.string().min(1).optional(),
+  /** Glazed openings in it: `count` strips `width` m wide, evenly spaced along its `edge`, running across it. */
+  skylights: z.strictObject({ count: z.number().int().min(1).max(40), width: z.number().positive().max(10) }).optional(),
 })
 
 export const LayerSchema = z.strictObject({

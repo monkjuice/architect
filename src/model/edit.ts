@@ -600,7 +600,7 @@ export function updateRoof(plan: Plan, layerId: string, id: string, patch: Parti
     const next = { ...roof, ...patch }
     next.edge %= next.outline.length
     // undefined takes a finish off
-    for (const k of ['finish', 'soffit'] as const) if (next[k] === undefined) delete next[k]
+    for (const k of ['finish', 'soffit', 'skylights'] as const) if (next[k] === undefined) delete next[k]
     if ((Object.keys(next) as (keyof Roof)[]).every((k) => next[k] === roof[k])) return false
     roofs[id] = next
   })

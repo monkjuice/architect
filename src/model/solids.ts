@@ -8,7 +8,7 @@ import { findMaterial } from './materials'
 import { besideWall, FIREPLACE_DEPTH, fireplaceShape, HEARTH, hasHinge, PARRILLA_CHEEK, PARRILLA_DEPTH, placeOpening, type PlacedOpening } from './openings'
 import { segmentKind, type ColumnStyle, type Layer, type Opening, type Plan, type Ref, type Roof } from './plan'
 import { layerFaces, pointInPolygon, regionAt, type LayerFaces, type Region } from './regions'
-import { eavesOf, offsetPolygon, PARAPET_WALL, roofFaces, roofPlanes, roofThickness, SLAB, underside, undersideAlong, unionOutlines } from './roofs'
+import { eavesOf, offsetPolygon, PARAPET_WALL, roofFaces, roofPlanes, roofThickness, skylights, SLAB, underside, undersideAlong, unionOutlines } from './roofs'
 import { EXTERIOR_WALL, INTERIOR_WALL, layerWalls, WALL_HEIGHT, wallHeight, type LayerWalls } from './walls'
 
 /**
@@ -283,8 +283,20 @@ function roofSolidFaces(roof: Roof): Face[] {
   for (const face of roofFaces(roof)) {
     const z = (p: Vec) => underside(roof, planes, p)
     const up = norm({ x: -k * face.plane.a, y: -k * face.plane.b, z: 1 })
-    faces.push({ pts: face.pts.map((p) => v3(p, z(p) + t)), holes: [], normal: up })
-    faces.push({ pts: face.pts.map((p) => v3(p, z(p))), holes: [], normal: { x: -up.x, y: -up.y, z: -up.z } })
+    const holes = skylights(roof, face.pts)
+    faces.push({ pts: face.pts.map((p) => v3(p, z(p) + t)), holes: holes.map((h) => h.map((p) => v3(p, z(p) + t))), normal: up })
+    faces.push({ pts: face.pts.map((p) => v3(p, z(p))), holes: holes.map((h) => h.map((p) => v3(p, z(p)))), normal: { x: -up.x, y: -up.y, z: -up.z } })
+    // the sides of its skylights, facing into them
+    for (const h of holes) {
+      h.forEach((p, i) => {
+        const q = h[(i + 1) % h.length]
+        const len = dist(p, q)
+        if (len < EPS) return
+        let n = { x: (q.y - p.y) / len, y: -(q.x - p.x) / len }
+        if (!pointInPolygon(add(lerp(p, q, 0.5), mul(n, 0.01)), h)) n = mul(n, -1)
+        faces.push({ pts: [v3(p, z(p)), v3(q, z(q)), v3(q, z(q) + t), v3(p, z(p) + t)], holes: [], normal: { x: n.x, y: n.y, z: 0 } })
+      })
+    }
     face.pts.forEach((p, i) => {
       const q = face.pts[(i + 1) % face.pts.length]
       if (!onEaves(lerp(p, q, 0.5))) return
@@ -380,6 +392,18 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
       return finish ? { ...f, finish } : f
     })
     out.push(solid('roof', faces, roof.type === 'flat' ? 'slab' : 'roof', ref('roof', id)))
+    // the glass in its skylights, a pane halfway through the slab, seen from above and below
+    const glass = roofFaces(roof).flatMap((face) => {
+      const planes = roofPlanes(roof)
+      const mid = (p: Vec) => underside(roof, planes, p) + roofThickness(roof) / 2
+      const k = roof.type === 'flat' ? 0 : Math.tan((roof.pitch * Math.PI) / 180)
+      const up = norm({ x: -k * face.plane.a, y: -k * face.plane.b, z: 1 })
+      return skylights(roof, face.pts).flatMap((h) => [
+        { pts: h.map((p) => v3(p, mid(p))), holes: [], normal: up },
+        { pts: h.map((p) => v3(p, mid(p))), holes: [], normal: { x: -up.x, y: -up.y, z: -up.z } },
+      ])
+    })
+    if (glass.length) out.push(solid('glass', glass, 'glass', ref('roof', id)))
     if (roof.type === 'flat' && roof.parapet > 0) {
       const base = roof.height + SLAB
       out.push(prism('parapet', eaves, [offsetPolygon(eaves, -PARAPET_WALL)], base, base + roof.parapet, 'facade', ref('roof', id)))

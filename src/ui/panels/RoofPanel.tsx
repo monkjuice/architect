@@ -91,6 +91,24 @@ function RoofFields({ layer, id, roof }: { layer: string; id: string; roof: Roof
           {pitched && `${(Math.tan((roof.pitch * Math.PI) / 180) * 100).toFixed(0)}% slope · `}covers {summary.planArea.toFixed(2)} m²
           {pitched && `, ${summary.surface.toFixed(2)} m² of roof`} · eaves +{summary.eaves.toFixed(2)} · top +{summary.top.toFixed(2)}
         </p>
+        <NumberField
+          label="Skylights (0: none)"
+          digits={0}
+          min={0}
+          value={roof.skylights?.count ?? 0}
+          onCommit={(n) => {
+            const count = Math.min(40, Math.round(n))
+            set({ skylights: count > 0 ? { count, width: roof.skylights?.width ?? 1 } : undefined })
+          }}
+        />
+        {roof.skylights && (
+          <NumberField
+            label="Skylight width"
+            min={0.2}
+            value={roof.skylights.width}
+            onCommit={(width) => set({ skylights: { count: roof.skylights!.count, width: Math.min(10, width) } })}
+          />
+        )}
         <MaterialField label="Covering" surface="roof" outdoor value={roof.finish} onChange={(finish) => set({ finish: finish ?? undefined })} />
         <MaterialField
           label="Soffit (its underside)"
