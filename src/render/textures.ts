@@ -8,7 +8,7 @@ import type { Material } from '../model/materials'
  * kept for the session: the house is rebuilt on every change, its textures are not.
  */
 
-export type TextureKind = 'brick' | 'planks' | 'grass' | 'checker'
+export type TextureKind = 'brick' | 'planks' | 'grass' | 'seams' | 'checker'
 
 /** What a finish's texture shows, and its canvas: one repeat, in px, at `px` pixels per metre. */
 export interface TextureRecipe {
@@ -24,6 +24,8 @@ export interface TextureRecipe {
 const BRICK = { px: 512, module: 128, course: 33, joint: 5, perCourse: 4, courses: 8 }
 /** Boards 0.156 m wide, six across a 2.5 m repeat, from 0.6 to 1.6 m long with their ends staggered. */
 const PLANK = { px: 256, width: 40, length: 640, rows: 6, min: 0.6, max: 1.6 }
+/** Standing seam panels 0.45 m wide, four to a repeat, their seams 2.5 cm ribs down the slope. */
+const SEAM = { px: 256, panel: 115, panels: 4, length: 256 }
 /** A lawn 8 m square: a smaller repeat showed as a grid of patches from above. */
 const LAWN = { px: 128, size: 1024 }
 
@@ -36,6 +38,8 @@ export function textureRecipe(material: Material): TextureRecipe | null {
       return { kind: 'planks', width: PLANK.length, height: PLANK.width * PLANK.rows, px: PLANK.px, depth: 0.004 }
     case 'grass':
       return { kind: 'grass', width: LAWN.size, height: LAWN.size, px: LAWN.px, depth: 0.004 }
+    case 'seams':
+      return { kind: 'seams', width: SEAM.panel * SEAM.panels, height: SEAM.length, px: SEAM.px, depth: 0.025 }
     default:
       return null
   }
@@ -282,6 +286,35 @@ function paintLawn(r: TextureRecipe, material: Material, rand: () => number): Pa
   return { map: color.el, height: height.el }
 }
 
+/** Standing seam: flat panels, each a touch different, with a raised seam down each edge catching the light on one side. */
+function paintSeams(r: TextureRecipe, material: Material, rand: () => number): Painted {
+  const [color, height] = [canvas(r.width, r.height), canvas(r.width, r.height)]
+  const base = rgb(material.color)
+  height.g.fillStyle = gray(60)
+  height.g.fillRect(0, 0, r.width, r.height)
+  for (let i = 0; i < SEAM.panels; i++) {
+    const x = i * SEAM.panel
+    color.g.fillStyle = css(scaled(base, 0.96 + 0.08 * rand()))
+    color.g.fillRect(x, 0, SEAM.panel, r.height)
+    // faint streaks down the panel, as rolled sheet has
+    for (let s = 0; s < 10; s++) {
+      color.g.fillStyle = rand() < 0.5 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.03)'
+      color.g.fillRect(x + 4 + rand() * (SEAM.panel - 8), 0, 1 + rand() * 3, r.height)
+    }
+    // the seam: a lit flank, its top, a shaded flank; and as heights, a rib with sloping sides
+    for (const [dx, k] of [[0, 1.45], [1, 1.25], [2, 1.05], [3, 0.6]] as const) {
+      color.g.fillStyle = css(scaled(base, k))
+      color.g.fillRect(x + dx, 0, 1, r.height)
+    }
+    for (const [dx, v] of [[-1, 140], [0, 220], [1, 255], [2, 255], [3, 220], [4, 140]] as const) {
+      height.g.fillStyle = gray(v)
+      height.g.fillRect((x + dx + r.width) % r.width, 0, 1, r.height)
+    }
+  }
+  grain(color.g, rand, 0.03)
+  return { map: color.el, height: height.el }
+}
+
 function paintChecker(r: TextureRecipe, material: Material): Painted {
   const [dark, light] = material.checker!.colors
   const { el, g } = canvas(r.width, r.height)
@@ -345,7 +378,9 @@ export function finishTextures(material: Material): FinishTextures | null {
           ? paintPlanks(r, material, rand)
           : r.kind === 'grass'
             ? paintLawn(r, material, rand)
-            : paintChecker(r, material)
+            : r.kind === 'seams'
+              ? paintSeams(r, material, rand)
+              : paintChecker(r, material)
     const texture = (el: HTMLCanvasElement, colour: boolean) => {
       const t = new THREE.CanvasTexture(el)
       t.wrapS = t.wrapT = THREE.RepeatWrapping

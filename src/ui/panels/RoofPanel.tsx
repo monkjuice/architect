@@ -4,7 +4,7 @@ import { ROOF_TYPES, sameRef, type Roof } from '../../model/plan'
 import { nextEdge, ROOF_TITLES, roofProblem, roofSummary } from '../../model/roofs'
 import { chooseTool, deleteSelection } from '../../state/actions'
 import { getStore, useEditor } from '../../state/store'
-import { Box, NumberField, Segmented } from '../fields'
+import { Box, MaterialField, NumberField, Segmented } from '../fields'
 
 const titleOf = (roof: Roof) => (roof.type === 'flat' ? ROOF_TITLES.flat : `${ROOF_TITLES[roof.type]} ${roof.pitch.toFixed(0)}°`)
 
@@ -91,6 +91,14 @@ function RoofFields({ layer, id, roof }: { layer: string; id: string; roof: Roof
           {pitched && `${(Math.tan((roof.pitch * Math.PI) / 180) * 100).toFixed(0)}% slope · `}covers {summary.planArea.toFixed(2)} m²
           {pitched && `, ${summary.surface.toFixed(2)} m² of roof`} · eaves +{summary.eaves.toFixed(2)} · top +{summary.top.toFixed(2)}
         </p>
+        <MaterialField label="Covering" surface="roof" outdoor value={roof.finish} onChange={(finish) => set({ finish: finish ?? undefined })} />
+        <MaterialField
+          label="Soffit (its underside)"
+          surface="ceiling"
+          outdoor
+          value={roof.soffit}
+          onChange={(soffit) => set({ soffit: soffit ?? undefined })}
+        />
         {problem && <p className="hint warning field-wide">{problem}</p>}
       </div>
       <div className="row">

@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from 'react'
+import { findMaterial, materialGroups, type Surface } from '../model/materials'
 import { setPrefs, usePrefs } from '../state/prefs'
 
 /** Inputs that commit on blur or Enter, so one edit is one undo step; Escape reverts. */
@@ -233,5 +234,46 @@ export function Box({ title, children, actions, id, className }: { title: ReactN
       </header>
       {!folded && children}
     </section>
+  )
+}
+
+/**
+ * A finish to pick, by family: the materials that suit the surface where it is (outdoors or not; either when that
+ * is not known), and the one it has even when it does not, so it still shows.
+ */
+export function MaterialField({
+  label,
+  surface,
+  outdoor,
+  value,
+  onChange,
+}: {
+  label: string
+  surface: Surface
+  outdoor: boolean | undefined
+  value: string | undefined
+  onChange: (material: string | null) => void
+}) {
+  const fieldId = useId()
+  const groups = materialGroups(surface, outdoor)
+  const current = findMaterial(value)
+  const listed = !current || groups.some((g) => g.materials.includes(current))
+  return (
+    <div className="field field-wide">
+      <label htmlFor={fieldId}>{label}</label>
+      <select id={fieldId} value={value ?? ''} onChange={(event) => onChange(event.target.value || null)}>
+        <option value="">None</option>
+        {!listed && current && <option value={current.id}>{current.title} (does not suit it)</option>}
+        {groups.map(({ group, materials }) => (
+          <optgroup key={group} label={group}>
+            {materials.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.title}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </div>
   )
 }

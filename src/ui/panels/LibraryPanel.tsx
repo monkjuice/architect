@@ -287,6 +287,7 @@ function MaterialIcon({ material }: { material: Material }) {
     stone: 'M4 10L11 8L14 13L21 11L28 13M9 20L11 8M21 11L19 4',
     grass: 'M7 20L8 15M12 20L11 14M17 20L18 15M22 20L21 14M26 20L27 16',
     gravel: 'M8 8h.1M14 11h.1M20 7h.1M24 13h.1M10 15h.1M17 17h.1',
+    seams: 'M10 4V20M16 4V20M22 4V20',
   }
   const { checker } = material
   // a checkerboard of 4 px squares, six by four

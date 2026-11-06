@@ -222,7 +222,13 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   // roofs, and what stands up to them
   const roofs = Object.entries(layer.roofs).map(([id, roof]) => ({ id, roof, eaves: eavesOf(roof), planes: roofPlanes(roof) }))
   for (const { id, roof, eaves } of roofs) {
-    out.push(solid('roof', roofSolidFaces(roof), roof.type === 'flat' ? 'slab' : 'roof', ref('roof', id)))
+    // its covering on top (and on a pitched roof's fascia), its soffit underneath
+    const [cover, under] = [roof.finish, roof.soffit].map((m) => (findMaterial(m) ? m : undefined))
+    const faces = roofSolidFaces(roof).map((f) => {
+      const finish = f.normal.z > 0.01 ? cover : f.normal.z < -0.01 ? under : roof.type === 'flat' ? undefined : cover
+      return finish ? { ...f, finish } : f
+    })
+    out.push(solid('roof', faces, roof.type === 'flat' ? 'slab' : 'roof', ref('roof', id)))
     if (roof.type === 'flat' && roof.parapet > 0) {
       const base = roof.height + SLAB
       out.push(prism('parapet', eaves, [offsetPolygon(eaves, -PARAPET_WALL)], base, base + roof.parapet, 'facade', ref('roof', id)))

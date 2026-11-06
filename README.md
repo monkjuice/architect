@@ -279,7 +279,10 @@ covers, usually the walls' outside faces) on a layer, and its eaves stand an **o
   it, `Delete` removes it. The Roofs section lists the roofs and sets the selected one's type, **pitch** (in
   degrees; the slope in % is shown), **height at the walls** (its underside where it crosses the outline at an
   eaves side, 2.70 m by default), overhang and parapet, with the area it covers, its own sloped area, and the
-  heights of its eaves and top.
+  heights of its eaves and top; and what it is made of: its **covering** (standing seam or corrugated metal,
+  membrane, a green roof, gravel, concrete; on top and a pitched roof's fascia) and its **soffit** (its underside:
+  under the eaves and over a gallery, in wood, plaster or concrete). In 3-D standing seam is drawn as 0.45 m panels
+  with raised seams running down each slope; the roof plan tints a covered roof in its colour.
 - The roof plan shades each slope by the way it faces, with an arrow down it, the eaves line solid and the walls'
   line dashed under an overhang, and a label with the type, pitch and top. New roofs start with their slopes
   running off the outline's longest side, 25° (shed 10°) and a 0.50 m overhang (flat: none).

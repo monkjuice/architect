@@ -2,6 +2,7 @@ import { memo, type CSSProperties } from 'react'
 import { add, mul, sub, type Vec } from '../../model/geometry'
 import { fireplaceShape, placeOpening } from '../../model/openings'
 import type { Layer, Roof } from '../../model/plan'
+import { findMaterial } from '../../model/materials'
 import { labelPoint } from '../../model/regions'
 import { eavesOf, ROOF_TITLES, roofFaces, roofProblem, roofSummary, type RoofFace } from '../../model/roofs'
 import { hostThickness } from '../../state/derived'
@@ -55,6 +56,7 @@ function RoofShape({ roof, px, selected, hovered }: { roof: Roof; px: number; se
   const title = roof.type === 'flat' ? ROOF_TITLES.flat : `${ROOF_TITLES[roof.type]} ${roof.pitch.toFixed(0)}°`
   const detail = problem ? 'not convex' : `top +${top.toFixed(2)}`
   const w = Math.max(title.length * 7.2, detail.length * 6.4) + 14
+  const cover = findMaterial(roof.finish)
   const className = ['roof', selected && 'selected', hovered && 'hovered', problem && 'problem'].filter(Boolean).join(' ')
   const arrow = (face: RoofFace) => {
     const d = downhill(face)
@@ -70,7 +72,7 @@ function RoofShape({ roof, px, selected, hovered }: { roof: Roof; px: number; se
   return (
     <g className={className}>
       {faces.map((f, i) => (
-        <path key={i} className="roof-face" d={ring(f.pts)} fillOpacity={shade(f)} />
+        <path key={i} className="roof-face" d={ring(f.pts)} fillOpacity={shade(f)} style={cover ? { fill: cover.color } : undefined} />
       ))}
       <path className="roof-eaves" d={ring(eaves)} />
       {roof.overhang > 0 && <path className="roof-outline" d={ring(roof.outline)} />}

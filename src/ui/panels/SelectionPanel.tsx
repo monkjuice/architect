@@ -1,4 +1,3 @@
-import { useId } from 'react'
 import { COLUMNS, layerColonnades, newColonnade } from '../../model/colonnades'
 import {
   moveAreas,
@@ -21,14 +20,13 @@ import { sideNormal, wallSide, type WallSide } from '../../model/finishes'
 import { FURNITURE, infoOf } from '../../model/furniture'
 import { fitOffset, hasHinge, hasSide, overlappingOpening, parkingRoom, placeOpening, slides, STYLES } from '../../model/openings'
 import { dist, screenAngleDeg } from '../../model/geometry'
-import { findMaterial, materialGroups } from '../../model/materials'
 import { measureSegments } from '../../model/pick'
 import { COLUMN_STYLES, findLayer, segmentKind, type ColumnStyle, type OpeningKind, type OpeningStyle, type Ref, type SegmentKind } from '../../model/plan'
 import { EXTERIOR_WALL, INTERIOR_WALL, wallHeight } from '../../model/walls'
 import { deleteSelection } from '../../state/actions'
 import { areaSize, facesOutside, getPlacedAreas, getRegions, getThickness } from '../../state/derived'
 import { getStore, useEditor } from '../../state/store'
-import { Box, CheckField, NumberField, Segmented, SelectField, TextField } from '../fields'
+import { Box, CheckField, MaterialField, NumberField, Segmented, SelectField, TextField } from '../fields'
 
 const KIND_OPTIONS = [
   ['wall', 'Wall'],
@@ -460,47 +458,6 @@ function WallFinishFields({ layerId, id }: { layerId: string; id: string }) {
           onChange={(m) => store.edit((p) => setWallFinish(p, layerId, id, side, m))}
         />
       ))}
-    </div>
-  )
-}
-
-/**
- * A finish to pick, by family: the materials that suit the surface where it is (outdoors or not; either when that
- * is not known), and the one it has even when it does not, so it still shows.
- */
-function MaterialField({
-  label,
-  surface,
-  outdoor,
-  value,
-  onChange,
-}: {
-  label: string
-  surface: 'wall' | 'floor'
-  outdoor: boolean | undefined
-  value: string | undefined
-  onChange: (material: string | null) => void
-}) {
-  const fieldId = useId()
-  const groups = materialGroups(surface, outdoor)
-  const current = findMaterial(value)
-  const listed = !current || groups.some((g) => g.materials.includes(current))
-  return (
-    <div className="field field-wide">
-      <label htmlFor={fieldId}>{label}</label>
-      <select id={fieldId} value={value ?? ''} onChange={(event) => onChange(event.target.value || null)}>
-        <option value="">None</option>
-        {!listed && current && <option value={current.id}>{current.title} (does not suit it)</option>}
-        {groups.map(({ group, materials }) => (
-          <optgroup key={group} label={group}>
-            {materials.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.title}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
     </div>
   )
 }

@@ -123,7 +123,8 @@ function facesGeometry(faces: readonly Face[]): THREE.BufferGeometry | null {
 function addFace(face: Face, positions: number[], normals: number[], uvs: number[]) {
   const n = world(face.normal)
   // two axes in the face's plane to triangulate it in
-  const u = new THREE.Vector3().crossVectors(n, Math.abs(n.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)).normalize()
+  // (along a sloped face's eaves and up its slope, so standing seams run down a roof of any pitch; a level one's along the plan)
+  const u = new THREE.Vector3().crossVectors(n, Math.abs(n.y) < 0.999 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)).normalize()
   const v = new THREE.Vector3().crossVectors(n, u)
   const flat = (ring: Vec3[]) => ring.map((p) => world(p)).map((q) => ({ q, uv: new THREE.Vector2(q.dot(u), q.dot(v)) }))
   const outer = flat(face.pts)

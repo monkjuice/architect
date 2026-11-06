@@ -209,6 +209,10 @@ export const RoofSchema = z.strictObject({
   edge: z.number().int().min(0),
   /** A flat roof's parapet above the slab, in m; 0 for none. */
   parapet: z.number().min(0).max(2),
+  /** What it is covered in (its top, and a pitched roof's fascia), a material id (see materials.ts). */
+  finish: z.string().min(1).optional(),
+  /** Its underside (the soffit under the eaves, a gallery's ceiling), a material id. */
+  soffit: z.string().min(1).optional(),
 })
 
 export const LayerSchema = z.strictObject({
