@@ -8,7 +8,7 @@ import type { Material } from '../model/materials'
  * kept for the session: the house is rebuilt on every change, its textures are not.
  */
 
-export type TextureKind = 'brick' | 'planks' | 'grass' | 'seams' | 'checker'
+export type TextureKind = 'brick' | 'planks' | 'grass' | 'seams' | 'tiles' | 'stone' | 'checker'
 
 /** What a finish's texture shows, and its canvas: one repeat, in px, at `px` pixels per metre. */
 export interface TextureRecipe {
@@ -26,6 +26,10 @@ const BRICK = { px: 512, module: 128, course: 33, joint: 5, perCourse: 4, course
 const PLANK = { px: 256, width: 40, length: 640, rows: 6, min: 0.6, max: 1.6 }
 /** Standing seam panels 0.45 m wide, four to a repeat, their seams 2.5 cm ribs down the slope. */
 const SEAM = { px: 256, panel: 115, panels: 4, length: 256 }
+/** Square tiles, four by four to a repeat (eight by eight when small), at about 256 px/m. */
+const TILES = { px: 256, joint: 3 }
+/** Stacked stone: courses of rectangular stones of random height and length, 2 × 1 m to a repeat. */
+const STONE = { px: 256, width: 512, height: 256, joint: 3 }
 /** A lawn 8 m square: a smaller repeat showed as a grid of patches from above. */
 const LAWN = { px: 128, size: 1024 }
 
@@ -40,10 +44,21 @@ export function textureRecipe(material: Material): TextureRecipe | null {
       return { kind: 'grass', width: LAWN.size, height: LAWN.size, px: LAWN.px, depth: 0.004 }
     case 'seams':
       return { kind: 'seams', width: SEAM.panel * SEAM.panels, height: SEAM.length, px: SEAM.px, depth: 0.025 }
+    case 'tiles': {
+      const size = material.tile ?? 0.6
+      const cell = Math.round(size * TILES.px)
+      const n = size < 0.4 ? 8 : 4
+      return { kind: 'tiles', width: cell * n, height: cell * n, px: cell / size, depth: natural(material) ? 0.006 : 0.003 }
+    }
+    case 'stone':
+      return { kind: 'stone', width: STONE.width, height: STONE.height, px: STONE.px, depth: 0.015 }
     default:
       return null
   }
 }
+
+/** Stone (and a pool's stone lining) varies from piece to piece; porcelain and fired tile hardly do. */
+const natural = (m: Material) => m.group === 'Brick and stone' || !!m.water
 
 /** Random numbers seeded by a string (mulberry32), so a material looks the same every time it is painted. */
 export function seeded(seed: string): () => number {
@@ -286,6 +301,120 @@ function paintLawn(r: TextureRecipe, material: Material, rand: () => number): Pa
   return { map: color.el, height: height.el }
 }
 
+/** Mottling over a stone, a few soft darker and lighter blots, clipped to it. */
+function mottle(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, rand: () => number) {
+  g.save()
+  g.beginPath()
+  g.rect(x, y, w, h)
+  g.clip()
+  for (let i = 0; i < 4; i++) {
+    const [cx, cy, r] = [x + rand() * w, y + rand() * h, (0.2 + rand() * 0.5) * Math.max(w, h)]
+    const blot = g.createRadialGradient(cx, cy, 0, cx, cy, r)
+    const c = rand() < 0.5 ? '0,0,0' : '255,255,255'
+    blot.addColorStop(0, `rgba(${c},${0.05 + rand() * 0.08})`)
+    blot.addColorStop(1, `rgba(${c},0)`)
+    g.fillStyle = blot
+    g.fillRect(x, y, w, h)
+  }
+  g.restore()
+}
+
+/** Square tiles in a grid with thin joints: stone each a different tone and mottled, porcelain all but even; a pool's lining under water. */
+function paintTiles(r: TextureRecipe, material: Material, rand: () => number): Painted {
+  const [color, height] = [canvas(r.width, r.height), canvas(r.width, r.height)]
+  const base = rgb(material.color)
+  const stone = natural(material)
+  const n = r.width / Math.round((material.tile ?? 0.6) * TILES.px)
+  const cell = r.width / n
+  const j = material.water || !stone ? 2 : TILES.joint
+  color.g.fillStyle = css(luminance(base) > 0.5 ? scaled(base, 0.82) : scaled(base, 1.25))
+  color.g.fillRect(0, 0, r.width, r.height)
+  height.g.fillStyle = gray(60)
+  height.g.fillRect(0, 0, r.width, r.height)
+  for (let row = 0; row < n; row++) {
+    for (let col = 0; col < n; col++) {
+      const [x, y, s] = [col * cell + j / 2, row * cell + j / 2, cell - j]
+      // a pool's stones shift between greener and bluer as well as lighter and darker
+      const tone = stone ? 0.78 + 0.4 * rand() : 0.97 + 0.06 * rand()
+      const shift = material.water ? (rand() - 0.5) * 30 : 0
+      const c = scaled(base, tone)
+      color.g.fillStyle = css([c[0] - shift * 0.4, c[1] + shift * 0.2, c[2] + shift])
+      color.g.fillRect(x, y, s, s)
+      if (stone) mottle(color.g, x, y, s, s, rand)
+      for (const [inset, v] of [[0, 170], [1, 215], [2, 235]] as const) {
+        height.g.fillStyle = gray(v)
+        height.g.fillRect(x + inset, y + inset, s - 2 * inset, s - 2 * inset)
+      }
+    }
+  }
+  if (material.water) {
+    // light rippling over the stones, the water's surface
+    color.g.lineWidth = 1.5
+    for (let i = 0; i < 40; i++) {
+      const [x0, y0, len] = [rand() * r.width, rand() * r.height, 30 + rand() * 80]
+      color.g.strokeStyle = `rgba(255,255,255,${0.03 + rand() * 0.05})`
+      color.g.beginPath()
+      for (let t = 0; t <= len; t += 4) {
+        const [x, y] = [(x0 + t) % r.width, y0 + Math.sin((t + x0) / 9) * 3]
+        if (t) color.g.lineTo(x, y)
+        else color.g.moveTo(x, y)
+      }
+      color.g.stroke()
+    }
+  }
+  grain(color.g, rand, stone ? 0.1 : 0.03)
+  grain(height.g, rand, stone ? 0.12 : 0.03)
+  return { map: color.el, height: height.el }
+}
+
+/**
+ * Stacked stone: courses of random height (filling the repeat's height) of stones of random length, each its own
+ * tone, mottled, in dark recessed joints; a stone across the right edge carries on at the left.
+ */
+function paintStone(r: TextureRecipe, material: Material, rand: () => number): Painted {
+  const [color, height] = [canvas(r.width, r.height), canvas(r.width, r.height)]
+  const base = rgb(material.color)
+  const j = STONE.joint
+  color.g.fillStyle = css(scaled(base, 0.45))
+  color.g.fillRect(0, 0, r.width, r.height)
+  height.g.fillStyle = gray(20)
+  height.g.fillRect(0, 0, r.width, r.height)
+  const courses: number[] = []
+  for (let left = r.height; left > 0; ) {
+    const h = Math.round((0.08 + rand() * 0.12) * r.px)
+    courses.push(left - h < 0.06 * r.px ? left : h)
+    left -= courses[courses.length - 1]
+  }
+  let y = 0
+  for (const h of courses) {
+    let along = rand() * r.width
+    const end = along + r.width
+    while (along < end) {
+      const len = Math.min(Math.round((0.18 + rand() * 0.42) * r.px), end - along)
+      const tone = 0.72 + 0.45 * rand()
+      const warm = (rand() - 0.5) * 24
+      const look = [rand(), rand(), rand(), rand(), rand(), rand(), rand(), rand(), rand(), rand(), rand(), rand(), rand(), rand(), rand(), rand()]
+      for (const x of wrapped(along % r.width, len, r.width)) {
+        const c = scaled(base, tone)
+        color.g.fillStyle = css([c[0] + warm, c[1] + warm * 0.5, c[2] - warm * 0.3])
+        color.g.fillRect(x + j / 2, y + j / 2, len - j, h - j)
+        let k = 0
+        mottle(color.g, x + j / 2, y + j / 2, len - j, h - j, () => look[k++ % look.length])
+        // the face bulges a little: higher in the middle than at its arrises
+        for (const [inset, v] of [[0, 140], [2, 190], [4, 225], [7, 245]] as const) {
+          height.g.fillStyle = gray(v)
+          height.g.fillRect(x + j / 2 + inset, y + j / 2 + inset, len - j - 2 * inset, h - j - 2 * inset)
+        }
+      }
+      along += len
+    }
+    y += h
+  }
+  grain(color.g, rand, 0.14)
+  grain(height.g, rand, 0.2)
+  return { map: color.el, height: height.el }
+}
+
 /** Standing seam: flat panels, each a touch different, with a raised seam down each edge catching the light on one side. */
 function paintSeams(r: TextureRecipe, material: Material, rand: () => number): Painted {
   const [color, height] = [canvas(r.width, r.height), canvas(r.width, r.height)]
@@ -380,7 +509,11 @@ export function finishTextures(material: Material): FinishTextures | null {
             ? paintLawn(r, material, rand)
             : r.kind === 'seams'
               ? paintSeams(r, material, rand)
-              : paintChecker(r, material)
+              : r.kind === 'tiles'
+                ? paintTiles(r, material, rand)
+                : r.kind === 'stone'
+                  ? paintStone(r, material, rand)
+                  : paintChecker(r, material)
     const texture = (el: HTMLCanvasElement, colour: boolean) => {
       const t = new THREE.CanvasTexture(el)
       t.wrapS = t.wrapT = THREE.RepeatWrapping

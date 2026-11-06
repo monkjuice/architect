@@ -233,6 +233,15 @@ function OpeningDetails({ layerId, id }: { layerId: string; id: string }) {
         <NumberField label="Width" value={o.width} min={0.3} onCommit={(width) => change({ width })} />
         <div />
         {aFirst ? [gapField('a'), gapField('b')] : [gapField('b'), gapField('a')]}
+        {o.kind === 'fireplace' && (
+          <MaterialField
+            label="Material (exposed brick when none)"
+            surface="wall"
+            outdoor={undefined}
+            value={o.finish}
+            onChange={(finish) => store.edit((p) => updateOpening(p, layerId, id, { finish: finish ?? undefined }))}
+          />
+        )}
       </div>
       {(hasSide(o) || hasHinge(o)) && (
         <div className="button-row opening-buttons">

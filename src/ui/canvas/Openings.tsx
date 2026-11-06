@@ -101,6 +101,19 @@ export const OpeningLayer = memo(function OpeningLayer({
 /** A style's symbol for the library, in a stub of wall, in a 32 × 24 box; it opens upwards (a sliding gate parks to the right). */
 export function OpeningIcon({ kind, style }: { kind: OpeningKind; style: OpeningStyle }) {
   const y = 17
+  if (kind === 'fireplace' && style === 'parrilla') {
+    return (
+      <>
+        <path className="icon-wall" d={`M2 ${y}H30`} />
+        <g className="opening fireplace">
+          <polygon className="fireplace-hearth" points={`3,7 29,7 29,4 3,4`} />
+          <polygon className="fireplace-box" points={`4,${y - 1} 28,${y - 1} 28,7 4,7`} />
+          <polygon className="fireplace-fire" points={`7,14 25,14 25,7 7,7`} />
+          <path className="fireplace-flue" d="M10 8V13M13 8V13M16 8V13M19 8V13M22 8V13" />
+        </g>
+      </>
+    )
+  }
   if (kind === 'fireplace') {
     // a fireplace's real depth would vanish at this scale: drawn to the icon instead
     return (

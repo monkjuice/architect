@@ -25,6 +25,10 @@ export interface Material {
   pattern?: Pattern
   /** See-through (glass, water): 0 opaque. */
   clear?: number
+  /** Square tiles or stones this many m a side (the `tiles` pattern). */
+  tile?: number
+  /** A pool's lining, seen through its water: tinted, with light rippling over it. */
+  water?: boolean
   /** Laid as a checkerboard of squares `tile` m a side in two colours; `color` is their mix, for where they do not show. */
   checker?: { colors: readonly [string, string]; tile: number }
 }
@@ -37,7 +41,7 @@ const m = (
   where: 'both' | 'outdoor' | 'indoor',
   color: string,
   roughness: number,
-  extra: Partial<Pick<Material, 'metalness' | 'pattern' | 'clear' | 'checker'>> = {},
+  extra: Partial<Pick<Material, 'metalness' | 'pattern' | 'clear' | 'checker' | 'tile' | 'water'>> = {},
 ): Material => ({ id, title, group, surfaces, outdoor: where !== 'indoor', indoor: where !== 'outdoor', color, roughness, metalness: 0, ...extra })
 
 /** The catalogue, in the order pickers list it, a group at a time. */
@@ -48,17 +52,18 @@ export const MATERIALS: readonly Material[] = [
   m('brick-red', 'Exposed red brick', 'Brick and stone', ['wall', 'floor'], 'both', '#9a4b33', 0.9, { pattern: 'brick' }),
   m('brick-white', 'Painted brick', 'Brick and stone', ['wall'], 'both', '#e4e0d8', 0.9, { pattern: 'brick' }),
   m('stone-cladding', 'Stone cladding', 'Brick and stone', ['wall', 'floor'], 'outdoor', '#8c8477', 0.95, { pattern: 'stone' }),
-  m('marble-white', 'White marble', 'Brick and stone', ['floor', 'wall'], 'both', '#e9e7e3', 0.25, { pattern: 'tiles' }),
-  m('granite-grey', 'Grey granite', 'Brick and stone', ['floor', 'wall'], 'both', '#7d7b78', 0.4, { pattern: 'tiles' }),
+  m('marble-white', 'White marble', 'Brick and stone', ['floor', 'wall'], 'both', '#e9e7e3', 0.25, { pattern: 'tiles', tile: 0.6 }),
+  m('granite-grey', 'Grey granite', 'Brick and stone', ['floor', 'wall'], 'both', '#7d7b78', 0.4, { pattern: 'tiles', tile: 0.6 }),
+  m('stone-slab', 'Large stone slabs', 'Brick and stone', ['floor', 'wall'], 'both', '#a6a398', 0.85, { pattern: 'tiles', tile: 0.6 }),
   m('concrete-exposed', 'Exposed concrete', 'Concrete', ['wall', 'floor', 'ceiling', 'roof'], 'both', '#9b9993', 0.88),
   m('concrete-polished', 'Polished concrete', 'Concrete', ['floor'], 'both', '#8f8e8a', 0.35),
-  m('paving-concrete', 'Concrete pavers', 'Concrete', ['floor'], 'outdoor', '#b3aea5', 0.9, { pattern: 'tiles' }),
+  m('paving-concrete', 'Concrete pavers', 'Concrete', ['floor'], 'outdoor', '#b3aea5', 0.9, { pattern: 'tiles', tile: 0.4 }),
   m('wood-oak', 'Oak', 'Wood', ['wall', 'floor', 'ceiling', 'door', 'frame'], 'both', '#b48a58', 0.62, { pattern: 'planks' }),
   m('wood-walnut', 'Walnut', 'Wood', ['wall', 'floor', 'ceiling', 'door', 'frame'], 'both', '#5e3e28', 0.58, { pattern: 'planks' }),
   m('wood-deck', 'Hardwood deck', 'Wood', ['floor', 'wall'], 'outdoor', '#7a4a2c', 0.7, { pattern: 'planks' }),
-  m('tile-light', 'Light porcelain tile', 'Ceramic', ['floor', 'wall'], 'both', '#d9d5cd', 0.35, { pattern: 'tiles' }),
-  m('tile-dark', 'Dark porcelain tile', 'Ceramic', ['floor', 'wall'], 'both', '#4a4845', 0.35, { pattern: 'tiles' }),
-  m('tile-terracotta', 'Terracotta tile', 'Ceramic', ['floor'], 'both', '#b5643f', 0.85, { pattern: 'tiles' }),
+  m('tile-light', 'Light porcelain tile', 'Ceramic', ['floor', 'wall'], 'both', '#d9d5cd', 0.35, { pattern: 'tiles', tile: 0.6 }),
+  m('tile-dark', 'Dark porcelain tile', 'Ceramic', ['floor', 'wall'], 'both', '#4a4845', 0.35, { pattern: 'tiles', tile: 0.6 }),
+  m('tile-terracotta', 'Terracotta tile', 'Ceramic', ['floor'], 'both', '#b5643f', 0.85, { pattern: 'tiles', tile: 0.3 }),
   m('tile-checkered', 'Checkered tile', 'Ceramic', ['floor'], 'both', '#848280', 0.3, { checker: { colors: ['#161616', '#f2f0eb'], tile: 0.3 } }),
   m('aluminium-black', 'Black aluminium', 'Metal', ['frame', 'door'], 'both', '#1d1e20', 0.4, { metalness: 0.6 }),
   m('aluminium-white', 'White aluminium', 'Metal', ['frame', 'door'], 'both', '#e8e8e6', 0.4, { metalness: 0.3 }),
@@ -72,6 +77,7 @@ export const MATERIALS: readonly Material[] = [
   m('gravel', 'Gravel', 'Ground and garden', ['floor', 'roof'], 'outdoor', '#a59f94', 1, { pattern: 'gravel' }),
   m('grass', 'Lawn', 'Ground and garden', ['floor'], 'outdoor', '#5f8a3a', 1, { pattern: 'grass' }),
   m('water', 'Pool water', 'Ground and garden', ['floor'], 'outdoor', '#2f8fb0', 0.05, { clear: 0.25 }),
+  m('pool-stone', 'Stone pool (green stone under water)', 'Ground and garden', ['floor'], 'outdoor', '#2c6b67', 0.06, { pattern: 'tiles', tile: 0.2, water: true }),
 ]
 
 const BY_ID = new Map(MATERIALS.map((x) => [x.id, x]))

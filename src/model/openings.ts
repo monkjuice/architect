@@ -23,6 +23,7 @@ export const STYLES: readonly StyleInfo[] = [
   { kind: 'gate', style: 'double', title: 'Double', width: 3.0 },
   { kind: 'gate', style: 'sliding', title: 'Sliding', width: 4.0 },
   { kind: 'fireplace', style: 'masonry', title: 'Masonry', width: 1.2 },
+  { kind: 'fireplace', style: 'parrilla', title: 'Parrilla', width: 1.8 },
 ]
 
 export const styleKey = (kind: OpeningKind, style: OpeningStyle): string => `${kind}:${style}`
@@ -99,6 +100,10 @@ export function placeOpening(layer: Layer, o: Opening): PlacedOpening | null {
 /** A fireplace: how far its surround stands out from the wall, the hearth before it, and its chimney's width, in m. */
 export const FIREPLACE_DEPTH = 0.5
 export const HEARTH = 0.4
+/** A parrilla (an Argentine grill) stands out further, its fire across all but its cheeks. */
+export const PARRILLA_DEPTH = 0.8
+export const PARRILLA_CHEEK = 0.15
+export const fireplaceDepth = (o: Pick<Opening, 'style'>): number => (o.style === 'parrilla' ? PARRILLA_DEPTH : FIREPLACE_DEPTH)
 export const FLUE_WIDTH = 0.7
 
 /** A fireplace on the plan, against the face of its wall on its side. */
@@ -129,13 +134,15 @@ export function besideWall(p: PlacedOpening, o: Pick<Opening, 'swing'>, half: nu
 export function fireplaceShape(p: PlacedOpening, o: Opening, half: number): FireplaceShape {
   const w = dist(p.start, p.end)
   const rect = besideWall(p, o, half)
-  const fire = Math.min(0.75, w * 0.6)
+  const d = fireplaceDepth(o)
+  const parrilla = o.style === 'parrilla'
+  const fire = parrilla ? Math.max(0.3, w - 2 * PARRILLA_CHEEK) : Math.min(0.75, w * 0.6)
   const flue = Math.min(FLUE_WIDTH, w)
   return {
-    box: rect(0, w, 0, FIREPLACE_DEPTH),
-    firebox: rect((w - fire) / 2, (w + fire) / 2, FIREPLACE_DEPTH * 0.35, FIREPLACE_DEPTH),
-    hearth: rect(-0.1, w + 0.1, FIREPLACE_DEPTH, FIREPLACE_DEPTH + HEARTH),
-    flue: rect((w - flue) / 2, (w + flue) / 2, 0, FIREPLACE_DEPTH),
+    box: rect(0, w, 0, d),
+    firebox: rect((w - fire) / 2, (w + fire) / 2, parrilla ? 0.12 : d * 0.35, d),
+    hearth: rect(-0.1, w + 0.1, d, d + HEARTH),
+    flue: rect((w - flue) / 2, (w + flue) / 2, 0, d),
   }
 }
 

@@ -87,7 +87,7 @@ export const AreaSchema = z.strictObject({
 export const DOOR_STYLES = ['single', 'double', 'sliding'] as const
 export const WINDOW_STYLES = ['fixed', 'sliding', 'double-hung', 'awning', 'casement'] as const
 export const GATE_STYLES = ['single', 'double', 'sliding'] as const
-export const FIREPLACE_STYLES = ['masonry'] as const
+export const FIREPLACE_STYLES = ['masonry', 'parrilla'] as const
 
 const OpeningFields = {
   /** The segment it sits in. */
@@ -116,7 +116,13 @@ export const WindowSchema = z.strictObject({ kind: z.literal('window'), style: z
 export const GateSchema = z.strictObject({ kind: z.literal('gate'), style: z.enum(GATE_STYLES).default('single'), ...OpeningFields })
 
 /** A fireplace against a wall, in the room on its `swing` side; it cuts no gap in the wall. */
-export const FireplaceSchema = z.strictObject({ kind: z.literal('fireplace'), style: z.enum(FIREPLACE_STYLES).default('masonry'), ...OpeningFields })
+export const FireplaceSchema = z.strictObject({
+  kind: z.literal('fireplace'),
+  style: z.enum(FIREPLACE_STYLES).default('masonry'),
+  ...OpeningFields,
+  /** What its masonry is finished in, a material id (see materials.ts); exposed brick when not. */
+  finish: z.string().min(1).optional(),
+})
 
 export const OpeningSchema = z.discriminatedUnion('kind', [DoorSchema, WindowSchema, GateSchema, FireplaceSchema])
 

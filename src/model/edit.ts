@@ -546,7 +546,7 @@ export function addOpening(plan: Plan, layerId: string, opening: Opening): { pla
   return { plan: next, id }
 }
 
-export type OpeningPatch = Partial<Pick<Opening, 'segment' | 'offset' | 'width' | 'hinge' | 'swing'>> & { style?: OpeningStyle }
+export type OpeningPatch = Partial<Pick<Opening, 'segment' | 'offset' | 'width' | 'hinge' | 'swing'>> & { style?: OpeningStyle; finish?: string }
 
 /** Changes a door or window; a style of the other kind is refused. The same plan when nothing changes. */
 export function updateOpening(plan: Plan, layerId: string, id: string, patch: OpeningPatch): Plan {
@@ -554,7 +554,9 @@ export function updateOpening(plan: Plan, layerId: string, id: string, patch: Op
     const o = openings[id]
     if (!o || (patch.style && !isStyleOf(o.kind, patch.style))) return false
     const next = { ...o, ...patch } as Opening
-    if ((Object.keys(next) as (keyof Opening)[]).every((k) => next[k] === o[k])) return false
+    // undefined takes a fireplace's finish off
+    if ('finish' in next && next.finish === undefined) delete next.finish
+    if ((Object.keys(next) as (keyof Opening)[]).every((k) => next[k] === o[k]) && Object.keys(next).length === Object.keys(o).length) return false
     openings[id] = next
   })
 }

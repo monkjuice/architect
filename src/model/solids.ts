@@ -5,7 +5,7 @@ import { placeFurniture } from './furniture'
 import { furnitureParts } from './furniture3d'
 import { sideNormal } from './finishes'
 import { findMaterial } from './materials'
-import { besideWall, FIREPLACE_DEPTH, fireplaceShape, HEARTH, hasHinge, placeOpening, type PlacedOpening } from './openings'
+import { besideWall, FIREPLACE_DEPTH, fireplaceShape, HEARTH, hasHinge, PARRILLA_CHEEK, PARRILLA_DEPTH, placeOpening, type PlacedOpening } from './openings'
 import { segmentKind, type ColumnStyle, type Layer, type Opening, type Plan, type Ref, type Roof } from './plan'
 import { layerFaces, pointInPolygon, regionAt, type LayerFaces, type Region } from './regions'
 import { eavesOf, offsetPolygon, PARAPET_WALL, roofFaces, roofPlanes, roofThickness, SLAB, underside, undersideAlong } from './roofs'
@@ -404,33 +404,70 @@ function heightAlong(profile: readonly [number, number][], u: number): number {
   return profile[profile.length - 1][1]
 }
 
+/** A parrilla's heights: its stone counter, the top of its fire opening, the top of its hood, in m. */
+const PARRILLA = { counter: 0.9, fire: 1.7, hood: 2.3 }
+
 /**
  * A masonry fireplace on its side of the wall: a base, the cheeks and back round a dark firebox, a head under a
- * stone mantel shelf and a stone hearth before it; then its chimney, from the mantel up through the roof to
- * CHIMNEY_ABOVE over it (over its wall, with no roof), under a stone cap.
+ * stone mantel shelf and a stone hearth before it. A parrilla (an Argentine grill): a base with a niche for firewood
+ * under a stone counter, a wide fire opening over it with the grill and an ember basket (brasero) in it, and a hood
+ * over that. Then, from either, its chimney up through the roof to CHIMNEY_ABOVE over it (over its wall, with no
+ * roof), under a stone cap. Its masonry is exposed brick or the material it is finished in.
  */
 function fireplaceSolids(o: Opening, p: PlacedOpening, half: number, roof: Roof | undefined, wall: number, ref: Ref, out: Solid[]) {
   const w = dist(p.start, p.end)
   const rect = besideWall(p, o, half)
-  const d = FIREPLACE_DEPTH
-  const fire = Math.min(0.75, w * 0.6)
-  const [f0, f1] = [(w - fire) / 2, (w + fire) / 2]
-  const put = (kind: SolidKind, outline: Vec[], bottom: number, top: number, material: SolidMaterial) => out.push(prism(kind, outline, [], bottom, top, material, ref))
-  put('fireplace', rect(-0.1, w + 0.1, d, d + HEARTH), 0, 0.04, 'stone')
-  put('fireplace', rect(0, w, 0, d), 0, 0.15, 'brick')
-  put('fireplace', rect(0, f0, 0, d), 0.15, 0.75, 'brick')
-  put('fireplace', rect(f1, w, 0, d), 0.15, 0.75, 'brick')
-  put('fireplace', rect(f0, f1, 0, d * 0.35), 0.15, 0.75, 'brick')
-  put('fireplace', rect(f0, f1, d * 0.35, d - 0.02), 0.15, 0.75, 'soot')
-  put('fireplace', rect(0, w, 0, d), 0.75, MANTEL, 'brick')
-  put('fireplace', rect(-0.05, w + 0.05, 0, d + 0.05), MANTEL, MANTEL + 0.06, 'stone')
+  const finish = o.kind === 'fireplace' && findMaterial(o.finish) ? o.finish : undefined
+  const put = (kind: SolidKind, outline: Vec[], bottom: number, top: number, material: SolidMaterial) => {
+    const s = prism(kind, outline, [], bottom, top, material, ref)
+    if (finish && material === 'brick') s.finish = finish
+    out.push(s)
+  }
+  let base: number
+  if (o.style === 'parrilla') {
+    const [d, c, back] = [PARRILLA_DEPTH, Math.min(PARRILLA_CHEEK, w / 4), 0.12]
+    const { counter, fire, hood } = PARRILLA
+    put('fireplace', rect(-0.1, w + 0.1, d, d + HEARTH), 0, 0.03, 'stone')
+    put('fireplace', rect(0, w, 0, d), 0, 0.1, 'brick')
+    put('fireplace', rect(0, c, 0, d), 0.1, 0.75, 'brick')
+    put('fireplace', rect(w - c, w, 0, d), 0.1, 0.75, 'brick')
+    put('fireplace', rect(c, w - c, 0, d - 0.45), 0.1, 0.75, 'brick')
+    put('fireplace', rect(c, w - c, d - 0.45, d - 0.44), 0.1, 0.75, 'soot')
+    put('fireplace', rect(0, w, 0, d), 0.75, counter - 0.04, 'brick')
+    put('fireplace', rect(-0.03, w + 0.03, 0, d + 0.05), counter - 0.04, counter, 'stone')
+    put('fireplace', rect(0, c, 0, d), counter, fire, 'brick')
+    put('fireplace', rect(w - c, w, 0, d), counter, fire, 'brick')
+    put('fireplace', rect(c, w - c, 0, back), counter, fire, 'brick')
+    put('fireplace', rect(c, w - c, back, back + 0.01), counter, fire, 'soot')
+    put('fireplace', rect(c, w - c, back, d), counter, counter + 0.01, 'soot')
+    // the grill: bars from front to back on two rails, a little over the counter; the brasero in a back corner
+    put('fireplace', rect(c + 0.03, w - c - 0.03, back + 0.04, back + 0.06), counter + 0.2, counter + 0.23, 'metal')
+    put('fireplace', rect(c + 0.03, w - c - 0.03, d - 0.05, d - 0.03), counter + 0.2, counter + 0.23, 'metal')
+    for (let u = c + 0.06; u < w - c - 0.05; u += 0.07) put('fireplace', rect(u, u + 0.012, back + 0.04, d - 0.03), counter + 0.23, counter + 0.245, 'metal')
+    put('fireplace', rect(c + 0.03, Math.min(c + 0.33, w / 2), back + 0.03, back + 0.33), counter + 0.32, counter + 0.62, 'metal')
+    put('fireplace', rect(0, w, 0, d), fire, hood, 'brick')
+    base = hood
+  } else {
+    const d = FIREPLACE_DEPTH
+    const fire = Math.min(0.75, w * 0.6)
+    const [f0, f1] = [(w - fire) / 2, (w + fire) / 2]
+    put('fireplace', rect(-0.1, w + 0.1, d, d + HEARTH), 0, 0.04, 'stone')
+    put('fireplace', rect(0, w, 0, d), 0, 0.15, 'brick')
+    put('fireplace', rect(0, f0, 0, d), 0.15, 0.75, 'brick')
+    put('fireplace', rect(f1, w, 0, d), 0.15, 0.75, 'brick')
+    put('fireplace', rect(f0, f1, 0, d * 0.35), 0.15, 0.75, 'brick')
+    put('fireplace', rect(f0, f1, d * 0.35, d - 0.02), 0.15, 0.75, 'soot')
+    put('fireplace', rect(0, w, 0, d), 0.75, MANTEL, 'brick')
+    put('fireplace', rect(-0.05, w + 0.05, 0, d + 0.05), MANTEL, MANTEL + 0.06, 'stone')
+    base = MANTEL + 0.06
+  }
   const flue = fireplaceShape(p, o, half).flue
   let top = wall + CHIMNEY_ABOVE
   if (roof) {
     const planes = roofPlanes(roof)
     top = Math.max(...flue.map((q) => underside(roof, planes, q))) + roofThickness(roof) + (roof.type === 'flat' ? roof.parapet : 0) + CHIMNEY_ABOVE
   }
-  put('chimney', flue, MANTEL + 0.06, top, 'brick')
+  put('chimney', flue, base, top, 'brick')
   put('chimney', offsetPolygon(flue, 0.05), top, top + 0.06, 'stone')
 }
 

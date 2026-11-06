@@ -163,6 +163,12 @@ standing 0.50 m out from the wall's face, the dark firebox, the hearth before it
 roof over it to 1 m above the roof there (above a flat roof's parapet; with no roof, 1 m above its wall), under a
 stone cap: it shows on the Roof tab's plan, in the elevations and in 3-D.
 
+A **parrilla** (*Fireplaces*: an Argentine grill, 1.80 m wide) is the built-in kind for a gallery or quincho: it
+stands 0.80 m out from the wall, with a niche for firewood in its base, a stone counter at 0.90 m, the fire
+opening over it across all but its 0.15 m cheeks with the grill and the ember basket (*brasero*) in it, a hood up
+to 2.30 m and its chimney from there. A fireplace's or parrilla's masonry is exposed brick, or the material picked
+for it in the Selection panel (stone cladding, concrete, plaster...).
+
 ### Colonnades
 
 An open edge (a gallery's front, a porch) can carry a **colonnade**: columns shared out evenly along it, no
@@ -212,7 +218,8 @@ the plan with the usual symbols (a basin and its drain, a bed's pillows and turn
 
 Each side of a wall and the floor of each named area can be finished in a material from the library's *Materials*
 group: plaster and paint, brick and stone, concrete, wood, ceramic tile (among them a black and white checkered
-tile, 0.30 m squares), metal sheet, and for the ground gravel, lawn and pool water. Pick one under *Walls* and click the side of a wall it goes on (hovering marks that face and
+tile, 0.30 m squares), large stone slabs (0.60 m squares, for steps and outdoor paths), metal sheet, and for the
+ground gravel, lawn, pool water and a **stone pool** (its lining of 0.20 m green stones seen through the water). Pick one under *Walls* and click the side of a wall it goes on (hovering marks that face and
 names what it faces: a room, or the outside), or pick one under *Floors* and click inside a named area; or drag
 it there. A material that does not suit the place is refused with the reason: a wall side or floor is outdoors
 unless it is in a room (so a gallery is outdoors, and a [lot](#walls-open-edges-outlines-and-areas)), and stone cladding, decks, pavers and lawn are for outdoors
@@ -226,9 +233,11 @@ side's material. A wall keeps its finishes when it is split, or turned into an o
 
 In the Exterior, brick, wood and lawn are drawn at their real size with a texture and relief: brick in running bond
 (0.24 × 0.055 m with 1 cm recessed joints, each brick a slightly different tone), boards 0.156 m wide with
-staggered ends, grain and seams, and a lawn of grass blades and patches; the checkered tile in its squares. The
-open ground around the site is the same lawn, and fireplaces and chimneys are exposed brick. The other materials
-are still flat colours.
+staggered ends, grain and seams, and a lawn of grass blades and patches; tiles and stone slabs as square tiles of
+their size (stone each a different tone, porcelain even), the stone pool's lining under rippling water, stone
+cladding as stacked stone in courses, and the checkered tile in its squares. The open ground around the site is
+the same lawn, and fireplaces and chimneys are exposed brick unless finished otherwise. Plaster, concrete, metal
+and gravel are still flat colours.
 
 ### Sun
 
