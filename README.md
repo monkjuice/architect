@@ -373,7 +373,8 @@ across tabs):
 - fireplaces, with their chimneys through the roof.
 
 Its toolbar has the camera (*Aerial*, *Top* as the plan, and the four facades by the plan's north), *Roof* to hide
-the roofs and look into the rooms, the sun's season and time (the same as the Floor tab's Sun section, with its site and
+the roofs and look into the rooms, *Up to* (with upper floors) to hide the floors over the one picked and look into
+it from above (remembered per browser), the sun's season and time (the same as the Floor tab's Sun section, with its site and
 cloudiness) and *Save image* (a PNG at twice the screen resolution). Drag to orbit, right-drag to pan, wheel to
 zoom: towards what is under the cursor, 15% of the way per notch but at least 0.40 m, so it keeps going close up
 and carries on through when it gets there; the point orbited stays at least 3 m ahead, and panning keeps at least

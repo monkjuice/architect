@@ -1,4 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { storeyOf } from '../../model/plan'
+import { MAX_STOREY, storeyName, storeys } from '../../model/storeys'
 import { formatClock, SEASONS, seasonTitle, type Season } from '../../model/sun'
 import { createExteriorEngine, type CameraPose, type CameraPreset, type ExteriorEngine } from '../../render/engine'
 import { getSolids } from '../../state/derived'
@@ -22,15 +24,23 @@ let lastPose: CameraPose | undefined
 
 /**
  * The house in 3-D, built from the floor plan's visible layers on every change, under the plan's sun (its site,
- * and the season, time and clouds of the Floor tab's Sun section). Loaded on demand with three.js.
+ * and the season, time and clouds of the Floor tab's Sun section), up to the floor picked. Loaded on demand with
+ * three.js.
  */
 export default function ExteriorTab() {
   const store = getStore()
   const plan = useEditor((s) => s.plan)
   const fileName = useEditor((s) => s.file.name)
-  const { sun, roofs } = usePrefs()
+  const { sun, roofs, topStorey } = usePrefs()
   const solids = getSolids(plan)
-  const shown = useMemo(() => (roofs ? solids : solids.filter((s) => s.kind !== 'roof' && s.kind !== 'parapet')), [solids, roofs])
+  const floors = storeys(plan)
+  const top = Math.min(topStorey, floors[floors.length - 1])
+  // without the roofs, or the floors over `top`, it looks into the rooms
+  const shown = useMemo(() => {
+    const storey = new Map(plan.layers.map((l) => [l.id, storeyOf(l)]))
+    const kept = solids.filter((s) => (roofs || (s.kind !== 'roof' && s.kind !== 'parapet')) && (storey.get(s.ref.layer) ?? 0) <= top)
+    return kept.length === solids.length ? solids : kept
+  }, [solids, roofs, top, plan.layers])
   const [preset, setPreset] = useState<CameraPreset | undefined>(lastPose ? undefined : 'aerial')
   const supported = useMemo(() => webglAvailable(), [])
   const hostRef = useRef<HTMLDivElement>(null)
@@ -75,6 +85,16 @@ export default function ExteriorTab() {
       <div className="tab-actions">
         <Segmented<CameraPreset> value={preset} options={PRESETS} onChange={look} title="Camera: from above, straight down, or facing each side of the house" />
         <CheckField label="Roof" title="The roofs drawn on the Roof tab; off, you look into the rooms" checked={roofs} onChange={(on) => setPrefs({ roofs: on })} />
+        {floors.length > 1 && (
+          <Segmented<string>
+            label="Up to"
+            value={String(top)}
+            options={floors.map((n) => [String(n), storeyName(n)] as const)}
+            // the top floor means all of them, floors added later included
+            onChange={(n) => setPrefs({ topStorey: Number(n) === floors[floors.length - 1] ? MAX_STOREY : Number(n) })}
+            title="The floors shown: those over the one picked are hidden, to look into it from above"
+          />
+        )}
         <label className="inline-field" title="The day of the sun (also in the Floor tab's Sun section)">
           Sun
           <select value={sun.season} onChange={(e) => setSun({ season: e.target.value as Season })}>

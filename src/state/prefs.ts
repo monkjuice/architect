@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { styleInfo, styleKey } from '../model/openings'
 import type { OpeningKind, OpeningStyle } from '../model/plan'
+import { MAX_STOREY } from '../model/storeys'
 import { SEASONS, type Season } from '../model/sun'
 
 /** Editor preferences: per browser, not part of the plan file. */
@@ -21,6 +22,8 @@ export interface Prefs {
   materials: boolean
   /** Roofs in the Exterior tab's 3-D view; off, it looks into the rooms. */
   roofs: boolean
+  /** The top floor the Exterior tab shows (0 the ground floor); the floors above it are hidden, to look into it. */
+  topStorey: number
   /** Widths new doors and windows get, by style ("door:double"…), in m: the last one typed for each style. */
   widths: Record<string, number>
   /** Ids of the panel sections that are folded away. */
@@ -53,6 +56,7 @@ const DEFAULTS: Prefs = {
   areaSizes: true,
   materials: true,
   roofs: true,
+  topStorey: MAX_STOREY,
   widths: {},
   collapsed: [],
   sun: SUN_DEFAULTS,
@@ -82,6 +86,7 @@ function load(): Prefs {
       areaSizes: flag('areaSizes'),
       materials: flag('materials'),
       roofs: flag('roofs'),
+      topStorey: Number.isInteger(stored.topStorey) && stored.topStorey! >= 0 && stored.topStorey! <= MAX_STOREY ? stored.topStorey! : DEFAULTS.topStorey,
       widths,
       collapsed,
       sun: loadSun(stored.sun),
