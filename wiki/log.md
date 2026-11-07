@@ -338,3 +338,10 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/canvas-and-tools.md (edits use the store's plan, not the view)
 - updated: pages/code-conventions.md (read through storeyView, edit the store's plan; library-stair id)
 - updated: index.md (furniture, lots and code-conventions summaries)
+
+## [2026-11-07] update | Exterior: hide the floors over a chosen one
+- updated: pages/exterior-tab.md (Up to floor filter by ref.layer, top floor stored as MAX_STOREY, summary)
+- updated: pages/storeys.md (pointer to Up to)
+- updated: pages/editor-store.md (topStorey pref, summary)
+- updated: pages/plan-model.md (Up to among per-browser prefs)
+- updated: index.md (exterior-tab and editor-store summaries)

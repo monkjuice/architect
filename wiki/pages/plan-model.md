@@ -70,7 +70,7 @@ updated: 2026-11-07
   pixels). See [Base image placement and calibration](base-image-calibration.md).
 - Not in the plan: the open tab, active layer, tool, line kind to draw, opening style, furniture or material to place, roof type to draw,
   view, selection and prompt (editor state), and the sun's season, time, cloudiness and shadows, the View section's
-  toggles and the Exterior's roof toggle (per-browser prefs). See [Editor store and state](editor-store.md). The 3-D
+  toggles and the Exterior's roof toggle and *Up to* floor (per-browser prefs). See [Editor store and state](editor-store.md). The 3-D
   Exterior and the Elevations are derived from the plan; roofs and finishes are the only 3-D data it stores.
 
 ## Loading

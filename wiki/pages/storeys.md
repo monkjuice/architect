@@ -39,6 +39,9 @@ elevations mark slab tops as levels.
 The rule "open edge = railing, outline = plain" was chosen so the user controls it by line kind: an outline is
 where a stair arrives, or a loft's edge against a wall or roof of the floor below.
 
+The [Exterior tab](exterior-tab.md)'s *Up to* hides the floors above a chosen one (`prefs.topStorey`), matching
+solids to floors by `ref.layer`.
+
 ## Canvas and tools
 
 `storeyView(plan, activeLayer, below?)` in `src/state/derived.ts` returns the plan with only the active layer's

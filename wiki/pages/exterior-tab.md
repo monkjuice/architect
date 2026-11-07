@@ -1,8 +1,8 @@
 ---
 title: Exterior tab (3-D view)
 type: component
-summary: "The Exterior tab: src/ui/exterior/ExteriorTab.tsx (camera presets, Roof toggle for the drawn roofs and parapets, sun season and time, Save image) over a three.js view in src/render/ (house.ts triangulates each solid face in its own plane and winds it to the face's explicit normal, plan y as three z; engine.ts, adapted from the Forge H1 planner, lights it with the plan's sun and real shadows, draws on demand and keeps the camera pose across tab switches; textures.ts paints brick, wood, lawn, dirt, standing seam, square tile, stacked stone, oak grain and checker textures with normal maps, cached for the session, laid along a face's grain when it has one; the ground is cut open over pools); three.js is a separate chunk loaded only when the tab opens."
-tags: [ui, 3d, three, render, sun, exterior, roof, finishes, textures, pool, grain, camera, controls]
+summary: "The Exterior tab: src/ui/exterior/ExteriorTab.tsx (camera presets, Roof toggle for the drawn roofs and parapets, Up to a floor hiding the floors above, sun season and time, Save image) over a three.js view in src/render/ (house.ts triangulates each solid face in its own plane and winds it to the face's explicit normal, plan y as three z; engine.ts, adapted from the Forge H1 planner, lights it with the plan's sun and real shadows, draws on demand and keeps the camera pose across tab switches; textures.ts paints brick, wood, lawn, dirt, standing seam, square tile, stacked stone, oak grain and checker textures with normal maps, cached for the session, laid along a face's grain when it has one; the ground is cut open over pools); three.js is a separate chunk loaded only when the tab opens."
+tags: [ui, 3d, three, render, sun, exterior, roof, finishes, textures, pool, grain, camera, controls, storeys]
 sources: []
 updated: 2026-11-07
 ---
@@ -18,7 +18,10 @@ the wall and floor finishes it draws.
 
 - `src/ui/exterior/ExteriorTab.tsx`: row 2 of the bar (camera presets; *Roof* = `prefs.roofs`, off filters the
   `roof` and `parapet` solids out so you look into the rooms; roofs exist only once drawn on the
-  [Roof tab](roof-tab.md), as the hint says; Sun season and time, the same `prefs.sun` as the Floor tab's Sun
+  [Roof tab](roof-tab.md), as the hint says; *Up to* (`34d2174`, only with more than one floor) = `prefs.topStorey`,
+  keeps the solids whose `storeyOf(ref.layer)` ≤ the picked floor, a dollhouse cutaway from the top down (an upper
+  floor's slab and railings carry its layer's refs, so they go with it); the top floor stores `MAX_STOREY`, so floors
+  added later still show; with nothing filtered the original solids array is kept, so the engine is not rebuilt; Sun season and time, the same `prefs.sun` as the Floor tab's Sun
   section; *Save image* → `<file>-exterior.png` at 2× through `snapshot`), the full-width 3-D host, messages for an
   empty plan and for no WebGL, and its own `NoticeBar`.
 - `src/render/house.ts`: `buildHouse` makes one `BufferGeometry` per solid from its faces: each face is
