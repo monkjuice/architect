@@ -88,13 +88,61 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
   const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 3000)
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
-  controls.dampingFactor = 0.08
-  controls.minDistance = 1
+  controls.dampingFactor = 0.2
+  controls.minDistance = 0.5
   controls.maxDistance = 600
   // stay above the ground
   controls.maxPolarAngle = Math.PI / 2 - 0.02
   controls.screenSpacePanning = true
-  controls.zoomToCursor = true
+  // the wheel is ours (see zoom): the controls' own zoom crawls to a stop as it nears the point it orbits
+  controls.enableZoom = false
+
+  /**
+   * The wheel zooms towards what is under the cursor, a share of the way there per notch but never less than
+   * ZOOM.step, so it keeps going close up, on through that point when it gets there; the point orbited stays at
+   * least ZOOM.ahead in front, so orbiting and panning never shrink to nothing, and panning keeps the speed it has
+   * ZOOM.pan away.
+   */
+  const ZOOM = { share: 0.15, step: 0.4, ahead: 3, pan: 10 }
+  const raycaster = new THREE.Raycaster()
+  const zoom = (event: WheelEvent) => {
+    event.preventDefault()
+    const notches = THREE.MathUtils.clamp(event.deltaMode === 1 ? event.deltaY / 3 : event.deltaMode === 2 ? event.deltaY * 3 : event.deltaY / 100, -4, 4)
+    if (!notches) return
+    const rect = renderer.domElement.getBoundingClientRect()
+    raycaster.setFromCamera(new THREE.Vector2(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1), camera)
+    const hit = raycaster.intersectObjects(model ? [model.root, ground] : [ground], true)[0]
+    const toward = hit ? hit.point : raycaster.ray.at(camera.position.distanceTo(controls.target), new THREE.Vector3())
+    const d = camera.position.distanceTo(toward)
+    const along = Math.abs(notches)
+    if (notches < 0) {
+      const move = Math.max(d * (1 - Math.pow(1 - ZOOM.share, along)), ZOOM.step * along)
+      if (move >= d - 0.2) {
+        // there already: fly on, through it
+        const forward = raycaster.ray.direction.clone().multiplyScalar(move)
+        camera.position.add(forward)
+        controls.target.add(forward)
+      } else {
+        const k = (d - move) / d
+        camera.position.sub(toward).multiplyScalar(k).add(toward)
+        controls.target.sub(toward).multiplyScalar(k).add(toward)
+      }
+    } else {
+      const k = (d + Math.max(d * (Math.pow(1 / (1 - ZOOM.share), along) - 1), ZOOM.step * along)) / Math.max(d, 1e-6)
+      camera.position.sub(toward).multiplyScalar(k).add(toward)
+      controls.target.sub(toward).multiplyScalar(k).add(toward)
+    }
+    camera.position.y = Math.max(camera.position.y, 0.3)
+    keepAhead()
+    controls.update()
+    request()
+  }
+  /** The point orbited at least ZOOM.ahead in front, along the way the camera looks (the view does not move). */
+  const keepAhead = () => {
+    const look = new THREE.Vector3().subVectors(controls.target, camera.position)
+    if (look.length() < ZOOM.ahead) controls.target.copy(camera.position).addScaledVector(look.normalize(), ZOOM.ahead)
+  }
+  renderer.domElement.addEventListener('wheel', zoom, { passive: false })
 
   let model: HouseModel | undefined
   /** Where the sun shines from, as a unit vector (y up). */
@@ -110,6 +158,8 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
   let frame = 0
   const draw = () => {
     frame = 0
+    // panning moves by the distance to the point orbited: close up, no slower than it would ZOOM.pan away
+    controls.panSpeed = Math.max(1, ZOOM.pan / Math.max(0.1, camera.position.distanceTo(controls.target)))
     if (controls.update()) request()
     renderer.render(scene, camera)
   }
@@ -224,6 +274,7 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
     dispose() {
       cancelAnimationFrame(frame)
       observer.disconnect()
+      renderer.domElement.removeEventListener('wheel', zoom)
       controls.dispose()
       model?.dispose()
       environment.dispose()

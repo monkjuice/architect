@@ -352,7 +352,9 @@ across tabs):
 Its toolbar has the camera (*Aerial*, *Top* as the plan, and the four facades by the plan's north), *Roof* to hide
 the roofs and look into the rooms, the sun's season and time (the same as the Floor tab's Sun section, with its site and
 cloudiness) and *Save image* (a PNG at twice the screen resolution). Drag to orbit, right-drag to pan, wheel to
-zoom. Finished walls and floors are drawn in their materials (see [Materials](#materials); brick, wood and lawn
+zoom: towards what is under the cursor, 15% of the way per notch but at least 0.40 m, so it keeps going close up
+and carries on through when it gets there; the point orbited stays at least 3 m ahead, and panning keeps at least
+the speed it has 10 m away, so neither slows to a crawl when you are close. Finished walls and floors are drawn in their materials (see [Materials](#materials); brick, wood and lawn
 with a texture and relief); the rest is a fixed basic palette. three.js loads only when the tab opens.
 
 ## Tools and keys
