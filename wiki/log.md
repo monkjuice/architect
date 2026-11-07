@@ -319,3 +319,6 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 
 ## [2026-11-07] update | Fit a roof to the walls; timber columns
 - updated: pages/roofs.md (fitRoof, carport recipe), pages/roof-tab.md (fitRoofToWalls, Fit to the walls), pages/colonnades.md, pages/house-solids.md (timber style, timberPost), pages/plan-model.md (COLUMN_STYLES), overview.md and index.md (three summaries: timber colonnades)
+
+## [2026-11-07] update | Exterior zoom, orbit and pan keep their pace close up
+- updated: pages/exterior-tab.md (own wheel zoom to the cursor, keepAhead, panSpeed by distance)

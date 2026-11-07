@@ -2,9 +2,9 @@
 title: Exterior tab (3-D view)
 type: component
 summary: "The Exterior tab: src/ui/exterior/ExteriorTab.tsx (camera presets, Roof toggle for the drawn roofs and parapets, sun season and time, Save image) over a three.js view in src/render/ (house.ts triangulates each solid face in its own plane and winds it to the face's explicit normal, plan y as three z; engine.ts, adapted from the Forge H1 planner, lights it with the plan's sun and real shadows, draws on demand and keeps the camera pose across tab switches; textures.ts paints brick, wood, lawn, dirt, standing seam, square tile, stacked stone, oak grain and checker textures with normal maps, cached for the session, laid along a face's grain when it has one; the ground is cut open over pools); three.js is a separate chunk loaded only when the tab opens."
-tags: [ui, 3d, three, render, sun, exterior, roof, finishes, textures, pool, grain]
+tags: [ui, 3d, three, render, sun, exterior, roof, finishes, textures, pool, grain, camera, controls]
 sources: []
-updated: 2026-11-06
+updated: 2026-11-07
 ---
 
 # Exterior tab (3-D view)
@@ -74,6 +74,17 @@ face that side of the house through `site.north`. Framing waits (`pending`) for 
 since fitting needs the real aspect ratio. The pose is kept in a module variable (`lastPose`) when the tab unmounts.
 `pose()` is undefined until a first view is framed: React StrictMode mounts the tab twice, and the first, unframed
 engine must not overwrite the saved pose.
+
+Controls (`3ef2941`, constants `ZOOM` in `engine.ts`): `OrbitControls` dollies by a share of the distance to its
+target, so steps shrank near the target and stopped at `minDistance`, and panning per pixel scaled with that
+distance; past some zoom everything crawled. So `enableZoom` is off and a `wheel` listener (`passive: false`,
+removed on dispose) zooms instead: wheel deltas become notches (±4 max), the cursor is raycast against the model
+and the ground (no hit: the target's distance along the ray), and each notch moves max(15 % of the distance, 0.4 m).
+Zooming in scales camera and target about that point, keeping it under the cursor, or, once within 0.2 m of it,
+flies both along the ray, so you can go through. Camera y stays ≥ 0.3 m. `keepAhead()` keeps the target ≥ 3 m in
+front along the line of sight (the view does not move), so orbiting and panning never collapse onto a nearby point;
+`draw()` sets `panSpeed` = max(1, 10 / target distance), never slower than at 10 m. `dampingFactor` 0.2,
+`minDistance` 0.5; `zoomToCursor` is unused.
 
 ## Loading
 
