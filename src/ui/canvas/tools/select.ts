@@ -19,7 +19,7 @@ import { findLayer, isEditable, sameRef, type Plan, type Ref } from '../../../mo
 import { pointInPolygon } from '../../../model/regions'
 import { findSnap, type Snap } from '../../../model/snap'
 import { deleteSelection, selectAll } from '../../../state/actions'
-import { drawnHalfWidth, getPlacedAreas, hostThickness, planAreas, type PlacedArea } from '../../../state/derived'
+import { drawnHalfWidth, getPlacedAreas, hostThickness, planAreas, storeyView, type PlacedArea } from '../../../state/derived'
 import { areaLabelAt } from '../areas'
 import { openingOverlay } from './opening'
 import { DRAG_PX, HIT_SEGMENT_PX, HIT_VERTEX_PX, SNAP_PX, WALL_REACH_PX, type PointerInfo, type Tool, type ToolContext } from './types'
@@ -112,9 +112,16 @@ export function createSelectTool(ctx: ToolContext): Tool {
     return null
   }
 
+  /** The active floor's layers, which things are found on (with `below`, the floor under it too, to snap to). */
+  const onFloor = (below = false) => {
+    const { plan, activeLayer } = store.getState()
+    return storeyView(plan, activeLayer, below)
+  }
+
   /** Area labels sit on top, so they win; then points, doors and windows, furniture, and lines. */
   const hit = (e: PointerInfo): Ref | null => {
-    const { plan, activeLayer } = store.getState()
+    const { activeLayer } = store.getState()
+    const plan = onFloor()
     const { areaNames, areaSizes } = ctx.prefs()
     const label = areaLabelAt(editableAreas(plan), e.p, e.px, { name: areaNames, size: areaSizes })
     if (label) return areaRef(label)
@@ -130,7 +137,7 @@ export function createSelectTool(ctx: ToolContext): Tool {
   /** The smallest named area whose region contains `p`. */
   const areaAround = (p: Vec): Ref | undefined => {
     let best: PlacedArea | undefined
-    for (const a of editableAreas(store.getState().plan)) {
+    for (const a of editableAreas(onFloor())) {
       const r = a.region
       if (!r || !pointInPolygon(p, r.outer) || r.holes.some((h) => pointInPolygon(p, h))) continue
       if (!best || r.area < best.region!.area) best = a
@@ -266,7 +273,8 @@ export function createSelectTool(ctx: ToolContext): Tool {
       }
       if (drag.kind === 'opening') {
         const { layer, id } = drag
-        const { plan, activeLayer } = store.getState()
+        const { activeLayer } = store.getState()
+        const plan = onFloor()
         const o = findLayer(plan, layer)?.openings[id]
         if (!o) return
         const target = openingTarget(plan, e.p, {
@@ -289,7 +297,7 @@ export function createSelectTool(ctx: ToolContext): Tool {
       const { single, vertices, anchors, furniture } = drag
       if (single) {
         const layer = findLayer(store.getState().plan, single.layer)!
-        const snap = findSnap(store.getState().plan, add(single.origin, delta), {
+        const snap = findSnap(onFloor(true), add(single.origin, delta), {
           reach: SNAP_PX * e.px,
           from: single.origin,
           constrain: e.shift,
@@ -313,7 +321,8 @@ export function createSelectTool(ctx: ToolContext): Tool {
       if (d.kind === 'box') {
         const box = boxOf(d.start, d.end)
         if (Math.max(box.x1 - box.x0, box.y1 - box.y0) >= DRAG_PX * e.px) {
-          const { plan, selection } = store.getState()
+          const { selection } = store.getState()
+          const plan = onFloor()
           const inside = [...segmentsInBox(plan, box), ...areasInBox(plan, box), ...furnitureInBox(plan, box).map((f) => ({ ...f, kind: 'furniture' as const }))]
           store.select(d.additive ? [...selection, ...inside.filter((r) => !selection.some((c) => sameRef(c, r)))] : inside)
         } else if (d.inside) {

@@ -23,6 +23,7 @@ import {
 import { ColonnadeLayer } from './Columns'
 import { FinishLayer, FinishPatterns } from './Finishes'
 import { FurnitureLayer } from './Furniture'
+import { storeyView } from '../../state/derived'
 import { getPrefs, setPrefs, setSun, usePrefs } from '../../state/prefs'
 import { getStore, useEditor, type ToolId, type Viewport } from '../../state/store'
 import { Overlay } from './Overlay'
@@ -269,6 +270,9 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
   const hovered = (kind: 'area' | 'opening' | 'roof' | 'furniture', layer: string) => (overlay.hover?.kind === kind && overlay.hover.layer === layer ? overlay.hover.id : undefined)
   const cursorStyle = panning ? 'grabbing' : spaceHeld || toolId === 'pan' ? 'grab' : tool.cursor()
   const scaleBar = view ? niceStep(90 / view.zoom).step : 0
+  // the active layer's floor, over the floor below it, faded and out of reach; the floors above do not show
+  const floor = storeyView(plan, activeLayer)
+  const below = storeyView(plan, activeLayer, true).layers.filter((l) => l.visible && !floor.layers.includes(l))
 
   return (
     <div
@@ -299,10 +303,27 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
           <FinishPatterns />
           {plan.image?.visible && <BaseImageView image={plan.image} cropping={toolId === 'crop'} />}
           {prefs.grid && <Grid view={view} width={size.w} height={size.h} />}
+          {below.length > 0 && (
+            <g className="underlay">
+              {below.map((layer) => (
+                <LayerShapes key={layer.id} layer={layer} active={false} zoom={view.zoom} lengths={false} thick={prefs.thickWalls} />
+              ))}
+              {below.map((layer) => (
+                <ColonnadeLayer key={layer.id} layer={layer} />
+              ))}
+              {below.map((layer) => (
+                <FurnitureLayer key={layer.id} layer={layer} selected="" />
+              ))}
+              {below.map((layer) => (
+                <OpeningLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} selected="" />
+              ))}
+              {roofMode && below.map((layer) => <RoofLayer key={layer.id} layer={layer} zoom={view.zoom} selected="" />)}
+            </g>
+          )}
           {!roofMode &&
-            plan.layers.map((layer) => layer.visible && <AreaFills key={layer.id} layer={layer} selected={refIds('area', layer.id)} hovered={hovered('area', layer.id)} materials={prefs.materials} />)}
+            floor.layers.map((layer) => layer.visible && <AreaFills key={layer.id} layer={layer} selected={refIds('area', layer.id)} hovered={hovered('area', layer.id)} materials={prefs.materials} />)}
           {!roofMode && <SunShadows plan={plan} sun={prefs.sun} />}
-          {plan.layers.map(
+          {floor.layers.map(
             (layer) =>
               layer.visible && (
                 <LayerShapes
@@ -315,22 +336,22 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
                 />
               ),
           )}
-          {!roofMode && prefs.materials && plan.layers.map((layer) => layer.visible && <FinishLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} />)}
-          {plan.layers.map((layer) => layer.visible && <ColonnadeLayer key={layer.id} layer={layer} />)}
-          {plan.layers.map(
+          {!roofMode && prefs.materials && floor.layers.map((layer) => layer.visible && <FinishLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} />)}
+          {floor.layers.map((layer) => layer.visible && <ColonnadeLayer key={layer.id} layer={layer} />)}
+          {floor.layers.map(
             (layer) => layer.visible && <FurnitureLayer key={layer.id} layer={layer} selected={refIds('furniture', layer.id)} hovered={hovered('furniture', layer.id)} />,
           )}
-          {plan.layers.map(
+          {floor.layers.map(
             (layer) =>
               layer.visible && (
                 <OpeningLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} selected={refIds('opening', layer.id)} hovered={hovered('opening', layer.id)} />
               ),
           )}
           {roofMode ? (
-            plan.layers.map((layer) => layer.visible && <RoofLayer key={layer.id} layer={layer} zoom={view.zoom} selected={refIds('roof', layer.id)} hovered={hovered('roof', layer.id)} />)
+            floor.layers.map((layer) => layer.visible && <RoofLayer key={layer.id} layer={layer} zoom={view.zoom} selected={refIds('roof', layer.id)} hovered={hovered('roof', layer.id)} />)
           ) : (
             <>
-              <AreaLabels plan={plan} selection={selection} zoom={view.zoom} lines={{ name: prefs.areaNames, size: prefs.areaSizes }} />
+              <AreaLabels plan={floor} selection={selection} zoom={view.zoom} lines={{ name: prefs.areaNames, size: prefs.areaSizes }} />
               <SunDial plan={plan} sun={prefs.sun} zoom={view.zoom} />
             </>
           )}

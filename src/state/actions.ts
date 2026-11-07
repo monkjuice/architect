@@ -1,6 +1,6 @@
 import { createBaseImage, imageToWorld, visibleCorners } from '../model/baseImage'
 import { newColonnade } from '../model/colonnades'
-import { addFurniture, addOpening, addRoof, deleteItems, setAreaFloor, setColonnade, setWallFinish, updateRoof } from '../model/edit'
+import { addFurniture, addOpening, addRoof, deleteItems, setAreaFloor, setColonnade, setWallFinish, updateLayer, updateRoof } from '../model/edit'
 import { faceLine, finishProblem, sideOf, wallSide, type WallSide } from '../model/finishes'
 import { findMaterial } from '../model/materials'
 import { pointInPolygon, type Region } from '../model/regions'
@@ -13,6 +13,7 @@ import {
   findLayer,
   isEditable,
   segmentKind,
+  storeyOf,
   type BaseImage,
   type ColumnStyle,
   type Furniture,
@@ -26,9 +27,10 @@ import {
 import { parsePlanText, serializePlan } from '../model/planFile'
 import { fitRoof, galleryRoof, GALLERY_PITCH, newRoof, offsetPolygon, unionOutlines } from '../model/roofs'
 import { isCovered } from '../model/solids'
+import { addStorey, levelOf, MAX_STOREY, storeyLevel } from '../model/storeys'
 import { EXTERIOR_WALL, WALL_HEIGHT, wallHeight } from '../model/walls'
 import { pickFile, pickPlanFile, readImageFile, savePlanFile } from './files'
-import { drawnHalfWidth, getPlacedAreas, getRegions, getThickness, hostThickness } from './derived'
+import { drawnHalfWidth, getPlacedAreas, getRegions, getThickness, hostThickness, storeyView } from './derived'
 import { getPrefs, openingWidth } from './prefs'
 import { getStore, type EditorState, type Tab, type ToolId } from './store'
 
@@ -132,15 +134,15 @@ export function roofTheHouse() {
 }
 
 /**
- * Fits a roof between the walls round it, on every visible layer (a boundary wall, the house): its sides that run
- * along one move to its face. Says so when no side runs along a wall near enough.
+ * Fits a roof between the walls round it, on every visible layer of its floor (a boundary wall, the house): its
+ * sides that run along one move to its face. Says so when no side runs along a wall near enough.
  */
 export function fitRoofToWalls(layerId: string, roofId: string) {
   const store = getStore()
   const { plan } = store.getState()
   const roof = findLayer(plan, layerId)?.roofs[roofId]
   if (!roof) return
-  const walls = plan.layers.flatMap((layer) => {
+  const walls = storeyView(plan, layerId).layers.flatMap((layer) => {
     if (!layer.visible) return []
     const thickness = getThickness(layer)
     return Object.entries(layer.segments).flatMap(([id, s]) =>
@@ -265,7 +267,7 @@ export function dropOpening(kind: OpeningKind, style: OpeningStyle, p: Vec, reac
   const { plan, activeLayer } = store.getState()
   const prefs = getPrefs()
   const width = openingWidth(prefs, kind, style)
-  const target = openingTarget(plan, p, { reach, snapReach, width, activeLayer, snap: prefs.snap, halfWidth: drawnHalfWidth, kind })
+  const target = openingTarget(storeyView(plan, activeLayer), p, { reach, snapReach, width, activeLayer, snap: prefs.snap, halfWidth: drawnHalfWidth, kind })
   if (!target) return store.notify({ kind: 'error', text: `Drop the ${kind} on a wall.` })
   placeOpeningAt(openingFor(kind, style, target, width), target)
 }
@@ -320,7 +322,8 @@ export type FinishTarget =
  * or the smallest named area around `p`, on editable layers.
  */
 export function finishTarget(surface: 'wall' | 'floor', p: Vec, reach: number): FinishTarget | null {
-  const { plan, activeLayer } = getStore().getState()
+  const { plan: all, activeLayer } = getStore().getState()
+  const plan = storeyView(all, activeLayer)
   if (surface === 'wall') {
     const hit = hitTest(plan, p, activeLayer, 0, reach, drawnHalfWidth)
     const layer = hit?.kind === 'segment' ? findLayer(plan, hit.layer) : undefined
@@ -394,7 +397,7 @@ export function applyColonnade(ref: Ref, style: ColumnStyle) {
 /** The line within `reach` (m) of `p` that a colonnade would go on, if any. */
 export function colonnadeTarget(p: Vec, reach: number): Ref | null {
   const { plan, activeLayer } = getStore().getState()
-  const hit = hitTest(plan, p, activeLayer, 0, reach, drawnHalfWidth)
+  const hit = hitTest(storeyView(plan, activeLayer), p, activeLayer, 0, reach, drawnHalfWidth)
   return hit?.kind === 'segment' ? hit : null
 }
 
@@ -431,6 +434,38 @@ export function selectAll() {
     ...Object.keys(layer.areas).map((id) => ({ layer: layer.id, kind: 'area' as const, id })),
     ...Object.keys(layer.furniture).map((id) => ({ layer: layer.id, kind: 'furniture' as const, id })),
   ])
+}
+
+/** Shows floor `storey` on the canvas: its top visible layer becomes the active one. */
+export function showStorey(storey: number) {
+  const store = getStore()
+  const on = store.getState().plan.layers.filter((l) => storeyOf(l) === storey)
+  const layer = [...on].reverse().find((l) => l.visible) ?? on.at(-1)
+  if (layer) store.setActiveLayer(layer.id)
+}
+
+/** Puts a layer on floor `storey`, at that floor's level; on the ground floor, back on the ground. */
+export function moveLayerToStorey(id: string, storey: number) {
+  getStore().edit((plan) => {
+    const others = { ...plan, layers: plan.layers.filter((l) => l.id !== id) }
+    return updateLayer(plan, id, storey ? { storey, level: storeyLevel(others, storey) } : { storey: undefined, level: undefined })
+  })
+}
+
+/** A layer on a new floor over the top one, made active, with what to do next. */
+export function addFloor() {
+  const store = getStore()
+  const result = addStorey(store.getState().plan)
+  if (!result) return store.notify({ kind: 'error', text: `A plan has at most ${MAX_STOREY} floors over the ground floor.` })
+  store.edit(() => result.plan)
+  store.setActiveLayer(result.id)
+  const layer = findLayer(store.getState().plan, result.id)!
+  store.notify({
+    kind: 'info',
+    text:
+      `${layer.name}, ${levelOf(layer).toFixed(2)} m up, is drawn over the floor below (faded). Only its named areas get a floor: leave a stairwell, ` +
+      'or the void over a double-height room, unnamed and edge it with open edges for a railing (an outline where the stair arrives). Its level is in Layers.',
+  })
 }
 
 /** The part of the world worth framing: the visible base image and every visible drawn point. */

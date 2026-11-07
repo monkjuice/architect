@@ -1,13 +1,13 @@
 import { frustumFaces, prismFaces, profileFaces, ring, smoothSides, type Face, type Vec3 } from './faces'
 import type { Vec } from './geometry'
-import { ellipse, ISLAND_OVERHANG, local, potSize, potted, quarterDisc, rounded, showerPoint, SOFA, sofaCushions, sofaOutline, trestleBoards, trestleFrames, type Placement } from './furniture'
+import { ellipse, ISLAND_OVERHANG, local, potSize, potted, quarterDisc, rounded, showerPoint, SOFA, sofaCushions, sofaOutline, stairTreads, trestleBoards, trestleFrames, type Placement } from './furniture'
 import type { Furniture } from './plan'
 import type { SolidMaterial } from './solids'
 
 /**
  * Furniture in 3-D, as simple blocks of the right size and height: a counter's cabinets, toe kick and worktop;
  * basins sunk into their tops with a tap; bathtubs and showers with a shower riser at the shower head; toilets and
- * bidets; beds with frame, headboard, mattress, pillows and cover; tables and chairs.
+ * bidets; beds with frame, headboard, mattress, pillows and cover; tables and chairs; a stair's flight.
  */
 
 export interface FurniturePart {
@@ -32,7 +32,8 @@ function axes(pl: Placement): { x: Vec3; y: Vec3; z: Vec3 } {
 }
 const mul2 = (a: Vec, k: number): Vec => ({ x: a.x * k, y: a.y * k })
 
-export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
+/** `rise`: how high a stair climbs, to the floor above (see storeys.ts). */
+export function furnitureParts(f: Furniture, pl: Placement, rise = 3): FurniturePart[] {
   const [hw, hd] = [pl.width / 2, pl.depth / 2]
   const parts: FurniturePart[] = []
   const box = (x0: number, y0: number, x1: number, y1: number): Vec[] => [local(pl, x0, y0), local(pl, x1, y0), local(pl, x1, y1), local(pl, x0, y1)]
@@ -414,6 +415,19 @@ export function furnitureParts(f: Furniture, pl: Placement): FurniturePart[] {
       }
       put(box(-hw + 0.02, -hd, hw - 0.02, -hd + 0.05), 0.42, 0.9, 'wood')
       break
+    case 'stair': {
+      // a concrete flight from its front up to its back, its underside sloping 15 cm under the steps; its last riser
+      // is the edge of the floor above
+      const n = stairTreads(pl.depth)
+      const [t, r] = [pl.depth / n, rise / (n + 1)]
+      const waist = Math.min((0.15 * Math.hypot(t, r)) / t, n * r)
+      const profile: [number, number][] = [[0, 0]]
+      for (let k = 0; k < n; k++) profile.push([k * t, (k + 1) * r], [(k + 1) * t, (k + 1) * r])
+      profile.push([pl.depth, n * r - waist], [(waist * t) / r, 0])
+      const up = { x: -pl.v.x, y: -pl.v.y }
+      parts.push({ faces: profileFaces(local(pl, 0, hd), up, hw, profile), material: 'stone' })
+      break
+    }
   }
   return parts
 }

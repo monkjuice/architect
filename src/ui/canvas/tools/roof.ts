@@ -1,6 +1,7 @@
 import { dist, EPS, polygonArea, type Vec } from '../../../model/geometry'
 import { findSnap, type Snap } from '../../../model/snap'
 import { addRoofOutline } from '../../../state/actions'
+import { storeyView } from '../../../state/derived'
 import { SNAP_PX, type OverlayData, type PointerInfo, type Tool, type ToolContext } from './types'
 
 /**
@@ -13,7 +14,8 @@ export function createRoofTool(ctx: ToolContext): Tool {
 
   const update = (e: PointerInfo) => {
     const last = points.at(-1)
-    snap = findSnap(ctx.store.getState().plan, e.p, {
+    const { plan, activeLayer } = ctx.store.getState()
+    snap = findSnap(storeyView(plan, activeLayer, true), e.p, {
       reach: SNAP_PX * e.px,
       from: last,
       constrain: e.shift && !!last,

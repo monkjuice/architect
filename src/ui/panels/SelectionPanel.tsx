@@ -18,7 +18,8 @@ import {
   type OpeningPatch,
 } from '../../model/edit'
 import { sideNormal, wallSide, type WallSide } from '../../model/finishes'
-import { FURNITURE, infoOf } from '../../model/furniture'
+import { FURNITURE, infoOf, stairTreads } from '../../model/furniture'
+import { stairRise } from '../../model/storeys'
 import { fitOffset, hasHinge, hasSide, overlappingOpening, parkingRoom, placeOpening, slides, STYLES } from '../../model/openings'
 import { dist, screenAngleDeg } from '../../model/geometry'
 import { measureSegments } from '../../model/pick'
@@ -292,10 +293,13 @@ function OpeningDetails({ layerId, id }: { layerId: string; id: string }) {
 /** A piece of furniture: its style, size and turn; a kitchen sink's counter, a bathtub's shower head. */
 function FurnitureDetails({ layerId, id }: { layerId: string; id: string }) {
   const store = getStore()
-  const layer = useEditor((s) => findLayer(s.plan, layerId))
+  const plan = useEditor((s) => s.plan)
+  const layer = findLayer(plan, layerId)
   const f = layer?.furniture[id]
   if (!layer || !f) return null
   const info = infoOf(f)
+  const risers = f.kind === 'stair' ? stairTreads(f.depth) + 1 : 0
+  const rise = f.kind === 'stair' ? stairRise(plan, layer) : 0
   const styles = FURNITURE.filter((i) => i.kind === f.kind && i.style && i.snap === info.snap)
   const set = (next: typeof f) => store.edit((p) => updateFurniture(p, layerId, id, next))
   const round = f.kind === 'table' && f.style === 'circle'
@@ -333,6 +337,11 @@ function FurnitureDetails({ layerId, id }: { layerId: string; id: string }) {
         )}
         {(f.kind === 'bathtub' || f.kind === 'shower') && (
           <p className="hint field-wide">Drag the shower head (the round mark on its rim) to move it round the {f.kind === 'shower' ? 'tray' : 'tub'}.</p>
+        )}
+        {f.kind === 'stair' && (
+          <p className={rise / risers > 0.19 ? 'hint field-wide warning' : 'hint field-wide'}>
+            {risers} steps of {((100 * rise) / risers).toFixed(1)} cm, {((100 * f.depth) / (risers - 1)).toFixed(0)} cm deep, up {rise.toFixed(2)} m to the floor above (a longer stair has gentler steps). On that floor, leave the stairwell over it unnamed, an outline where it arrives.
+          </p>
         )}
       </div>
       {'angle' in f && (

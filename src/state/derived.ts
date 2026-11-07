@@ -1,5 +1,5 @@
 import { boundsOf, type Vec } from '../model/geometry'
-import type { Area, Layer, Plan } from '../model/plan'
+import { findLayer, storeyOf, type Area, type Layer, type Plan } from '../model/plan'
 import { labelPoint, layerFaces, regionAt, regionLabel, type LayerFaces, type Region } from '../model/regions'
 import { houseSolids, type Solid } from '../model/solids'
 import { INTERIOR_WALL, layerWalls, type LayerWalls } from '../model/walls'
@@ -102,14 +102,14 @@ export function visibleAreas(plan: Plan): PlacedArea[] {
 }
 
 /**
- * Covered area of the visible layers, to the walls' outside faces: the indoor areas (rooms) with the walls around
- * and in them, each wall counted once. Galleries and porches, and pools and paving, open to the outside across
- * open edges or outlines, are left out, and so are lots.
+ * Covered area of the visible layers (on floor `storey` only, when given), to the walls' outside faces: the indoor
+ * areas (rooms) with the walls around and in them, each wall counted once. Galleries and porches, and pools and
+ * paving, open to the outside across open edges or outlines, are left out, and so are lots.
  */
-export function coveredArea(plan: Plan): number {
+export function coveredArea(plan: Plan, storey?: number): number {
   let total = 0
   for (const layer of plan.layers) {
-    if (!layer.visible) continue
+    if (!layer.visible || (storey !== undefined && storeyOf(layer) !== storey)) continue
     const walls = new Set<string>()
     for (const { region, area } of getPlacedAreas(layer)) {
       if (!region?.indoor || area.lot) continue
@@ -120,6 +120,27 @@ export function coveredArea(plan: Plan): number {
     for (const id of walls) total += footprint.get(id) ?? 0
   }
   return total
+}
+
+const storeyCache = new WeakMap<Plan, Map<string, Plan>>()
+
+/**
+ * The plan as the canvas works on it: only the layers on the active layer's floor, and with `below` those on the
+ * floor under it too (drawn faded, and snapped to). For finding things under the cursor only: an edit made from it
+ * would drop the other floors.
+ */
+export function storeyView(plan: Plan, activeLayer: string, below = false): Plan {
+  const storey = storeyOf(findLayer(plan, activeLayer))
+  const under = below ? Math.max(-1, ...plan.layers.map(storeyOf).filter((s) => s < storey)) : storey
+  const key = `${storey}:${under}`
+  let views = storeyCache.get(plan)
+  if (!views) storeyCache.set(plan, (views = new Map()))
+  let view = views.get(key)
+  if (!view) {
+    const layers = plan.layers.filter((l) => storeyOf(l) === storey || storeyOf(l) === under)
+    views.set(key, (view = layers.length === plan.layers.length ? plan : { ...plan, layers }))
+  }
+  return view
 }
 
 // the house in 3-D depends on everything visible, so it is worked out again for every new plan, from the caches above

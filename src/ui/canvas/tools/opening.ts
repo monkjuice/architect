@@ -2,7 +2,7 @@ import { parseLength, type Vec } from '../../../model/geometry'
 import { hasHinge, openingFor, openingTarget, placeOpening, styleInfo, styleKey, type OpeningTarget } from '../../../model/openings'
 import { findLayer, type Opening, type OpeningKind, type Plan } from '../../../model/plan'
 import { placeOpeningAt } from '../../../state/actions'
-import { drawnHalfWidth, hostThickness } from '../../../state/derived'
+import { drawnHalfWidth, hostThickness, storeyView } from '../../../state/derived'
 import { getPrefs, openingWidth, setPrefs } from '../../../state/prefs'
 import { SNAP_PX, WALL_REACH_PX, type OverlayData, type PointerInfo, type Tool, type ToolContext } from './types'
 
@@ -50,7 +50,7 @@ export function createOpeningTool(ctx: ToolContext, kind: OpeningKind): Tool {
     pointer = e
     cursor = e.p
     const { plan, activeLayer } = store.getState()
-    target = openingTarget(plan, e.p, {
+    target = openingTarget(storeyView(plan, activeLayer), e.p, {
       reach: WALL_REACH_PX * e.px,
       snapReach: SNAP_PX * e.px,
       width: width(),

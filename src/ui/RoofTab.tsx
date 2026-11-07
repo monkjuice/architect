@@ -9,10 +9,11 @@ import { Segmented } from './fields'
 import { NoticeBar } from './NoticeBar'
 import { LayersPanel } from './panels/LayersPanel'
 import { RoofPanel } from './panels/RoofPanel'
+import { StoreyPicker } from './StoreyPicker'
 
 const ROOF_TAB_TOOLS: ToolId[] = ['roof-select', 'roof', 'pan']
 
-/** The roof plan: roof tools in the bar's second row, the floor plan faded under the roofs, and the Roofs section. */
+/** The roof plan: roof tools in the bar's second row, the active floor's plan faded under its roofs, and the Roofs section. */
 export function RoofTab() {
   const store = getStore()
   const tool = useEditor((s) => s.tool)
@@ -43,6 +44,7 @@ export function RoofTab() {
           <input type="checkbox" checked={prefs.snap} onChange={(e) => setPrefs({ snap: e.target.checked })} />
           Snap
         </label>
+        <StoreyPicker />
       </div>
       <main className="app-main roof-main">
         <Canvas mode="roof" />

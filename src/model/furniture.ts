@@ -2,7 +2,7 @@ import { add, clamp, closestOnSegment, dist, dot, mul, sub, type Box, type Vec }
 import { isEditable, segmentKind, type Furniture, type FurnitureKind, type Layer, type Plan } from './plan'
 
 /**
- * Furniture and fixtures: counters, sinks, bathtubs, showers, toilets, bidets, beds, tables and chairs. Each stands
+ * Furniture and fixtures: counters, sinks, bathtubs, showers, toilets, bidets, beds, tables, chairs and stairs. Each stands
  * at a point turned to an angle, its back up the sheet at 0, and is `width` across its front and `depth` from back
  * to front. Things that stand against a wall (all but tables, chairs and islands) snap with their back to the nearest
  * wall face when they are put down; a kitchen sink only goes in a counter and is kept there, relative to it;
@@ -60,6 +60,7 @@ export const FURNITURE: readonly FurnitureInfo[] = [
   { kind: 'plant', style: 'climber', title: 'Climber (up a wall)', width: 1.6, depth: 0.3, height: 2.6, snap: 'wall' },
   { kind: 'tree', style: 'shade', title: 'Shade tree', width: 6, depth: 6, height: 7, snap: 'none' },
   { kind: 'tree', style: 'slender', title: 'Tall tree', width: 3.5, depth: 3.5, height: 11, snap: 'none' },
+  { kind: 'stair', title: 'Straight stair', width: 0.9, depth: 4.5, height: 3, snap: 'none' },
 ]
 
 export const furnitureKey = (kind: FurnitureKind, style?: string): string => (style ? `${kind}:${style}` : kind)
@@ -288,7 +289,7 @@ export function furnitureFor(kind: FurnitureKind, style: string | undefined, t: 
   if (kind === 'bathtub') return { kind, style: style as 'alcove', ...standing, shower: style === 'corner' ? 3.85 : 3.5 }
   if (kind === 'shower') return { kind, ...standing, shower: 0.5 }
   if (kind === 'counter') return style === 'island' ? { kind, style, ...standing } : { kind, ...standing }
-  if (kind === 'chair' || kind === 'toilet' || kind === 'bidet') return { kind, ...standing }
+  if (kind === 'chair' || kind === 'toilet' || kind === 'bidet' || kind === 'stair') return { kind, ...standing }
   return { kind, style, ...standing } as Furniture
 }
 
@@ -311,6 +312,12 @@ export const sofaCushions = (style: string): number => (style.endsWith('armchair
 
 /** A low table that stands before a sofa (not one chairs gather round). */
 export const isCoffee = (f: Furniture): boolean => f.kind === 'table' && (f.style === 'coffee' || f.style === 'teak-coffee')
+
+/** A stair's tread (its going) as near as its length allows, m. */
+const STAIR_TREAD = 0.28
+
+/** How many treads a stair `depth` m long has; it has one riser more, the last up to the floor above. */
+export const stairTreads = (depth: number): number => Math.max(1, Math.round(depth / STAIR_TREAD))
 
 /** A plant's pot, across, m. */
 export const potSize = (width: number): number => Math.min(0.6, width * 0.5)
@@ -575,5 +582,19 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
         { pts: box(-hw + 0.02, -hd + 0.08, hw - 0.02, hd), closed: true, role: 'outline' },
         { pts: box(-hw, -hd, hw, -hd + 0.08), closed: true, role: 'heavy' },
       ]
+    case 'stair': {
+      // its treads, and the walking line up the flight from a dot at its foot (the front) to an arrow at its head
+      const n = stairTreads(pl.depth)
+      const t = pl.depth / n
+      const head = -hd + Math.min(0.15, t / 2)
+      const barb = Math.min(0.12, hw / 2)
+      return [
+        outline,
+        ...Array.from({ length: n - 1 }, (_, i): SymbolPart => ({ pts: [local(pl, -hw, hd - t * (i + 1)), local(pl, hw, hd - t * (i + 1))], closed: false, role: 'soft' })),
+        { c: local(pl, 0, hd - t / 2), r: 0.04, role: 'detail' },
+        { pts: [local(pl, 0, hd - t / 2), local(pl, 0, head)], closed: false, role: 'detail' },
+        { pts: [local(pl, -barb, head + 0.18), local(pl, 0, head), local(pl, barb, head + 0.18)], closed: false, role: 'detail' },
+      ]
+    }
   }
 }

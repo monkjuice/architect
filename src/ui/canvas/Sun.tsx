@@ -23,7 +23,7 @@ const onCircle = (c: Vec, r: number, site: Site, azimuth: number): Vec => {
   return { x: c.x + d.x * r, y: c.y + d.y * r }
 }
 
-/** Shadows of the walls on visible layers, each as tall as its wall; fainter as clouds thicken. */
+/** Shadows of the walls on visible layers, each as tall as its top above the ground (its floor's level and its height); fainter as clouds thicken. */
 export function SunShadows({ plan, sun }: { plan: Plan; sun: SunPrefs }) {
   if (!sun.visible || !sun.shadows) return null
   const pos = sunPosition(plan.site, SEASON_DAY[sun.season], sun.time)
@@ -33,7 +33,7 @@ export function SunShadows({ plan, sun }: { plan: Plan; sun: SunPrefs }) {
     if (!layer.visible) continue
     for (const s of Object.values(layer.segments)) {
       if (segmentKind(s) !== 'wall') continue
-      const off = shadowOffset(plan.site, pos, wallHeight(s))!
+      const off = shadowOffset(plan.site, pos, (layer.level ?? 0) + wallHeight(s))!
       const a = layer.vertices[s.a]
       const b = layer.vertices[s.b]
       d += `M${a.x} ${a.y}L${b.x} ${b.y}L${b.x + off.x} ${b.y + off.y}L${a.x + off.x} ${a.y + off.y}Z`

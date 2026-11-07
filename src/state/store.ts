@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 import {
   findLayer,
   refExists,
+  storeyOf,
   type ColumnStyle,
   type DoorStyle,
   type FireplaceStyle,
@@ -193,8 +194,13 @@ export class EditorStore {
     this.update({ selection })
   }
 
+  /** Makes `id` the active layer; moving to another floor keeps only what is selected on that floor. */
   setActiveLayer(id: string) {
-    if (id !== this.state.activeLayer) this.update({ activeLayer: id })
+    if (id === this.state.activeLayer) return
+    const { plan, selection } = this.state
+    const storey = storeyOf(findLayer(plan, id))
+    const kept = selection.filter((r) => storeyOf(findLayer(plan, r.layer)) === storey)
+    this.update(kept.length === selection.length ? { activeLayer: id } : { activeLayer: id, selection: kept })
   }
 
   setTool(tool: ToolId) {

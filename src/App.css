@@ -632,6 +632,17 @@ button.icon {
   background: var(--surface-2);
 }
 
+.area-list li.area-list-floor {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-faint);
+  cursor: default;
+}
+
+.area-list li.area-list-floor:hover {
+  background: none;
+}
+
 .area-swatch {
   width: 10px;
   height: 10px;
@@ -797,6 +808,12 @@ button.icon {
 
 .canvas.roof-mode :is(.layer, .openings, .columns, .furnishings) {
   opacity: 0.35;
+}
+
+/* the floor below the one shown, to draw over */
+.canvas .underlay {
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 .roofs.locked {

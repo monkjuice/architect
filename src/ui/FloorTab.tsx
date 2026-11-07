@@ -11,6 +11,7 @@ import { LibraryPanel } from './panels/LibraryPanel'
 import { SelectionPanel } from './panels/SelectionPanel'
 import { SunPanel } from './panels/SunPanel'
 import { ViewPanel } from './panels/ViewPanel'
+import { StoreyPicker } from './StoreyPicker'
 
 const DRAW_TOOLS: ToolId[] = ['select', 'line', 'area', 'measure', 'pan']
 
@@ -33,6 +34,7 @@ export function FloorTab() {
           <input type="checkbox" checked={prefs.snap} onChange={(e) => setPrefs({ snap: e.target.checked })} />
           Snap
         </label>
+        <StoreyPicker />
       </div>
       <main className="app-main">
         <LibraryPanel />

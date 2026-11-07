@@ -21,6 +21,7 @@ const GROUPS: { kind: OpeningKind; title: string; key?: string }[] = [
 
 /** The furniture boxes of the library and the kinds each lists; the first kind names the box's id. */
 const FURNITURE_GROUPS: { kinds: FurnitureKind[]; title: string }[] = [
+  { kinds: ['stair'], title: 'Stairs' },
   { kinds: ['counter'], title: 'Counters' },
   { kinds: ['sink'], title: 'Sinks' },
   { kinds: ['bathtub'], title: 'Bathtubs' },
@@ -206,6 +207,8 @@ export function LibraryPanel() {
                   title={
                     i.snap === 'counter'
                       ? `${i.title}: click, then click a counter, or drag onto one`
+                      : i.kind === 'stair'
+                        ? `${i.title}: click, then click where it goes, or drag it there; it climbs from the dot to the arrow, up to the floor above; R turns it`
                       : `${i.title}: click, then click where it goes${i.snap === 'wall' ? ' (it backs up to the nearest wall)' : i.snap === 'table' ? ' (it faces a table it is put by)' : ''}, or drag it there; R turns it`
                   }
                   active={tool === 'furniture' && furniturePick.kind === i.kind && furniturePick.style === i.style}

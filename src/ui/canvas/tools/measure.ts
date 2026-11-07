@@ -1,5 +1,6 @@
 import { dist, EPS, polygonArea, polylineLength, type Vec } from '../../../model/geometry'
 import { findSnap, type Snap } from '../../../model/snap'
+import { storeyView } from '../../../state/derived'
 import { SNAP_PX, type OverlayData, type PointerInfo, type Tool, type ToolContext } from './types'
 
 /**
@@ -15,7 +16,8 @@ export function createMeasureTool(ctx: ToolContext): Tool {
 
   const update = (e: PointerInfo) => {
     const last = !done ? points.at(-1) : undefined
-    snap = findSnap(ctx.store.getState().plan, e.p, {
+    const { plan, activeLayer } = ctx.store.getState()
+    snap = findSnap(storeyView(plan, activeLayer, true), e.p, {
       reach: SNAP_PX * e.px,
       from: last,
       constrain: e.shift && !!last,

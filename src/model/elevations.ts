@@ -101,6 +101,8 @@ export function elevation(solids: readonly Solid[], view: ElevationView): Elevat
   const marks = [0]
   for (const s of solids) {
     if (s.kind === 'wall') marks.push(s.top)
+    // floor levels: a plinth's top, an upper floor's slab
+    if (s.kind === 'floor' && s.material === 'slab') marks.push(s.top)
     if (s.kind === 'roof') marks.push(s.bottom, s.top)
     if (s.kind === 'parapet') marks.push(s.top)
   }

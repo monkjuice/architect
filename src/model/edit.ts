@@ -686,7 +686,7 @@ export function addLayer(plan: Plan, name?: string): { plan: Plan; id: string } 
   return { plan: { ...plan, layers: [...plan.layers, createLayer(id, name ?? `Layer ${n}`, color)] }, id }
 }
 
-export type LayerPatch = Partial<Pick<Layer, 'name' | 'color' | 'visible' | 'locked' | 'level'>>
+export type LayerPatch = Partial<Pick<Layer, 'name' | 'color' | 'visible' | 'locked' | 'level' | 'storey'>>
 
 export function updateLayer(plan: Plan, id: string, patch: LayerPatch): Plan {
   const layer = findLayer(plan, id)

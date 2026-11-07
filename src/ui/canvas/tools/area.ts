@@ -2,7 +2,7 @@ import type { Vec } from '../../../model/geometry'
 import { addArea } from '../../../model/edit'
 import { isEditable, type Layer } from '../../../model/plan'
 import { regionAt, regionLabel, type Region } from '../../../model/regions'
-import { getPlacedAreas, getRegions } from '../../../state/derived'
+import { getPlacedAreas, getRegions, storeyView } from '../../../state/derived'
 import type { Tool, ToolContext } from './types'
 
 interface Target {
@@ -24,7 +24,7 @@ export function createAreaTool(ctx: ToolContext): Tool {
 
   const find = (p: Vec): Target | null => {
     const { plan, activeLayer } = store.getState()
-    const layers = plan.layers.filter(isEditable).reverse()
+    const layers = storeyView(plan, activeLayer).layers.filter(isEditable).reverse()
     layers.sort((a, b) => Number(b.id === activeLayer) - Number(a.id === activeLayer))
     for (const layer of layers) {
       const region = regionAt(getRegions(layer), p)

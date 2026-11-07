@@ -104,6 +104,29 @@ and galleries, out to the walls' outside faces, with steps down to the ground (e
 deep) outside its doors to the outside and along its galleries' open edges. A house usually stands 0.15 to 0.45 m
 up.
 
+### Upper floors and lofts
+
+Every layer is on a **floor**: the ground floor, or up to three above it. **+ Floor** (on the right of the Floor
+and Roof tabs' toolbar) adds a layer on a new floor over the top one, at the top of the walls below plus a 0.30 m
+slab (3.00 m over 2.70 m walls), and makes it active; **Floor** there switches between the floors. The canvas shows
+the active layer's floor, with the floor below faded under it to draw over (lines snap to it), and only the active
+floor's things can be picked. The Layers section sets the active layer's floor and its **floor level** (a loft is a
+floor set lower), and a layer added there goes on the active layer's floor.
+
+In 3-D an upper floor stands on a 0.30 m slab (the ceiling below) under its **named** areas, out to its walls'
+outside faces: a space left unnamed, such as a **stairwell** or the void over a double-height room, has no floor.
+An **open edge** with a floor on one side only (round a stairwell, a loft's edge, a balcony's front) gets a 1.00 m
+glass railing between steel posts; an **outline** is a plain edge, as where a stair arrives. On an upper floor only
+open edges to the outside carry a beam under a roof. Draw that floor's roofs on its own layer: their heights count
+from its level.
+
+A **stair** (Library → Stairs) climbs from its front (the dot) to its back (the arrow) up to the floor above, in
+treads of about 0.28 m along its length; the Selection panel gives its steps' height (it warns over 19 cm). On the
+floor above, leave the stairwell over it unnamed, edged with open edges, and an outline where it arrives.
+
+The Areas panel lists the areas by floor; *Covered, with walls* counts every floor, *Lot covered* (FOS) only the
+ground floor, and *Lot built* (FOT) every floor.
+
 An **area** is a name pinned inside a region: its outline is whatever its layer's lines enclose around that
 point, worked out from the lines (they close where they meet or cross, with or without a shared point). Its
 label sits at the middle of the region and shows its **floor area inside the walls** (each wall's half
@@ -387,7 +410,8 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   the sun.
 - `image`: the photo as a data URL, its placement (`cx`, `cy`, `rotation`, `scale` in meters per pixel), crop,
   opacity and the known lengths used to calibrate it.
-- `layers`: each with `vertices` (id → `{x, y}` in meters, +y down), `segments` (id → `{a, b}` vertex ids, plus
+- `layers`: each with an optional `level` (its floor level in m) and `storey` (its floor, 1 to 3; absent for the
+  ground floor), `vertices` (id → `{x, y}` in meters, +y down), `segments` (id → `{a, b}` vertex ids, plus
   `kind: "open"` for an open edge or `"outline"` for an outline, a wall's own `thickness` and `height` in
   meters when set (without them it is automatic and 2.70 m), and an open edge's `colonnade` (`{style, spacing}`,
   `style` `roman` or `metal`, `spacing` the most its columns stand apart in m), and a wall's `finish` (`{left,
@@ -404,7 +428,7 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   `furniture` (id → `{kind, style, at, angle, width, depth}`: `kind` is `counter` (style `island` for a kitchen island, none against a wall), `sink` (`outdoor`, `kitchen`,
   `bathroom`), `bathtub` (`alcove`, `clawfoot`, `drop-in`, `corner`, with `shower`, the shower head's place
   round the rim from 0 to 4), `shower` (with `shower` too), `toilet`, `bidet`, `bed` (`single`, `double`, `queen`, `king`), `sofa`
-  (`armchair`, `loveseat`, `three-seater`, `sectional`, with `mirror` for a sectional's return on its left), `table` (`square`, `circle`, `coffee`) or `chair`; `at` is its
+  (`armchair`, `loveseat`, `three-seater`, `sectional`, with `mirror` for a sectional's return on its left), `table` (`square`, `circle`, `coffee`), `chair` or `stair`; `at` is its
   centre and `angle` its turn in degrees, clockwise; a kitchen sink has `counter` and `offset` (its centre's
   distance from the counter's left end) instead of `at` and `angle`). Material ids are those of the catalogue in
   `src/model/materials.ts`; one it does not know is kept but drawn plain. Files saved before areas, openings,

@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import { addLayer, moveLayer, removeLayer, updateLayer, type LayerPatch } from '../../model/edit'
-import type { Layer } from '../../model/plan'
+import { storeyOf, type Layer } from '../../model/plan'
+import { MAX_STOREY, storeyName } from '../../model/storeys'
+import { moveLayerToStorey } from '../../state/actions'
 import { getStore, useEditor } from '../../state/store'
-import { Box, NumberField } from '../fields'
+import { Box, NumberField, SelectField } from '../fields'
 
-/** Layers, top of the stack first. Click a row to draw on it; lines connect only within a layer. */
+/**
+ * Layers, top of the stack first. Click a row to draw on it; lines connect only within a layer. Each is on a floor
+ * (the canvas shows the active layer's floor); a new layer goes on the active layer's floor.
+ */
 export function LayersPanel() {
   const store = getStore()
   const layers = useEditor((s) => s.plan.layers)
@@ -13,7 +18,8 @@ export function LayersPanel() {
 
   const add = () => {
     const result = addLayer(store.getState().plan)
-    store.edit(() => result.plan)
+    const storey = storeyOf(active)
+    store.edit(() => (storey ? updateLayer(result.plan, result.id, { storey, level: active?.level }) : result.plan))
     store.setActiveLayer(result.id)
   }
 
@@ -34,11 +40,18 @@ export function LayersPanel() {
       </ul>
       {active && (
         <div className="fields">
+          <SelectField<string>
+            label={`${active.name}: on the`}
+            value={String(storeyOf(active))}
+            options={Array.from({ length: MAX_STOREY + 1 }, (_, n) => [String(n), storeyName(n)] as const)}
+            onChange={(n) => moveLayerToStorey(active.id, Number(n))}
+          />
           <NumberField
-            label={`${active.name}: floor level above the ground`}
+            label={storeyOf(active) ? 'Floor level above the ground' : 'Floor level (on a plinth, up to 3 m)'}
             value={active.level ?? 0}
             min={0}
-            onCommit={(level) => store.edit((p) => updateLayer(p, active.id, { level: Math.min(3, level) }))}
+            // a ground floor stands on a plinth, a floor above on the floor below
+            onCommit={(level) => store.edit((p) => updateLayer(p, active.id, { level: Math.min(storeyOf(active) ? 20 : 3, level) }))}
           />
         </div>
       )}
@@ -78,6 +91,11 @@ function LayerRow({ layer, active, top, bottom }: { layer: Layer; active: boolea
           if (e.key === 'Escape') setName(layer.name)
         }}
       />
+      {layer.storey && (
+        <span className="layer-count" title={`On the ${storeyName(layer.storey)}`}>
+          F{layer.storey}
+        </span>
+      )}
       <span className="layer-count" title={`${count} line${count === 1 ? '' : 's'}`}>
         {count}
       </span>

@@ -2,6 +2,7 @@ import { drawSegment } from '../../../model/edit'
 import { add, dist, EPS, len, mul, parseLength, screenAngleDeg, sub, type Vec } from '../../../model/geometry'
 import { findLayer, isEditable, SEGMENT_KINDS } from '../../../model/plan'
 import { findSnap, type Snap } from '../../../model/snap'
+import { storeyView } from '../../../state/derived'
 import { SNAP_PX, type OverlayData, type PointerInfo, type Tool, type ToolContext } from './types'
 
 /**
@@ -30,7 +31,9 @@ export function createLineTool(ctx: ToolContext): Tool {
   const update = (e: PointerInfo) => {
     pointer = e
     const from = origin() ?? undefined
-    snap = findSnap(store.getState().plan, e.p, {
+    const { plan, activeLayer } = store.getState()
+    // to points and lines of this floor, and of the floor below to draw over it
+    snap = findSnap(storeyView(plan, activeLayer, true), e.p, {
       reach: SNAP_PX * e.px,
       from,
       constrain: e.shift && !!from,

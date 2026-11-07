@@ -28,6 +28,9 @@ import { z } from 'zod'
  *
  * Roofs are outlines drawn over a layer's plan (the Roof tab), each with a type and slope (see roofs.ts). They do
  * not follow the walls: they are drawn to cover them.
+ *
+ * Each layer is on a floor (a storey): the ground floor, or one above it, standing on a slab at its level (see
+ * storeys.ts). The canvas shows one floor at a time, over the floor below.
  */
 
 /** Identifies the file format; checked before anything else when a file is loaded. */
@@ -194,6 +197,9 @@ export const TableSchema = z.strictObject({ kind: z.literal('table'), style: z.e
 
 export const ChairSchema = z.strictObject({ kind: z.literal('chair'), ...Standing })
 
+/** A straight flight of stairs up to the floor above, climbing from its front to its back (see storeys.ts). */
+export const StairSchema = z.strictObject({ kind: z.literal('stair'), ...Standing })
+
 export const TREE_STYLES = ['shade', 'slender'] as const
 
 export const PLANT_STYLES = ['olive', 'shrub', 'bush', 'agapanthus', 'lavender', 'climber'] as const
@@ -220,6 +226,7 @@ export const FurnitureSchema = z.discriminatedUnion('kind', [
   ChairSchema,
   TreeSchema,
   PlantSchema,
+  StairSchema,
 ])
 
 export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip', 'pergola'] as const
@@ -263,10 +270,13 @@ export const LayerSchema = z.strictObject({
   /** Furniture and fixtures in this layer's rooms. Files from before furniture lack it. */
   furniture: z.record(z.string(), FurnitureSchema).default({}),
   /**
-   * Its floor level above the ground, m: everything on it stands that high, on a plinth under its rooms and
-   * galleries, with steps down to the ground outside its doors to the outside and along its galleries' open edges.
+   * Its floor level above the ground, m: everything on it stands that high. On the ground floor (up to 3 m) on a
+   * plinth under its rooms and galleries, with steps down to the ground outside its doors to the outside and along
+   * its galleries' open edges; on a floor above, on a slab under its named areas (see storeys.ts).
    */
-  level: z.number().min(0).max(3).optional(),
+  level: z.number().min(0).max(20).optional(),
+  /** The floor it is on, counted up from the ground floor (absent): 1 is the floor above it. */
+  storey: z.number().int().min(1).max(3).optional(),
 })
 
 /** A known length on the image: two points in image pixels and the real distance between them in meters. */
@@ -379,6 +389,9 @@ export const sameRef = (a: Ref | null | undefined, b: Ref | null | undefined): b
   !!a && !!b && a.layer === b.layer && a.kind === b.kind && a.id === b.id
 
 export const findLayer = (plan: Plan, id: string): Layer | undefined => plan.layers.find((l) => l.id === id)
+
+/** The floor a layer is on: 0 for the ground floor. */
+export const storeyOf = (layer: Layer | undefined): number => layer?.storey ?? 0
 
 /** A layer that can be drawn on and edited: visible and unlocked. */
 export type EditableLayer = Layer & { visible: true; locked: false }

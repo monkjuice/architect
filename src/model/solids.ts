@@ -6,9 +6,10 @@ import { furnitureParts } from './furniture3d'
 import { sideNormal, wallSide, type WallSide } from './finishes'
 import { findMaterial } from './materials'
 import { besideWall, FIREPLACE_DEPTH, fireplaceShape, HEARTH, hasHinge, PARRILLA_CHEEK, PARRILLA_DEPTH, placeOpening, type PlacedOpening } from './openings'
-import { segmentKind, type ColumnStyle, type Layer, type Opening, type Plan, type Ref, type Roof } from './plan'
+import { segmentKind, storeyOf, type ColumnStyle, type Layer, type Opening, type Plan, type Ref, type Roof } from './plan'
 import { layerFaces, pointInPolygon, regionAt, type LayerFaces, type Region } from './regions'
 import { eavesOf, offsetPolygon, PARAPET_WALL, PERGOLA_SHEET, pergolaRafters, RAFTER, roofFaces, roofPlanes, roofThickness, skylights, SLAB, underside, undersideAlong, unionOutlines } from './roofs'
+import { RAILING, stairRise, UPPER_SLAB } from './storeys'
 import { EXTERIOR_WALL, INTERIOR_WALL, layerWalls, WALL_HEIGHT, wallHeight, type LayerWalls } from './walls'
 
 /**
@@ -24,7 +25,8 @@ import { EXTERIOR_WALL, INTERIOR_WALL, layerWalls, WALL_HEIGHT, wallHeight, type
  * - open edges under a roof as beams following its underside, on columns where no wall holds them; a colonnade's
  *   columns (Roman or metal) along its edge under its own beam, under a roof or not;
  * - fireplaces against their walls, with a chimney up through the roof over them;
- * - furniture and fixtures where they stand (see furniture3d.ts).
+ * - furniture and fixtures where they stand (see furniture3d.ts);
+ * - a raised ground floor's plinth and steps, and an upper floor's slab and railings (see storeys.ts).
  *
  * Only visible layers are built, as for the plan's shadows and totals.
  */
@@ -72,6 +74,7 @@ export type SolidKind =
   | 'fireplace'
   | 'chimney'
   | 'furniture'
+  | 'railing'
 
 /**
  * What a solid is made of: walls that face outside and the structure are `facade`, walls between rooms `interior`;
@@ -145,12 +148,14 @@ export function houseSolids(plan: Plan, source: SolidsSource = direct): Solid[] 
   plan.layers.forEach((layer, index) => {
     if (!layer.visible) return
     const start = out.length
-    layerSolids(layer, index * LAYER_LIFT, source, out, pools)
-    // a raised layer: everything on it up to its floor level (but what is under the ground), on its groundworks
+    const upper = storeyOf(layer) > 0
+    layerSolids(layer, index * LAYER_LIFT, source, out, pools, { upper, rise: stairRise(plan, layer) })
+    // a raised layer: everything on it up to its floor level (but what is under the ground), on its groundworks, or
+    // on a floor above, on its slab
     const level = layer.level ?? 0
     if (level <= 0) return
     for (const s of out.slice(start)) if (s.bottom >= -1e-6) raise(s, level)
-    out.push(...groundworks(layer, level, source))
+    out.push(...(upper ? upperworks(layer, level, source) : groundworks(layer, level, source)))
   })
   return out
 }
@@ -226,6 +231,57 @@ function groundworks(layer: Layer, level: number, source: SolidsSource): Solid[]
         ].map(([u, v]) => add(add(a, mul(dir, u)), mul(n, EXTERIOR_WALL / 2 + v)))
       steps(rect, w, { layer: layer.id, kind: 'segment', id })
     }
+  }
+  return out
+}
+
+/** A railing's steel posts (square), the most they stand apart, and its handrail's depth, m. */
+const RAIL = { post: 0.05, spacing: 1.5, top: 0.05 }
+
+/**
+ * What a floor above the ground stands on: a slab under its named areas (but lots and pools) out to its walls'
+ * outside faces, open over the spaces inside them left unnamed (a stairwell), from UPPER_SLAB under its level up to
+ * it; and along each open edge with a floor on one side only (a balcony's front, a loft's edge, round a stairwell) a
+ * railing, glass between steel posts under a steel handrail.
+ */
+function upperworks(layer: Layer, level: number, source: SolidsSource): Solid[] {
+  const faces = source.faces(layer)
+  const out: Solid[] = []
+  const placed = Object.entries(layer.areas).flatMap(([id, a]) => {
+    const r = regionAt(faces.regions, a.at)
+    return r && !a.lot && !a.depth ? [{ id, a, r }] : []
+  })
+  if (!placed.length) return out
+  const floored = new Set(placed.map((p) => p.r))
+  // a hole in a floored region is open unless a named area is in it (a closet inside a room)
+  const voids = [...floored].flatMap((r) => r.holes).filter((h) => !placed.some((p) => pointInPolygon(p.a.at, h)))
+  const areaRef: Ref = { layer: layer.id, kind: 'area', id: placed[0].id }
+  for (const ring of unionOutlines([...floored].map((r) => r.outer))) {
+    const holes = voids.filter((h) => pointInPolygon(h[0], ring))
+    out.push(prism('floor', offsetPolygon(ring, EXTERIOR_WALL / 2), holes, level - UPPER_SLAB, level, 'slab', areaRef))
+  }
+
+  for (const [id, s] of Object.entries(layer.segments)) {
+    if (segmentKind(s) !== 'open') continue
+    const [a, b] = [layer.vertices[s.a], layer.vertices[s.b]]
+    const length = dist(a, b)
+    if (length < EPS) continue
+    const mid = lerp(a, b, 0.5)
+    const [left, right] = (['left', 'right'] as WallSide[]).map((side) => {
+      const r = regionAt(faces.regions, add(mid, mul(sideNormal(a, b, side), 0.05)))
+      return !!r && floored.has(r)
+    })
+    if (left === right) continue
+    const ref: Ref = { layer: layer.id, kind: 'segment', id }
+    const dir = mul(sub(b, a), 1 / length)
+    const posts = Math.max(1, Math.ceil(length / RAIL.spacing - 1e-9))
+    for (let i = 0; i <= posts; i++) {
+      const p = add(a, mul(dir, (length * i) / posts))
+      const u = mul(dir, RAIL.post / 2)
+      out.push(prism('railing', band(sub(p, u), add(p, u), RAIL.post / 2), [], level, level + RAILING - RAIL.top, 'metal', ref))
+    }
+    out.push(prism('railing', band(a, b, GLASS / 2), [], level + 0.1, level + RAILING - RAIL.top, 'glass', ref))
+    out.push(prism('railing', band(a, b, 0.03), [], level + RAILING - RAIL.top, level + RAILING, 'metal', ref))
   }
   return out
 }
@@ -381,7 +437,8 @@ function roofSolidFaces(roof: Roof): Face[] {
 
 // ---- a layer ----------------------------------------------------------------------------------------------
 
-function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Solid[], pools: readonly Vec[][]) {
+/** `storey`: whether the layer is on a floor above the ground, and how high its stairs climb. */
+function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Solid[], pools: readonly Vec[][], storey: { upper: boolean; rise: number }) {
   const faces = source.faces(layer)
   const ref = (kind: Ref['kind'], id: string): Ref => ({ layer: layer.id, kind, id })
   const wallIds = Object.keys(layer.segments).filter((id) => segmentKind(layer.segments[id]) === 'wall')
@@ -573,13 +630,15 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   }
 
   // other open edges under a roof: beams following its underside, and columns at their ends that no wall or
-  // colonnade holds
+  // colonnade holds. On a floor above, only those to the outside (a balcony's front): one round a stairwell is a
+  // railing's
+  const outsideBeside = (a: Vec, b: Vec) => (['left', 'right'] as WallSide[]).some((side) => !regionAt(faces.regions, add(lerp(a, b, 0.5), mul(sideNormal(a, b, side), 0.05))))
   const columns = new Map<string, { h: number; dir: Vec; ref: Ref }>()
   for (const [id, s] of Object.entries(layer.segments)) {
     if (segmentKind(s) !== 'open' || s.colonnade) continue
     const [a, b] = [layer.vertices[s.a], layer.vertices[s.b]]
     const length = dist(a, b)
-    const roof = length > EPS ? over(lerp(a, b, 0.5)) : undefined
+    const roof = length > EPS && (!storey.upper || outsideBeside(a, b)) ? over(lerp(a, b, 0.5)) : undefined
     if (!roof) continue
     const dir = mul(sub(b, a), 1 / length)
     const under = profile(roof, a, b)
@@ -637,7 +696,7 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   for (const [id, f] of Object.entries(layer.furniture)) {
     const pl = placeFurniture(layer, f)
     if (!pl) continue
-    for (const part of furnitureParts(f, pl)) {
+    for (const part of furnitureParts(f, pl, storey.rise)) {
       const s = solid('furniture', part.faces, part.material, ref('furniture', id))
       if (part.finish) s.finish = part.finish
       out.push(s)

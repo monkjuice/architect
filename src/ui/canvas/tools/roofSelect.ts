@@ -5,6 +5,7 @@ import { eavesOf } from '../../../model/roofs'
 import { moveRoofs, updateRoof } from '../../../model/edit'
 import { findSnap, type Snap } from '../../../model/snap'
 import { deleteSelection } from '../../../state/actions'
+import { storeyView } from '../../../state/derived'
 import { DRAG_PX, HIT_VERTEX_PX, SNAP_PX, type PointerInfo, type Tool, type ToolContext } from './types'
 
 type Drag =
@@ -36,6 +37,12 @@ export function createRoofSelectTool(ctx: ToolContext): Tool {
     return null
   }
 
+  /** The active floor's layers (with `below`, the floor under it too, to snap to). */
+  const onFloor = (below = false) => {
+    const { plan, activeLayer } = store.getState()
+    return storeyView(plan, activeLayer, below)
+  }
+
   /** A corner of a selected roof under `p`. */
   const cornerAt = (plan: Plan, e: PointerInfo) => {
     for (const r of store.getState().selection) {
@@ -63,7 +70,7 @@ export function createRoofSelectTool(ctx: ToolContext): Tool {
         drag = { kind: 'corner', ...corner }
         return
       }
-      const target = roofAt(plan, e.p)
+      const target = roofAt(onFloor(), e.p)
       if (!target) {
         if (!e.shift) store.select([])
         return
@@ -83,7 +90,7 @@ export function createRoofSelectTool(ctx: ToolContext): Tool {
 
     move(e) {
       if (!drag) {
-        const h = roofAt(store.getState().plan, e.p)
+        const h = roofAt(onFloor(), e.p)
         if (!sameRef(h, hover)) {
           hover = h
           ctx.redraw()
@@ -92,7 +99,7 @@ export function createRoofSelectTool(ctx: ToolContext): Tool {
       }
       if (drag.kind === 'corner') {
         const { layer, id, index } = drag
-        const snap = findSnap(store.getState().plan, e.p, { reach: SNAP_PX * e.px, enabled: !e.alt && ctx.prefs().snap })
+        const snap = findSnap(onFloor(true), e.p, { reach: SNAP_PX * e.px, enabled: !e.alt && ctx.prefs().snap })
         drag.snap = snap
         store.preview((base) => {
           const roof = base.layers.find((l) => l.id === layer)?.roofs[id]
