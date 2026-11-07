@@ -1,6 +1,6 @@
 import { createBaseImage, imageToWorld, visibleCorners } from '../model/baseImage'
 import { newColonnade } from '../model/colonnades'
-import { addFurniture, addOpening, addRoof, deleteItems, setAreaFloor, setColonnade, setWallFinish } from '../model/edit'
+import { addFurniture, addOpening, addRoof, deleteItems, setAreaFloor, setColonnade, setWallFinish, updateRoof } from '../model/edit'
 import { faceLine, finishProblem, sideOf, wallSide, type WallSide } from '../model/finishes'
 import { findMaterial } from '../model/materials'
 import { pointInPolygon, type Region } from '../model/regions'
@@ -24,7 +24,7 @@ import {
   type Ref,
 } from '../model/plan'
 import { parsePlanText, serializePlan } from '../model/planFile'
-import { galleryRoof, GALLERY_PITCH, newRoof, offsetPolygon, unionOutlines } from '../model/roofs'
+import { fitRoof, galleryRoof, GALLERY_PITCH, newRoof, offsetPolygon, unionOutlines } from '../model/roofs'
 import { isCovered } from '../model/solids'
 import { EXTERIOR_WALL, WALL_HEIGHT, wallHeight } from '../model/walls'
 import { pickFile, pickPlanFile, readImageFile, savePlanFile } from './files'
@@ -129,6 +129,27 @@ export function roofTheHouse() {
       (galleries.length ? `, the galleries apart, sloping away from the house at ${GALLERY_PITCH}° under its eaves` : '') +
       '. Set each one\'s type, pitch and overhang in the Roofs section.',
   })
+}
+
+/**
+ * Fits a roof between the walls round it, on every visible layer (a boundary wall, the house): its sides that run
+ * along one move to its face. Says so when no side runs along a wall near enough.
+ */
+export function fitRoofToWalls(layerId: string, roofId: string) {
+  const store = getStore()
+  const { plan } = store.getState()
+  const roof = findLayer(plan, layerId)?.roofs[roofId]
+  if (!roof) return
+  const walls = plan.layers.flatMap((layer) => {
+    if (!layer.visible) return []
+    const thickness = getThickness(layer)
+    return Object.entries(layer.segments).flatMap(([id, s]) =>
+      segmentKind(s) === 'wall' ? [{ a: layer.vertices[s.a], b: layer.vertices[s.b], half: (thickness.get(id) ?? 0) / 2 }] : [],
+    )
+  })
+  const fitted = fitRoof(roof, walls)
+  if (fitted === roof) return store.notify({ kind: 'error', text: 'None of its sides runs along a wall within 1.5 m.' })
+  store.edit((p) => updateRoof(p, layerId, roofId, { outline: fitted.outline, edge: fitted.edge, overhang: 0 }))
 }
 
 export function isDirty(): boolean {

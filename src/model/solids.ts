@@ -256,6 +256,31 @@ function columnFaces(style: ColumnStyle, p: Vec, top: number, dir: Vec): Face[] 
   ]
 }
 
+/**
+ * A timber post up to `top`: square, on a black steel shoe, with a curved steel knee brace each way along its beam
+ * (`dir`), from 0.5 m down the post to 0.5 m along the beam.
+ */
+function timberPost(p: Vec, top: number, dir: Vec, ref: Ref): Solid[] {
+  const side = COLUMNS.timber.diameter
+  const square = (s: number) => band(sub(p, mul(dir, s / 2)), add(p, mul(dir, s / 2)), s / 2)
+  const post = solid('column', prismFaces(square(side), [], 0.15, top), 'wood', ref)
+  post.faces = post.faces.map((f) => ({ ...f, grain: { x: 0, y: 0, z: 1 } }))
+  post.finish = 'teak'
+  const out = [post, solid('column', prismFaces(square(side + 0.04), [], 0, 0.15), 'metal', ref)]
+  const reach = Math.min(0.5, top / 3)
+  for (const way of [1, -1]) {
+    // a quarter of a ring, 4 cm deep, from the post's face up and out to the beam
+    const [cs, cz] = [side / 2 + reach, top - reach]
+    const arc = (r: number) => Array.from({ length: 9 }, (_, i): [number, number] => {
+      const a = Math.PI + (Math.PI / 2) * (i / 8)
+      return [cs + r * Math.cos(a), cz - r * Math.sin(a)]
+    })
+    const shape: [number, number][] = [...arc(reach), ...arc(reach - 0.04).reverse()]
+    out.push(solid('column', profileFaces(p, mul(dir, way), 0.012, shape), 'metal', ref))
+  }
+  return out
+}
+
 function solid(kind: SolidKind, faces: Face[], material: SolidMaterial, ref: Ref): Solid {
   const zs = faces.flatMap((f) => f.pts.map((p) => p.z))
   return { kind, faces, bottom: Math.min(...zs), top: Math.max(...zs), material, ref }
@@ -527,13 +552,22 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
           [0, tallest],
           [length, tallest],
         ]
-    const material: SolidMaterial = c.colonnade.style === 'roman' ? 'stone' : 'metal'
+    const timber = c.colonnade.style === 'timber'
+    const material: SolidMaterial = c.colonnade.style === 'roman' ? 'stone' : timber ? 'wood' : 'metal'
     const shape: [number, number][] = [...under.map(([u, z]): [number, number] => [u, z - info.beam]), ...[...under].reverse()]
-    const width = c.colonnade.style === 'roman' ? 1.1 * info.diameter : 0.12
-    out.push(solid('beam', profileFaces(c.a, dir, width / 2, shape), material, ref('segment', c.segment)))
+    const width = c.colonnade.style === 'roman' ? 1.1 * info.diameter : timber ? info.diameter : 0.12
+    const beam = solid('beam', profileFaces(c.a, dir, width / 2, shape), material, ref('segment', c.segment))
+    if (timber) {
+      beam.faces = beam.faces.map((f) => ({ ...f, grain: { x: dir.x, y: dir.y, z: 0 } }))
+      beam.finish = 'teak'
+    }
+    out.push(beam)
     for (const { t, p } of c.columns) {
       const top = heightAlong(under, t * length) - info.beam
-      if (top > 0.6) out.push(solid('column', columnFaces(c.colonnade.style, p, top, dir), material, ref('segment', c.segment)))
+      if (top > 0.6) {
+        if (timber) out.push(...timberPost(p, top, dir, ref('segment', c.segment)))
+        else out.push(solid('column', columnFaces(c.colonnade.style, p, top, dir), material, ref('segment', c.segment)))
+      }
       colonnadeColumns.push(p)
     }
   }

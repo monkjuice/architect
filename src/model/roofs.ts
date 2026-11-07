@@ -189,6 +189,46 @@ export function pergolaRafters(roof: Roof): [Vec, Vec][] {
   return out
 }
 
+/** How far a roof's side moves to meet a wall running along it, at most (in or out), m. */
+export const FIT_REACH = 1.5
+
+/**
+ * A roof fitted between the walls round it (a carport between a boundary wall and the house): each side of its
+ * outline that runs along a wall (within 10°, alongside it for at least a metre or half the side) moves to that
+ * wall's face on the roof's side, when that face is within FIT_REACH of it, in or out (the nearest such wall). Its
+ * overhang then goes on its other sides only, drawn into its outline. The same roof when no side meets a wall.
+ */
+export function fitRoof(roof: Roof, walls: readonly { a: Vec; b: Vec; half: number }[]): Roof {
+  const pts = normalized(roof.outline)
+  const n = pts.length
+  const moves = pts.map((p, i) => {
+    const q = pts[(i + 1) % n]
+    const len = dist(p, q)
+    if (len < EPS) return null
+    const dir = unit(sub(q, p))
+    const into = inward(pts, i)
+    let best: number | null = null
+    for (const w of walls) {
+      const wl = dist(w.a, w.b)
+      if (wl < EPS) continue
+      const wd = unit(sub(w.b, w.a))
+      if (Math.abs(cross(dir, wd)) > Math.sin((10 * Math.PI) / 180)) continue
+      const [t0, t1] = [dot(sub(w.a, p), dir), dot(sub(w.b, p), dir)]
+      const [lo, hi] = [Math.max(0, Math.min(t0, t1)), Math.min(len, Math.max(t0, t1))]
+      if (hi - lo < Math.min(1, len / 2)) continue
+      // the wall's line where it runs alongside, measured in from the side; its face towards the roof's inside
+      const along = add(p, mul(dir, (lo + hi) / 2))
+      const onWall = add(w.a, mul(wd, dot(sub(along, w.a), wd)))
+      const move = dot(sub(onWall, p), into) + w.half
+      if (Math.abs(move) <= FIT_REACH && (best === null || Math.abs(move) < Math.abs(best))) best = move
+    }
+    return best
+  })
+  if (moves.every((m) => m === null)) return roof
+  const outline = offsetEdges(pts, (i) => (moves[i] === null ? roof.overhang : -moves[i]!))
+  return { ...roof, outline: normalized(outline), edge: roof.edge % outline.length, overhang: 0 }
+}
+
 /** Whether `p` is inside the ring (even-odd). */
 function pointIn(p: Vec, ring: readonly Vec[]): boolean {
   let inside = false

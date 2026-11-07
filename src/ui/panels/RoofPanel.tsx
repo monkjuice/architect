@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 import { updateRoof } from '../../model/edit'
 import { ROOF_TYPES, sameRef, type Roof } from '../../model/plan'
 import { nextEdge, RAFTER, ROOF_TITLES, roofProblem, roofSummary } from '../../model/roofs'
-import { chooseTool, deleteSelection } from '../../state/actions'
+import { chooseTool, deleteSelection, fitRoofToWalls } from '../../state/actions'
 import { getStore, useEditor } from '../../state/store'
 import { Box, MaterialField, NumberField, Segmented } from '../fields'
 
@@ -129,6 +129,13 @@ function RoofFields({ layer, id, roof }: { layer: string; id: string; roof: Roof
         {problem && <p className="hint warning field-wide">{problem}</p>}
       </div>
       <div className="row">
+        <button
+          className="small"
+          onClick={() => fitRoofToWalls(layer, id)}
+          title="For a carport or a pergola between walls: its sides that run along a wall (a boundary wall, the house) move to that wall's face, and it overhangs only where it is free"
+        >
+          Fit to the walls
+        </button>
         <button className="danger small" onClick={deleteSelection}>
           Delete roof
         </button>

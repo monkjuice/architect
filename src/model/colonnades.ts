@@ -15,10 +15,14 @@ export interface ColumnInfo {
   beam: number
 }
 
-/** Roman: stone columns with a base and a capital, under a stone beam. Metal: slim steel posts under a steel beam. */
+/**
+ * Roman: stone columns with a base and a capital, under a stone beam. Metal: slim steel posts under a steel beam.
+ * Timber: square timber posts on black steel shoes, curved steel knee braces up to a timber beam (a carport's).
+ */
 export const COLUMNS: Record<ColumnStyle, ColumnInfo> = {
   roman: { title: 'Roman', diameter: 0.32, spacing: 2.4, beam: 0.35 },
   metal: { title: 'Metal', diameter: 0.1, spacing: 3, beam: 0.2 },
+  timber: { title: 'Timber', diameter: 0.14, spacing: 3, beam: 0.22 },
 }
 
 export const newColonnade = (style: ColumnStyle): Colonnade => ({ style, spacing: COLUMNS[style].spacing })

@@ -30,7 +30,11 @@ export const ColonnadeLayer = memo(function ColonnadeLayer({ layer }: { layer: L
             {c.columns.map(({ p }, i) => (
               <g key={i}>
                 {c.colonnade.style === 'roman' && <polygon className="column-plinth" points={square(p, dir, 1.3 * diameter)} />}
-                <circle className="column-shaft" cx={p.x} cy={p.y} r={diameter / 2} />
+                {c.colonnade.style === 'timber' ? (
+                  <polygon className="column-shaft" points={square(p, dir, diameter)} />
+                ) : (
+                  <circle className="column-shaft" cx={p.x} cy={p.y} r={diameter / 2} />
+                )}
               </g>
             ))}
           </g>

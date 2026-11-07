@@ -54,7 +54,7 @@ export function LibraryPanel() {
 
   const length: Record<SegmentKind, number> = { wall: 0, open: 0, outline: 0 }
   const count = new Map<string, number>()
-  const colonnades: Record<ColumnStyle, number> = { roman: 0, metal: 0 }
+  const colonnades: Record<ColumnStyle, number> = { roman: 0, metal: 0, timber: 0 }
   // wall sides and floors finished in each material
   const finished = new Map<string, number>()
   const tally = (key: string) => finished.set(key, (finished.get(key) ?? 0) + 1)
@@ -273,7 +273,11 @@ function ColumnIcon({ style }: { style: ColumnStyle }) {
       {[5, 16, 27].map((x) => (
         <g key={x}>
           {style === 'roman' && <rect x={x - 3.4} y={8.6} width={6.8} height={6.8} strokeWidth="0.9" />}
-          <circle cx={x} cy={12} r={r} strokeWidth="1.1" fill={style === 'metal' ? 'currentColor' : 'none'} />
+          {style === 'timber' ? (
+            <rect x={x - 2} y={10} width={4} height={4} strokeWidth="1.1" />
+          ) : (
+            <circle cx={x} cy={12} r={r} strokeWidth="1.1" fill={style === 'metal' ? 'currentColor' : 'none'} />
+          )}
         </g>
       ))}
     </>

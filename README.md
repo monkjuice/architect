@@ -185,9 +185,10 @@ over it (or stands level with the walls' height when there is none).
 |---|---|
 | **Roman** | 0.32 m stone columns on a square plinth, with a round base, a shaft that narrows towards the top and a capital, under a 0.35 m stone beam; 2.40 m apart at most. |
 | **Metal** | 0.10 m round steel posts between plates, under a 0.20 m steel beam; 3.00 m apart at most. |
+| **Timber** | 0.14 m square timber posts on black steel shoes, a curved steel knee brace each way up to a 0.22 m timber beam (a carport's or a pergola's); 3.00 m apart at most. |
 
 Pick one in the library (*Colonnades*) and click an open edge, or drag it there; walls and outlines are refused.
-Select an open edge to change its columns (*None*, *Roman*, *Metal*) and their spacing in the Selection panel,
+Select an open edge to change its columns (*None*, *Roman*, *Metal*, *Timber*) and their spacing in the Selection panel,
 which also says how many there are. The plan draws each column at its size.
 
 ### Furniture
@@ -292,7 +293,7 @@ covers, usually the walls' outside faces) on a layer, and its eaves stand an **o
 | **Shed** | One slope, rising away from one side. *Turn the slope* moves the low side round the outline. |
 | **Gable** | Two slopes meeting at a ridge along one side's direction; the other sides are gable ends. *Turn the ridge* runs it the other way. |
 | **Hip** | A slope from every side, meeting at hips and a ridge. It needs a convex outline: draw an L-shaped house as two overlapping roofs (the panel warns otherwise). |
-| **Pergola** | No slab: timber rafters (0.07 × 0.20 m, every 0.60 m) on the beams of the open edges under it, running down its slight slope (2° unless set); with a *Covering* they carry a thin sheet of it (*Polycarbonate* lets the light through and casts no shadow), without one it is open. For a carport or a garden pergola: enclose the area with open edges (columns where no wall holds them, or a colonnade for steel or stone columns along them), name it, and draw a pergola over it. |
+| **Pergola** | No slab: timber rafters (0.07 × 0.20 m, every 0.60 m) on the beams of the open edges under it, running down its slight slope (2° unless set); with a *Covering* they carry a thin sheet of it (*Polycarbonate* lets the light through and casts no shadow), without one it is open. For a carport or a garden pergola: enclose the area with open edges (columns where no wall holds them, or a colonnade for timber, steel or stone columns along them), name it, and draw a pergola over it; *Fit to the walls* (Roofs section) then brings its sides that run along a wall (a boundary wall, the house, on any layer, within 1.5 m) to that wall's face, so it sits between them, and puts its overhang on its free sides only. |
 
 - **Roof the house** covers the active layer's covered areas out to the walls' outside faces (0.15 m past the
   centrelines), as high as their tallest wall: one roof of the type picked under *New roofs* per group of rooms

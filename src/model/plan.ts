@@ -41,7 +41,7 @@ const Positive = z.number().positive()
 
 export const VecSchema = z.strictObject({ x: Num, y: Num })
 
-export const COLUMN_STYLES = ['roman', 'metal'] as const
+export const COLUMN_STYLES = ['roman', 'metal', 'timber'] as const
 
 export const SegmentSchema = z.strictObject({
   a: z.string().min(1),
