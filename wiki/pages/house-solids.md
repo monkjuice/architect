@@ -1,10 +1,10 @@
 ---
 title: "House solids: the plan in 3-D"
 type: component
-summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, pools sunk to their depth with water under the rim, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman or metal columns under a beam), masonry fireplaces and parrillas with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
-tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool, levels, steps, skylights, grain, pergola]
+summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, pools sunk to their depth with water under the rim, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman, metal or timber columns under a beam), masonry fireplaces and parrillas with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
+tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool, levels, steps, skylights, grain, pergola, carport]
 sources: []
-updated: 2026-11-06
+updated: 2026-11-07
 ---
 
 # House solids: the plan in 3-D
@@ -110,7 +110,10 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
   metal: steel, 0.12 m) following the underside of the roof over the edge's midpoint, or level at the layer's
   tallest wall when there is none (`heightAlong` reads the profile at each column). Columns from `layerColonnades`
   rise to the beam's bottom; none under 0.6 m. `columnFaces`: Roman = plinth, round base, shaft narrowing to
-  0.86 r, flaring capital, abacus (20 sides); metal = thin plates and a 12-sided post.
+  0.86 r, flaring capital, abacus (20 sides); metal = thin plates and a 12-sided post. Timber (`acdb212`): the beam
+  is palette `wood`, finish `teak`, as wide as the post, grain along the edge; each column is `timberPost`: a teak
+  post from 0.15 m up (grain up) on a black `metal` shoe 0.18 m square, 0 to 0.15 m, and two quarter-ring steel knee
+  braces (`profileFaces`, 4 cm deep, 2.4 cm thick) reaching min(0.5, top/3) down the post and along the beam each way.
 - Any other open edge whose midpoint is under a roof becomes a beam (`BEAM_DEPTH` 0.30 m) following the underside.
   A point within 1 cm of the eaves counts: a gallery front drawn on the roof's edge got no beam before, which a test
   caught. A square column, up to the beam's bottom, stands at each end that no wall holds (`heldByWall`, judged by

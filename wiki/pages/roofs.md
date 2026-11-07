@@ -2,9 +2,9 @@
 title: "Roofs: model and geometry"
 type: component
 summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip/pergola, pitch, height at the eaves sides, overhang, reference edge, parapet, covering and soffit materials; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning, unionOutlines for Roof the house, galleryRoof (a 2° shed overhanging only its open sides, via offsetEdges), and a pergola's rafters (pergolaRafters)."
-tags: [model, roof, geometry, schema, finishes, gallery, skylights, pergola]
+tags: [model, roof, geometry, schema, finishes, gallery, skylights, pergola, carport]
 sources: []
-updated: 2026-11-06
+updated: 2026-11-07
 ---
 
 # Roofs: model and geometry
@@ -78,6 +78,13 @@ recomputed. `planFile.ts` rounds outline points to 0.1 mm on save.
 - Caveat: setting such a roof's Overhang field above 0 later applies an overhang all round again, house side
   included. Gallery roofs made before `96a2afa` keep their old outline until rebuilt; the user's plan's `r2` was
   rebuilt (pitch, covering and soffit kept).
+- `fitRoof(roof, walls)` (`acdb212`; walls as `{a, b, half}`): the same idea as `galleryRoof` for any drawn roof.
+  Asked for when the user's carport roof ran over the brick boundary wall and into the house. A side fits a wall that
+  runs within 10° of it and alongside it for at least min(1 m, half the side); the move is the wall line's offset
+  along the side's inward normal + `half`, i.e. the wall's face toward the roof's inside. Moves beyond ±`FIT_REACH`
+  (1.5 m) are ignored; the smallest wins. Fitted sides go to −move, the rest to +`overhang`, via `offsetEdges`, and
+  `overhang` becomes 0. Returns the same roof when no side fits. Limit: on a house's own roof it pulls the edges in
+  to the walls' inner faces; it is meant for roofs between walls (carports, pergolas).
 
 ## Pergola (`59bcfa6`)
 
@@ -93,6 +100,9 @@ add columns (the automatic ones at ends no wall holds, or a colonnade; [Colonnad
 - No slab, skylights or soffit; 3-D in [House solids](house-solids.md).
 - Checked visually (on a copy of the user's plan): a 6 × 5.5 m test pergola with open edges, a metal colonnade, a
   named area and a 2.6 m polycarbonate pergola roof showed translucent cover, rafters, columns and striped shadows.
+- The timber carport the user sent as a reference (`acdb212`) is a pergola in standing seam on a `timber`
+  colonnade ([Colonnades](colonnades.md)), fitted with `fitRoof`. The user's carport lives only in their browser
+  draft, so it was checked on a copy, not edited.
 
 `ROOF_TITLES` (a record) is exported from here, not from a component file: oxlint's `react/only-export-components`
 allows only literal constants ([Code conventions](code-conventions.md)).
