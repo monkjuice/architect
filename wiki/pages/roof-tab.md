@@ -15,7 +15,9 @@ roof plan over the floor plan ([Roofs are drawn outlines](roofs-drawn-outlines.m
 ## Files
 
 - `src/ui/RoofTab.tsx`: row 2 has the tools Select (`V`), Roof (`R`) and Pan (`H`), *New roofs* (a segmented
-  control setting `EditorState.roofType`, default gable, not saved), *Roof the house* and Snap. Below:
+  control setting `EditorState.roofType`, default gable, not saved), *Roof the house*, Snap and the Floor switcher
+  (`StoreyPicker`; the floor below's roofs are drawn faded in the underlay and cannot be picked,
+  [Floors](storeys.md)). Below:
   `<Canvas mode="roof" />`, the `NoticeBar`, and a sidebar with `RoofPanel` and `LayersPanel`.
 - `Canvas` in roof mode ([Canvas and tools](canvas-and-tools.md)): its own `ROOF_SHORTCUTS` (`v r m h`; `S` does
   nothing), class `.canvas.roof-mode` fades the floor plan's lines and openings, and there are no area fills or

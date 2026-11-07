@@ -2,15 +2,16 @@
 title: Canvas and tools
 type: component
 summary: "The SVG canvas of the Floor and Roof tabs in src/ui/canvas/ (mode floor or roof): Canvas.tsx routes pointer and key events to plain tool controllers in tools/ that return OverlayData and takes library drops (openings, colonnades, furniture and materials); Scene.tsx draws the plan (walls filled at their thickness unless Thick walls is off, area fills in their floor finish (checkered ones as SVG patterns) unless View > Materials is off, area labels with the lines the View section shows), Columns.tsx the colonnades, Finishes.tsx the wall finishes, Furniture.tsx the furniture symbols, Sun.tsx the sun dial and wall shadows, Roofs.tsx the roof plan, and Overlay.tsx the tool feedback, at constant screen size; the select tool's hit order."
-tags: [ui, canvas, svg, tools, sun, walls, tabs, roof, colonnades, furniture, finishes]
+tags: [ui, canvas, svg, tools, sun, walls, tabs, roof, colonnades, furniture, finishes, storeys]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-07
 ---
 
 # Canvas and tools
 
 Since 2026-11-07 the canvas shows only the active layer's floor, over the floor below (faded, not pickable), and
-tools find things through `storeyView` ([Floors](storeys.md)).
+tools find things through `storeyView` ([Floors](storeys.md)); their edits still start from the store's plan, as
+the view lacks the other floors' layers.
 
 ## Files (`src/ui/canvas/`)
 

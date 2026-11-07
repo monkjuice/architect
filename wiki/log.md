@@ -326,3 +326,15 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 ## [2026-11-07] update | Upper floors, lofts and stairs
 - created: pages/storeys.md
 - updated: pages/plan-model.md (storey, level up to 20, stair), pages/house-solids.md (upperworks), pages/canvas-and-tools.md (storeyView), overview.md, index.md
+
+## [2026-11-07] update | Floors: cross-links on related pages
+- updated: pages/furniture.md (stair kind, library-stair box, stair hint, furnitureParts rise)
+- updated: pages/areas.md (coveredArea storey param, panel grouped by floor, Lot built)
+- updated: pages/lots.md (FOS ground floor only, Lot built FOT row)
+- updated: pages/sun.md (wall shadow height adds layer level)
+- updated: pages/editor-store.md (setActiveLayer pruning, floor actions, storeyView)
+- updated: pages/elevations.md (slab tops as level marks)
+- updated: pages/roof-tab.md (Floor switcher, floor below's roofs faded and not pickable)
+- updated: pages/canvas-and-tools.md (edits use the store's plan, not the view)
+- updated: pages/code-conventions.md (read through storeyView, edit the store's plan; library-stair id)
+- updated: index.md (furniture, lots and code-conventions summaries)

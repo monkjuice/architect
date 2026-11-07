@@ -1,10 +1,10 @@
 ---
 title: Code conventions
 type: convention
-summary: "Rules inherited from the Forge H1 planner: pure model layer with no import cycles, state never imports ui, three.js only in src/render, explicit face normals in 3-D, immutable edits through layer drafts (same plan = no undo step), derived data cached by object identity, saved data in the plan, UI state in the store and view settings in prefs, foldable panel sections with Box ids, erasable-only TypeScript, tools without React refs, compound .opening.<kind> CSS selectors, oxlint rules (helpers out of component files), no formatter (indent by hand), ids and rounding."
-tags: [convention, model, state, ui, lint, typescript, css, formatting]
+summary: "Rules inherited from the Forge H1 planner: pure model layer with no import cycles, state never imports ui, three.js only in src/render, explicit face normals in 3-D, immutable edits through layer drafts (same plan = no undo step), derived data cached by object identity, saved data in the plan, UI state in the store and view settings in prefs, foldable panel sections with Box ids, erasable-only TypeScript, tools without React refs that read through storeyView but edit the store's plan, compound .opening.<kind> CSS selectors, oxlint rules (helpers out of component files), no formatter (indent by hand), ids and rounding."
+tags: [convention, model, state, ui, lint, typescript, css, formatting, storeys]
 sources: []
-updated: 2026-11-06
+updated: 2026-11-07
 ---
 
 # Code conventions
@@ -46,7 +46,7 @@ A panel section is a `Box` (`src/ui/fields.tsx`). Give it a stable `id`: its tit
 in `prefs.collapsed` and set as `data-box` on the `<section>` (ids so far: `view`, `base-plan`, `layers`,
 `selection`, `areas`, `sun`, `roofs`, and in the Library the groups `library-drawing` (formerly `library-lines`),
 `library-materials` and `library-objects`, with nested `library-material-wall`, `library-material-floor`,
-`library-door`, `library-window`, `library-gate`, `library-fireplace`, `library-colonnade`, `library-counter`,
+`library-door`, `library-window`, `library-gate`, `library-fireplace`, `library-colonnade`, `library-stair`, `library-counter`,
 `library-sink`, `library-bathtub`, `library-shower`, `library-toilet`, `library-bed`, `library-sofa`,
 `library-table`, `library-chair`; a furniture box's id is its first kind). `Box`'s `className` is `group` for a
 top-level Library group and `nested` for a box inside one. Boxes nest, so a `.box` matched by its text also matches
@@ -85,6 +85,9 @@ Model type names avoid DOM globals: a window is a `WindowSchema` member of `Open
 
 Tools are plain controllers that get `px` (world units per screen pixel) with every pointer event. They do not read
 React refs, which oxlint's `react/refs` rule would flag ([Canvas and tools](canvas-and-tools.md)).
+
+Tools and canvas actions read through `storeyView(plan, activeLayer)` (with `below` for snapping) and edit the
+store's plan, never the view, which leaves out the other floors' layers ([Floors](storeys.md)).
 
 ## CSS specificity
 

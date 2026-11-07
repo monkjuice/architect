@@ -2,9 +2,9 @@
 title: Elevations tab
 type: component
 summary: "Four facades drawn automatically from the house solids, view only: src/model/elevations.ts (main direction from the walls, four views square to it named by compass bearing through site.north, back-face culling on explicit normals, painter's sort by each face's nearest point, facing and smooth per polygon, level marks) and src/ui/ElevationsTab.tsx (fills shaded by facing, in a finish's colour where there is one, smooth facets without outlines, All four or one, layer visibility checkboxes, Save SVG as a standalone drawing)."
-tags: [ui, model, elevations, svg, 3d, pool]
+tags: [ui, model, elevations, svg, 3d, pool, storeys]
 sources: []
-updated: 2026-11-06
+updated: 2026-11-07
 ---
 
 # Elevations tab
@@ -24,7 +24,8 @@ edit. No three.js: the tab is not lazy-loaded.
 - `elevation(solids, view)`: parallel projection to (u to the viewer's right, z). Faces whose explicit normal does
   not face the viewer are culled. The rest are painted farthest first, ordered by each face's **nearest** point:
   ordering by centroid let a wall's top overdraw the eave that overhangs it. This assumes faces do not
-  interpenetrate. Levels: the ground, wall tops, roof bottoms and tops, parapet tops, merged within 15 cm.
+  interpenetrate. Levels: the ground, wall tops, slab tops (`floor` solids of material `slab`: a plinth, an upper
+  floor, [Floors](storeys.md)), roof bottoms and tops, parapet tops, merged within 15 cm.
 - Underground solids are skipped: `bottom < -1e-6 && top <= 0.05` (`ac5f601`), so pool basins and water stay out
   of the facades. The first rule (`506fd9e`), top ≤ 0.01 m, missed pools from the fourth layer up, whose rims the
   4 mm per layer `LAYER_LIFT` raised past it; 5 cm covers about a dozen layers. Floors, walls and a lot's 1 cm
