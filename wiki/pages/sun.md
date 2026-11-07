@@ -4,7 +4,7 @@ type: component
 summary: "The sun over the plan: pure solar math in src/model/sun.ts (position, sunrise/sunset, plan angle, shadow offset, hemisphere-aware seasons), the plan's saved site (north, latitude, longitude, UTC offset), the North tool, SunDial and SunShadows in src/ui/canvas/Sun.tsx and the Sun panel; season, time and clouds are per-browser prefs, shared with the Exterior tab's 3-D sun."
 tags: [sun, model, canvas, ui, prefs, 3d]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-07
 ---
 
 # Sun and shadows
@@ -50,8 +50,9 @@ which was leveled by −0.85°. Nothing updates `north` when the image is re-lev
 - `SunShadows`, after the area fills and under the lines: one quad per `wall` segment of the visible layers, in one
   nonzero path so overlaps do not darken, opacity `0.42 · (1 − cloudiness)`. Open edges and outlines cast none: a pool, paving or deck should
   be drawn as outlines, which is why that kind exists
-  ([Open edges and outlines are segment kinds](segment-kind-not-layer.md)). Each wall's shadow uses its own
-  `wallHeight(s)` (default 2.70 m). Limits: shadows are cast from the centreline, not the faces; no roofs; door gaps
+  ([Open edges and outlines are segment kinds](segment-kind-not-layer.md)). Each wall's shadow uses its top above
+  the ground: its layer's `level` (a plinth or an upper floor, [Floors](storeys.md)) plus its own `wallHeight(s)`
+  (default 2.70 m). Limits: shadows are cast from the centreline, not the faces; no roofs; door gaps
   are ignored.
 - `SunDial`, above the area labels: a dotted circle around the visible vertices (1.12 × half the diagonal), the
   day's arc sampled from the sun's own azimuths between sunrise and sunset (so it bends through noon the right way),

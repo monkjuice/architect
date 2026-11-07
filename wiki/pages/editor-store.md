@@ -2,9 +2,9 @@
 title: Editor store and state
 type: component
 summary: "src/state/: the EditorStore (immutable plan, undo via edit/preview/endGesture, editor-only state such as the open tab, active layer, tool, line kind, door/window/gate/fireplace style to place, column style, furniture and material picks, roof type to draw, view and prompt), user-level actions (openTab, roofTheHouse, applyColonnade, placeFurnitureAt, applyFinish among them), derived data cached per object (derived.ts: regions, wall thicknesses and shapes, covered area, 3-D solids), files (File System Access API, IndexedDB draft, image import) and per-browser prefs (per-style opening widths, folded panel sections, sun view settings, the View section's toggles, the Exterior's roof toggle)."
-tags: [state, undo, files, autosave, derived, prefs, tabs, roof, colonnades, fireplace, furniture, finishes, lots]
+tags: [state, undo, files, autosave, derived, prefs, tabs, roof, colonnades, fireplace, furniture, finishes, lots, storeys]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-07
 ---
 
 # Editor store and state
@@ -46,7 +46,8 @@ or `roofType`.
   `endGesture()` records the whole drag as one step, and `cancelGesture()` restores the plan.
 - `update(patch)` sets state that is not undoable (selection, tool, view, notices).
 - After an edit, undo or redo, `settle` prunes the selection (`refExists` from `plan.ts`, for segments, vertices,
-  areas, openings, roofs and furniture) and keeps the active layer valid.
+  areas, openings, roofs and furniture) and keeps the active layer valid. `setActiveLayer` drops selected items on
+  other floors than the new layer's ([Floors](storeys.md)).
 - The plan is dirty while `plan !== file.saved` (identity, not deep equality).
 - `prompt` is a `Prompt` union, `length` or `text`. `askLength(title, text)` and `askText(title, text, initial)`
   return Promises (null when cancelled) that `src/ui/PromptDialog.tsx` resolves; lengths accept `28,00` and `28.00`.
@@ -69,6 +70,8 @@ problem by a notice, adds and selects the piece) and `dropFurniture` with `FURNI
 `finishTarget`, `applyFinish` (refuses an unsuitable material by a notice, then edits and selects the wall or area)
 and `dropMaterial` with `MATERIAL_DRAG_TYPE` (data `"wall:<id>"` / `"floor:<id>"`)
 ([Materials and finishes](materials-and-finishes.md)).
+Since 2026-11-07: `showStorey`, `addFloor` and `moveLayerToStorey`; `dropOpening`, `finishTarget`, `colonnadeTarget`
+and `fitRoofToWalls` look things up in `storeyView` but edit the store's plan ([Floors](storeys.md)).
 They live here, not in `src/ui`, because state never imports from ui ([Code conventions](code-conventions.md)).
 
 ## Derived data (`src/state/derived.ts`)
@@ -82,7 +85,9 @@ the other layers' areas, `visibleAreas` filters it, and `areaSize` gives a room'
 because openings cut walls; `coveredArea` sums indoor rooms (not lots) and their walls; `drawnHalfWidth` reads
 `prefs.thickWalls` and is passed to model hit tests as a callback ([Walls](walls.md)). `getSolids(plan)` (the 3-D
 solids of the Exterior and the [Elevations](elevations.md)) is cached per plan object and built from the faces and
-walls caches ([House solids](house-solids.md)).
+walls caches ([House solids](house-solids.md)). `storeyView(plan, activeLayer, below?)`, cached per plan, is the plan
+cut to the active layer's floor (and the floor below) for the canvas; never build an edit from it
+([Floors](storeys.md)).
 
 ## Files (`src/state/files.ts`)
 

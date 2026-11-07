@@ -1,10 +1,10 @@
 ---
 title: Furniture and fixtures
 type: component
-summary: "Free-standing pieces in layer.furniture (ids f<n>): counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips, teak outdoor sofa and armchair), square, round, coffee, teak coffee and oak trestle tables, chairs, trees (shade, slender), potted plants (olive, shrub), in-ground plants (bush, agapanthus, lavender, a climber up a wall); src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
-tags: [model, furniture, ui, canvas, 3d, trees, oak, teak, plants, garden]
+summary: "Free-standing pieces in layer.furniture (ids f<n>): a straight stair to the floor above, counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips, teak outdoor sofa and armchair), square, round, coffee, teak coffee and oak trestle tables, chairs, trees (shade, slender), potted plants (olive, shrub), in-ground plants (bush, agapanthus, lavender, a climber up a wall); src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
+tags: [model, furniture, ui, canvas, 3d, trees, oak, teak, plants, garden, stairs]
 sources: []
-updated: 2026-11-06
+updated: 2026-11-07
 ---
 
 # Furniture and fixtures
@@ -78,6 +78,8 @@ the Argentine *mesa ratona*).
     `climber` ("Climber (up a wall)", 1.6 × 0.3 m, 2.6 m high, snap `wall`, picked as a rectangle, not a disc).
     `potted(style)` (true for olive and shrub only) tells the two apart. Symbols: a soft ellipse (agapanthus adds five
     flower dots); a climber is a soft rounded strip along its wall with three dots.
+  - **Stair** (`StairSchema`, kind `stair`, no style, 2026-11-07): 0.9 × 4.5 m, snap `none`; plan symbol: treads
+    (`stairTreads`), a dot at the foot, an arrow at the head. Treads, rise and 3-D: [Floors](storeys.md).
   - `furnitureSymbol`: the plan symbol as parts with roles `outline`, `detail`, `soft`, `heavy` (CSS
     `.furniture-<role>`), shared by the plan, the placing ghost and the library icons. A shower is a tray with
     diagonals, a drain, a screen line on two thirds of its front and the head; a toilet a cistern and bowl ellipses.
@@ -92,7 +94,7 @@ the Argentine *mesa ratona*).
   click calls `placeFurnitureAt`, which refuses a target with a problem by a notice.
 - **Library**: `FURNITURE_GROUPS` in `LibraryPanel.tsx` lists the `kinds` of each box. The boxes are nested in the
   Objects group (after Drawing and Materials) with the opening and colonnade boxes, and each box's id comes from the
-  first kind: `library-counter`, `library-sink`, `library-bathtub`, `library-shower`, `library-toilet` (Toilet and
+  first kind: `library-stair` (*Stairs*, first), `library-counter`, `library-sink`, `library-bathtub`, `library-shower`, `library-toilet` (Toilet and
   Bidet), `library-bed`, `library-sofa`, `library-table`, `library-chair`, with counts and sizes; `FurnitureIcon` scales the symbol into the 32×24 icon. Dragging carries
   `FURNITURE_DRAG_TYPE` (`"kind:style"`) to `dropFurniture`.
 - **Select tool**: a selected tub's or shower's shower mark is grabbed before any other hit; a lone piece is re-targeted by
@@ -104,11 +106,13 @@ the Argentine *mesa ratona*).
   (toggles `mirror`), hints, *Turn*. The field
   shows only when the piece has a style (a counter's is optional); a counter and an island differ in `snap`, so it
   never switches one into the other, and likewise a coffee table and a square or round one. The title adds the kind
-  for beds, bathtubs and tables ("Coffee table").
+  for beds, bathtubs and tables ("Coffee table"). A stair's hint gives its steps, riser height, tread depth and
+  rise to the floor above (`stairRise`), styled as a warning over a 19 cm riser.
 
 ## In 3-D
 
-`furnitureParts` (`src/model/furniture3d.ts`) gives `furniture` solids ([House solids](house-solids.md)): counter
+`furnitureParts(f, pl, rise = 3)` (`src/model/furniture3d.ts`; `rise` is for stairs, from `stairRise`) gives
+`furniture` solids ([House solids](house-solids.md)): counter
 (toe kick, wood cabinets, stone worktop at `WORKTOP` 0.90 m, where the kitchen sink's steel rim sits; an island's
 toe kick is recessed all round and its cabinets stop at the overhang, under a worktop over the whole footprint), basins and
 tubs with real holes (a corner tub: quarter-disc rim and basin, smooth), a shower riser (shared `riser` helper) from

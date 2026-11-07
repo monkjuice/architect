@@ -1,10 +1,10 @@
 ---
 title: Lots
 type: concept
-summary: "An area marked as a lot (AreaSchema.lot: true, set by setAreaLot or the Selection panel's Lot checkbox) is land, not a room: it counts as outdoor even when its boundary walls close it in, is sized to its boundary centrelines (areaSize), is left out of the floor and covered totals, is summed in the Areas panel's Lots and Lot covered % (FOS) rows, gets no 3-D slab unless finished (then a 1 cm ground cover), and has its label placed clear of the other layers' areas (planAreas)."
-tags: [model, areas, regions, finishes, 3d, state, ui, pool]
+summary: "An area marked as a lot (AreaSchema.lot: true, set by setAreaLot or the Selection panel's Lot checkbox) is land, not a room: it counts as outdoor even when its boundary walls close it in, is sized to its boundary centrelines (areaSize), is left out of the floor and covered totals, is summed in the Areas panel's Lots, Lot covered % (FOS, ground floor) and Lot built % (FOT, every floor) rows, gets no 3-D slab unless finished (then a 1 cm ground cover), and has its label placed clear of the other layers' areas (planAreas)."
+tags: [model, areas, regions, finishes, 3d, state, ui, pool, storeys]
 sources: []
-updated: 2026-11-05
+updated: 2026-11-07
 ---
 
 # Lots
@@ -35,7 +35,8 @@ on the area. The region and the indoor rule stay as they were.
   i.e. the lot lines) and `region.floor` for a room. Labels (`areaText`), the Areas panel and the selection readout
   all use it ([Areas](areas.md)).
 - **Totals.** *Total floor* and `coveredArea` leave lots out. When there are lots, the Areas panel adds *Lots* (their
-  sum) and *Lot covered* (covered ÷ lots, in %: the FOS).
+  sum) and *Lot covered* (the ground floor's covered area, `coveredArea(plan, 0)`, ÷ lots, in %: the FOS). Since
+  2026-11-07, when upper floors add covered area, *Lot built* (every floor's ÷ lots: the FOT) ([Floors](storeys.md)).
 - **3-D.** A lot gets no slab unless it has a floor finish. A finished lot gets a `GROUND` (0.01 m) cover, which sits
   under the 0.03 m floors of the house ([House solids](house-solids.md)). Since `506fd9e` the cover is open over
   every visible pool (an area with `depth`, on any layer) lying wholly inside the lot's outline.

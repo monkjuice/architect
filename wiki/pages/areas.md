@@ -2,9 +2,9 @@
 title: Areas
 type: concept
 summary: "An area is a named point ({name, at} in layer.areas) whose outline is the region of its layer's lines enclosing the point, Revit-room style; a room shows its floor area inside the wall faces and a lot (lot: true) its area to the lot lines (areaSize); coveredArea totals indoor rooms with their walls, lots excluded; regions and placed areas are cached per object in src/state/derived.ts (planAreas per plan); one area per region, \"not enclosed\" when the lines open; Area tool and label dragging."
-tags: [model, areas, regions, state, ui, lots, pool]
+tags: [model, areas, regions, state, ui, lots, pool, storeys]
 sources: []
-updated: 2026-11-06
+updated: 2026-11-07
 ---
 
 # Areas
@@ -50,7 +50,8 @@ Adapted from the Forge H1 planner's `derived.ts` ([Stack adapted from the Forge 
   areas ([Lots](lots.md)). `visibleAreas(plan)` filters it to the visible layers, bottom layer first (labels, Areas
   panel), and the select tool's `editableAreas` filters it to the editable ones.
 - `areaSize(a)`: a room's `region.floor`, a lot's `region.area`; null when not enclosed.
-- `coveredArea(plan)` (superficie cubierta, to the walls' outside faces): for each visible layer, the `floor` of
+- `coveredArea(plan, storey?)` (superficie cubierta, to the walls' outside faces; with `storey`, that floor's layers
+  only, [Floors](storeys.md)): for each visible layer, the `floor` of
   every named area whose region is `indoor` and that is not a lot, plus the `footprint` of the walls bounding those regions (`wallIds`),
   each wall once ([Walls](walls.md), [Indoor means unreachable from outside](indoor-reachability-rule.md)).
   Galleries, porches, pools and unnamed regions are left out. A 10 × 6 m house with 0.30 m outer walls comes to
@@ -61,7 +62,9 @@ Adapted from the Forge H1 planner's `derived.ts` ([Stack adapted from the Forge 
 Labels, the Area tool, the Areas panel and the Selection panel show the region's `floor`, the area inside the wall
 faces (the standard room size, [Regions](regions.md)). A lot shows its size to the centrelines instead (`areaSize`). The
 Selection panel's hint also gives the size to the centrelines. The Areas panel shows *Total floor* (rooms only) and
-*Covered, with walls* (`coveredArea`). When there are lots, it also shows *Lots* and *Lot covered* %.
+*Covered, with walls* (`coveredArea`, every floor). When there are lots, it also shows *Lots*, *Lot covered* % (ground
+floor, FOS) and, when upper floors add to it, *Lot built* % (FOT) ([Lots](lots.md)). With more than one floor the list
+is grouped under floor headings (`.area-list-floor`).
 
 ## In the editor
 
