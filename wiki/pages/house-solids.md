@@ -64,7 +64,10 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
   offset `EXTERIOR_WALL/2` to the walls' outside faces, and `stone` steps (`STEP`: rise ≤ 0.18 m, tread 0.30 m;
   ceil(level/0.18) − 1 treads, lower further out): outside each door whose side (`wallSide`) faces no covered
   region, door width + 0.3 m wide from the wall face, and along each open edge with a covered region on one side
-  only, from `EXTERIOR_WALL/2` out. Limit: two such open edges meeting at a corner leave a notch there.
+  only, from `EXTERIOR_WALL/2` out. Limit: two such open edges meeting at a corner leave a notch there. A layer on
+  a floor above (`storey`) gets `upperworks` instead: a slab under its named areas and railings (kind `railing`)
+  along open edges with a floor on one side only; there only open edges to the outside get beams
+  ([Floors](storeys.md)). Stairs get their rise from `stairRise`.
 - No automatic roof: roofs come only from `layer.roofs` ([Roofs are drawn outlines](roofs-drawn-outlines.md)).
   Each gives one `roof` solid ([Roofs: model and geometry](roofs.md)); a flat one with a parapet adds a `parapet`
   ring on its eaves, `PARAPET_WALL` thick, from `height + SLAB`. Since `20dcb35` the roof's `finish` (covering)

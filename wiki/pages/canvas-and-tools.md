@@ -9,6 +9,9 @@ updated: 2026-11-04
 
 # Canvas and tools
 
+Since 2026-11-07 the canvas shows only the active layer's floor, over the floor below (faded, not pickable), and
+tools find things through `storeyView` ([Floors](storeys.md)).
+
 ## Files (`src/ui/canvas/`)
 
 - `Canvas.tsx`: the `<svg>`, whose `viewBox` is the stored view in world meters. It handles the resize observer and

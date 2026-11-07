@@ -29,9 +29,10 @@ updated: 2026-11-07
 - World units are meters, with +x to the right and +y down (as in SVG).
 - Each layer is a small graph: `id`, `name`, `color` (`#rrggbb`), `visible`, `locked`, `vertices` (id → `{x, y}`)
   and `segments` (id → `{a, b}` vertex ids). Lines that share a vertex are connected, and connections exist only
-  within a layer ([Snapping and connections](snapping-and-connections.md)). An optional `level` (0 to 3 m, set
-  through `LayerPatch`) raises the layer's floor above the ground on a plinth with steps
-  ([House solids](house-solids.md)).
+  within a layer ([Snapping and connections](snapping-and-connections.md)). An optional `level` (0 to 20 m; the UI
+  keeps a ground-floor layer at 3 m or less, set through `LayerPatch`) raises the layer's floor above the ground on
+  a plinth with steps ([House solids](house-solids.md)), or, with an optional `storey` (1–3, since 2026-11-07), puts
+  it on a floor above, on a slab ([Floors](storeys.md)).
 - A segment may carry `kind: "open"` (an open edge) or `kind: "outline"` (a ground-level edge such as a pool).
   Without the key it is a wall ([Open edges and outlines are segment kinds](segment-kind-not-layer.md)).
 - A segment may also carry a positive `thickness` and `height` in meters, used only while it is a wall. Vertices
@@ -120,4 +121,4 @@ Later that day layer `furniture` (`.default({})`) came, also at version 1, and t
 and area `floor`, and after them the optional area `lot` (`z.literal(true)`), all still at version 1. On
 2026-11-05 the optional roof `finish` and `soffit` came, also at version 1, and on 2026-11-06 the optional layer
 `level`, roof `skylights` and a fifth roof type, `pergola` (`59bcfa6`). On 2026-11-07 a third column style,
-`timber` (`acdb212`), also at version 1.
+`timber` (`acdb212`), also at version 1, then layer `storey`, `level` up to 20 and the `stair` furniture kind.

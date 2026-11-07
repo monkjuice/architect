@@ -25,7 +25,9 @@ finish each side of a wall and each named floor with a material that suits it in
 whether they face outside, or set by hand) and have heights; areas show floor area inside the walls, with a
 covered total ([Walls](pages/walls.md)).
 The sun can be shown over the plan for a season and time of day, with the walls' shadows
-([Sun and shadows](pages/sun.md)). A plan is one JSON file with the photo embedded, and the latest state is
+([Sun and shadows](pages/sun.md)). Layers can go on floors above the ground (upper storeys or a loft, on a slab,
+with railings and stairs), the canvas showing one floor over the faded floor below ([Floors](pages/storeys.md)).
+A plan is one JSON file with the photo embedded, and the latest state is
 autosaved in IndexedDB. `README.md` lists the workflow, tools and keys.
 
 The bar's top row holds tabs over the same plan ([Tabs over one plan](pages/tabs-over-one-plan.md)): Floor is the

@@ -322,3 +322,7 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 
 ## [2026-11-07] update | Exterior zoom, orbit and pan keep their pace close up
 - updated: pages/exterior-tab.md (own wheel zoom to the cursor, keepAhead, panSpeed by distance)
+
+## [2026-11-07] update | Upper floors, lofts and stairs
+- created: pages/storeys.md
+- updated: pages/plan-model.md (storey, level up to 20, stair), pages/house-solids.md (upperworks), pages/canvas-and-tools.md (storeyView), overview.md, index.md
