@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { updateLayer } from '../model/edit'
-import { PRICES_SEEN, rowCost, unitPrice } from '../model/prices'
+import { PRICES_SEEN, rowCost, unitPrice, USD_MEP } from '../model/prices'
 import { CHAPTERS, type TakeoffRow } from '../model/takeoff'
 import { CHAPTER_TITLES, formatNumber, LANGUAGE_NAMES, LANGUAGES, rowText, takeoffCsv, unitText, type Lang } from '../model/takeoffText'
 import { getTakeoff } from '../state/derived'
@@ -155,7 +155,7 @@ export function MaterialsTab() {
                   <tr className="materials-chapter materials-total">
                     <th colSpan={4}>{w.total}</th>
                     <th className="number">{pesos(total, lang)}</th>
-                    <th colSpan={2} />
+                    <th colSpan={2}>{`≈ US$ ${formatNumber(total / USD_MEP, 0, lang)} (MEP ${formatNumber(USD_MEP, 1, lang)})`}</th>
                   </tr>
                 )}
               </tbody>

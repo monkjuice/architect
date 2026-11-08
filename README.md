@@ -419,7 +419,8 @@ shown (in Spanish with semicolons and decimal commas, as a spreadsheet set to Ar
   sources noted in `src/model/prices.ts` (hover a unit price for how it is sold and where it was seen; ≈ marks an
   estimate). Only rows that are bought as they are have a price: work rows (a wall's m², a footing, plaster) take
   their materials from the rows that are, so nothing is counted twice; doors, windows and gates are priced per m²
-  of opening, glass included. Each chapter shows its subtotal and the list its total.
+  of opening, glass included. Each chapter shows its subtotal and the list its total, also in dollars at the MEP
+  rate of the day the prices were seen.
 
 The build-ups, rates and dosages are constants at the top of `src/model/takeoff.ts`, the words in
 `src/model/takeoffText.ts` and the prices in `src/model/prices.ts`. Foundations are assumed until the Foundation
