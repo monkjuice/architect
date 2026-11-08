@@ -2,6 +2,7 @@ import { boundsOf, type Vec } from '../model/geometry'
 import { findLayer, storeyOf, type Area, type Layer, type Plan } from '../model/plan'
 import { labelPoint, layerFaces, regionAt, regionLabel, type LayerFaces, type Region } from '../model/regions'
 import { houseSolids, type Solid } from '../model/solids'
+import { materialsList, type TakeoffRow } from '../model/takeoff'
 import { INTERIOR_WALL, layerWalls, type LayerWalls } from '../model/walls'
 import { getPrefs } from './prefs'
 
@@ -151,4 +152,13 @@ export function getSolids(plan: Plan): Solid[] {
   let solids = solidsCache.get(plan)
   if (!solids) solidsCache.set(plan, (solids = houseSolids(plan, { faces: getFaces, walls: getWalls })))
   return solids
+}
+
+const takeoffCache = new WeakMap<Plan, TakeoffRow[]>()
+
+/** The materials list for the Materials tab, from the visible layers and their solids. */
+export function getTakeoff(plan: Plan): TakeoffRow[] {
+  let rows = takeoffCache.get(plan)
+  if (!rows) takeoffCache.set(plan, (rows = materialsList(plan, getSolids(plan), { faces: getFaces, walls: getWalls })))
+  return rows
 }

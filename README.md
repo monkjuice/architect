@@ -32,7 +32,8 @@ actions. Every tab works on the same plan, with one undo history and one file:
 | **Roof** | The roof plan: roofs drawn over the floor plan (see [Roof](#roof)). |
 | **Elevations** | The four facades, drawn from the floor plan and the roofs (see [Elevations](#elevations)). |
 | **Exterior** | The house in 3-D, built from the floor plan and the roofs (see [Exterior](#exterior)). |
-| Foundation, Interior, Plumbing, Electricity, Gas, Materials | Not built yet: shown, disabled. |
+| **Materials** | What the house needs to be built, with quantities (see [Materials list](#materials-list)). |
+| Foundation, Interior, Plumbing, Electricity, Gas | Not built yet: shown, disabled. |
 
 ## Workflow
 
@@ -387,6 +388,34 @@ and carries on through when it gets there; the point orbited stays at least 3 m 
 the speed it has 10 m away, so neither slows to a crawl when you are close. Finished walls and floors are drawn in their materials (see [Materials](#materials); brick, wood and lawn
 with a texture and relief); the rest is a fixed basic palette. three.js loads only when the tab opens.
 
+## Materials list
+
+The **Materials** tab lists what the house needs to be built, worked out from the visible layers (the *Layers*
+checkboxes leave out the street or a neighbour's lot), in the chapters of an Argentine *cómputo métrico*:
+earthworks and foundations, concrete structure, masonry, damp-proofing and insulation, plaster and paint, sub-floors
+and screeds, floors and skirting, wall finishes, ceilings, roofing, doors and windows, glazing, metalwork and timber,
+pools, fixtures, garden, and the basic materials. Each row has its quantity and unit, where it is used and how it
+was worked out. *Save CSV* downloads it for a spreadsheet.
+
+- **Measured** from the plan and the 3-D model: each side of each wall net of its openings and up to the roof
+  over it (gable ends included), floors inside the walls, skirting along the rooms' walls, roof slopes, doors,
+  windows and gates by size, glass by what holds it, columns, beams, railings, pools (lining, shell, dig), fixtures
+  and plants.
+- **Assumed** behind them, by what each wall separates and how thick it is: a wall between a room and the outside
+  (an indoor space counts when it is named or has a roof or a floor over it) is an insulated double wall when 25 cm
+  or more (12 cm solid brick, cavity, 5 cm EPS, vapour barrier, 8 cm hollow brick), else 18 or 12 cm hollow brick;
+  a partition is 18, 12 or 8 cm hollow brick; a wall with nothing indoors on either side (a boundary or garden
+  wall) is solid brick, 24 or 12 cm, in facing brick when finished in brick. Walls stand on strip footings of
+  lean concrete with rubble and a damp-proof course; load-bearing ones have ring beams at the footing and on top and
+  tie columns at most 4 m apart. Slabs (upper floors, flat roofs) are joist and block slabs; ground floors are 12 cm
+  of lean concrete on polyethylene, every built floor a 3 cm screed. Unfinished wall sides are counted as plastered
+  and painted, unfinished floors and roof coverings as "not chosen".
+- **Basic materials**: cement (50 kg bags), hydrated lime (25 kg bags), sand, gravel and rubble from the usual
+  dosages of each mortar and concrete; rebar at 90 kg per m³ of reinforced concrete.
+
+The build-ups, rates and dosages are constants at the top of `src/model/takeoff.ts`. Foundations are assumed until
+the Foundation tab exists, and a structural design will change the concrete. No prices yet.
+
 ## Tools and keys
 
 | Key | Tool / action |
@@ -457,7 +486,7 @@ changes.
   `colonnades.ts` (column styles and where columns stand), `furniture.ts` (the furniture catalogue, where pieces
   stand and snap, their plan symbols), `furniture3d.ts` (furniture in 3-D), `materials.ts` (the materials
   catalogue, which suit which surfaces, outdoors or in), `finishes.ts` (a wall's two sides, what each faces),
-  `faces.ts` (the flat faces solids are made of),
+  `faces.ts` (the flat faces solids are made of), `takeoff.ts` (the materials list and its build-ups),
   `sun.ts` (sun position, sunrise and sunset, shadows), `roofs.ts` (roof slopes, faces, eaves and the house's
   outline), `solids.ts` (the house in 3-D as solids of flat faces), `elevations.ts` (the facades from the
   solids), `snap.ts`, `pick.ts` (hit tests, loops),
