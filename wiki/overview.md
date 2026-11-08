@@ -58,7 +58,7 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   [Roofs: model and geometry](pages/roofs.md)), the house as 3-D solids made of faces with explicit normals
   (`solids.ts`, with the face builders in `faces.ts`, [House solids](pages/house-solids.md)), the elevations projected from them (`elevations.ts`,
   [Elevations tab](pages/elevations.md)) and the quantity takeoff measured from them and the plan (`takeoff.ts`, with its texts in `takeoffText.ts` and
-  prices in `prices.ts`, [Materials list](pages/materials-list.md)).
+  prices in `prices.ts`, [Materials list](pages/materials-list.md), [Local prices](pages/local-prices.md)).
 - `src/state/`: the `EditorStore` with undo and gestures, user-level actions, derived data cached per object
   (`derived.ts`, [Areas](pages/areas.md)), files and the autosaved draft, and prefs
   ([Editor store and state](pages/editor-store.md)).
@@ -144,8 +144,9 @@ Other candidates:
   groups); ceilings, roofs, doors and frames are in the table but not finishable yet, patterns show only in library
   swatches (the checkered tile excepted, drawn as squares in plan and 3-D)
   ([Materials and finishes](pages/materials-and-finishes.md)). The Materials tab (2026-11-08) is a takeoff whose
-  dosages are constants and whose wall build-ups follow only a wall's kind and thickness; its prices were still
-  empty at `b0134d3`; a Catalogue tab is still to come
+  dosages are constants and whose wall build-ups follow only a wall's kind and thickness; its prices (gathered
+  2026-11-08, 29 of 110 estimated, some sources inconsistent) go stale with inflation and need refreshing
+  ([Local prices](pages/local-prices.md)); a Catalogue tab is still to come
   ([Materials list](pages/materials-list.md)).
 - The other tabs (Foundation, Interior, Plumbing, Electricity, Gas) exist only as disabled buttons.
 - Plan shadows: each wall casts by its own height, but from its centreline, with no roofs and door gaps ignored

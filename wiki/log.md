@@ -407,3 +407,10 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/bash-hook-key-paths.md (`r.key` in an inline TypeScript heredoc blocked)
 - updated: overview.md (Materials tab languages and prices, takeoffText.ts and prices.ts, prices empty at b0134d3)
 - updated: index.md (materials-list and editor-store summaries)
+
+## [2026-11-08] update | Local prices for the materials list
+- created: pages/local-prices.md (PRICES data, PRICES_SEEN, USD_MEP, priceKey and bought-rows decision moved here, how gathered, known inconsistencies, how to refresh)
+- updated: pages/materials-list.md (Prices section now points to local-prices; ≈ US$ total)
+- updated: overview.md (prices no longer empty; stale-with-inflation open item; link)
+- updated: pages/playwright-flow-checks.md (printing "≈" crashes on the cp1252 console)
+- updated: index.md (new page; materials-list summary)

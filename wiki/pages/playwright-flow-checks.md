@@ -118,3 +118,6 @@ Found on 2026-11-08, with the Materials tab ([Materials list](materials-list.md)
 
 - **`get_by_role('button', name='Materials')` matches two buttons**: the tab and the Library's Materials group
   toggle. Scope it to `nav.tabs`.
+- **Printing "≈" (or other non-ASCII) crashes on the Windows console** with a cp1252 `UnicodeEncodeError`; in
+  `e6f545c` it struck after the screenshots were saved. Print ASCII, or `sys.stdout.reconfigure(encoding="utf-8")`
+  first (see `python -I` above).

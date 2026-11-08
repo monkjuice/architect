@@ -1,7 +1,7 @@
 ---
 title: Materials list (quantity takeoff)
 type: component
-summary: "The Materials tab: a quantity takeoff of what the house needs to be built, down to bricks, concrete, insulation, mortar, cement and lime bags, in English or Spanish and priced in ARS; src/model/takeoff.ts (materialsList → language-free TakeoffRow {chapter id, key, params, quantity, unit, where} in Argentine cómputo métrico chapters; assumptions as exported constants), takeoffText.ts (texts per key and language, number formats, takeoffCsv), prices.ts (AMBA retail prices, priceKey, rowCost; only rows bought as they are get a price), getTakeoff in derived.ts, and src/ui/MaterialsTab.tsx (Language select, Layers checkboxes, Save CSV, a table by chapter with subtotals and a total)."
+summary: "The Materials tab: a quantity takeoff of what the house needs to be built, down to bricks, concrete, insulation, mortar, cement and lime bags, in English or Spanish and priced in ARS; src/model/takeoff.ts (materialsList → language-free TakeoffRow {chapter id, key, params, quantity, unit, where} in Argentine cómputo métrico chapters; assumptions as exported constants), takeoffText.ts (texts per key and language, number formats, takeoffCsv), prices.ts (see Local prices), getTakeoff in derived.ts, and src/ui/MaterialsTab.tsx (Language select, Layers checkboxes, Save CSV, a table by chapter with subtotals and a total in ARS and ≈ US$)."
 tags: [model, ui, materials, takeoff, tabs, csv, walls, i18n, spanish, prices]
 sources: []
 updated: 2026-11-08
@@ -41,17 +41,10 @@ adds unit price and cost; in Spanish it uses `;` and decimal commas, as Argentin
 **Why language-free rows:** a row shows in any language and is priced by what it is, not by its wording. It also
 ended the old gotcha that a summed row kept its first contributor's basis: the basis is one text per key.
 
-## Prices (`src/model/prices.ts`)
+## Prices
 
-`PRICES`: price key → `{ars, sold?, source?, estimate?}`, AMBA retail in ARS with VAT, materials only, dated by
-`PRICES_SEEN`; **empty at `b0134d3`** (being gathered for the next commit). `priceKey`: catalogue materials →
-`material:<id>`; doors/windows/gates → `<kind>:<style>`, per m² of opening × w × h; paint → `paint.<side>`; fixtures
-and plants → `<kind>:<style>`; `SAME` aliases one product used twice (`eps.wall` → `eps`); else the key.
-`bought` rounds counts and bags up.
-
-**Decision:** only rows bought as they are (bricks, cement, a door) get a price. Work rows (a wall's m², footings,
-plaster, slabs) have no `PRICES` entry: their materials are already in the bought rows, so pricing them would count
-twice. Glass in windows and doors is in the opening's price.
+`src/model/prices.ts` prices bought rows only (filled in `e6f545c`); its data, key scheme, sources, known
+inconsistencies and how to refresh them are on [Local prices](local-prices.md).
 
 ## Gotchas
 
@@ -68,7 +61,7 @@ twice. Glass in windows and doors is in the opening's price.
 - `src/ui/MaterialsTab.tsx`: action row with *Language* (`prefs.language`), *Layers* checkboxes (as on the
   [Elevations tab](elevations.md)) and *Save CSV* (`-materials.csv` / `-materiales.csv`); columns Item, Quantity,
   Unit, Unit price, Cost, Where, How; chapter subtotals and a total; estimated prices marked ≈, with how sold and
-  source in the tooltip.
+  source in the tooltip; the total row also shows ≈ US$ at `USD_MEP`.
 
 On the user's plan: 143 rows at `5f4f641` (~1,240 cement bags, ~6.7 t rebar); 126 at `b0134d3`, every key with
 both texts (a probe checked).
