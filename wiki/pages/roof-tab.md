@@ -2,9 +2,9 @@
 title: Roof tab (roof plan)
 type: component
 summary: "The Roof tab: src/ui/RoofTab.tsx (Select V / Roof R / Pan H, the New roofs type = EditorState.roofType, Roof the house, Snap) over the shared Canvas in roof mode (floor plan faded, Roofs.tsx draws slopes shaded by aspect, eaves, dashed outline under an overhang, downhill arrows, labels, fireplaces' chimneys), the roof and roofSelect tools, RoofPanel (Box roofs), and the actions openTab, addRoofOutline and roofTheHouse."
-tags: [ui, roof, canvas, tools, tabs, fireplace, finishes, gallery, skylights, pergola, carport]
+tags: [ui, roof, canvas, tools, tabs, fireplace, finishes, gallery, skylights, pergola, carport, greenhouse]
 sources: []
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Roof tab (roof plan)
@@ -28,7 +28,8 @@ roof plan over the floor plan ([Roofs are drawn outlines](roofs-drawn-outlines.m
   material's colour. Since 2026-11-04 it also marks each fireplace's chimney: the flue
   from `fireplaceShape`, crossed (`flueMark`, class `.roof-chimney`; [Fireplaces](fireplaces.md)). Since `8d33d0b`
   each skylight (`skylights(roof)`, [Roofs](roofs.md)) is a `.roof-skylight` path, filled translucent blue. A
-  pergola (`59bcfa6`) draws its rafters (`pergolaRafters`) as one `.roof-rafter` path and no skylights.
+  pergola (`59bcfa6`) draws its rafters (`pergolaRafters`) as one `.roof-rafter` path and no skylights; a glass
+  roof (`8b511e3`) likewise its glazing bars, plus its `growLights` rows as a dashed pink `.roof-light` path.
 - `src/ui/canvas/tools/roof.ts`: click corners (snap, Shift 45°, the first corner is an extra snap point); click
   the first corner or press Enter to close (a right click also closes), Backspace drops a corner, Esc cancels.
 - `src/ui/canvas/tools/roofSelect.ts`: a click inside the eaves or outline picks the smallest roof on an editable
@@ -40,7 +41,8 @@ roof plan over the floor plan ([Roofs are drawn outlines](roofs-drawn-outlines.m
   [Materials and finishes](materials-and-finishes.md)), *Skylights (0: none)* (a whole number; 0 removes the key)
   and *Skylight width* (default 1 m, shown only with skylights; `8d33d0b`), areas and heights, the convexity warning
   and Delete. For a pergola, *Turn the slope* applies (only a gable's button says "ridge"), a hint explains the
-  rafters, and Skylights and Soffit are hidden. *Fit to the walls* (`acdb212`, beside Delete; its tooltip says it is
+  rafters, and Skylights and Soffit are hidden. A glass roof (`8b511e3`) hides Covering too and gets a greenhouse
+  hint and a *Grow lights* checkbox (`lights`). *Fit to the walls* (`acdb212`, beside Delete; its tooltip says it is
   for carports and pergolas between walls) calls `fitRoofToWalls`.
 
 ## Actions (`src/state/actions.ts`)

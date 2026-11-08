@@ -1,10 +1,10 @@
 ---
 title: Overview
 type: overview
-summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman, metal or timber colonnades, ground-level outlines, named areas (rooms, or lots of land with the share covered) with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs; wall-side and floor finishes from a materials catalogue) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable, hip and pergola roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
+summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman, metal or timber colonnades or glazed greenhouse sides, ground-level outlines, named areas (rooms, or lots of land with the share covered) with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs; wall-side and floor finishes from a materials catalogue) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable, hip, pergola and glass roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
 tags: [overview]
 sources: []
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Architect
@@ -17,7 +17,7 @@ on layers over it, each a wall, an open edge (porch front, colonnade) or an outl
 deck), name the areas they enclose (rooms, the porch, the pool) and mark the lots of land, which stay outdoors and
 total apart with the share the house covers ([Lots](pages/lots.md)), put doors and windows of several styles in the
 walls, gates in the fences and fireplaces against walls (their chimneys go up through the roof,
-[Fireplaces](pages/fireplaces.md)), stand Roman, metal or timber columns along open edges
+[Fireplaces](pages/fireplaces.md)), stand Roman, metal or timber columns or a greenhouse's glazed sides along open edges
 ([Colonnades](pages/colonnades.md)), furnish the rooms (counters and kitchen islands with kitchen sinks, bathroom and outdoor sinks,
 bathtubs (corner ones too) and showers with a movable shower head, toilets, bidets, beds, sofas, tables, chairs; [Furniture and fixtures](pages/furniture.md)),
 finish each side of a wall and each named floor with a material that suits it indoors or outdoors
@@ -31,8 +31,8 @@ A plan is one JSON file with the photo embedded, and the latest state is
 autosaved in IndexedDB. `README.md` lists the workflow, tools and keys.
 
 The bar's top row holds tabs over the same plan ([Tabs over one plan](pages/tabs-over-one-plan.md)): Floor is the
-drawing; Roof is a roof plan where roof outlines are drawn over the faded floor plan, each flat, shed, gable, hip or
-pergola ([Roof tab](pages/roof-tab.md)); Elevations draws the four facades from the 3-D model, view only
+drawing; Roof is a roof plan where roof outlines are drawn over the faded floor plan, each flat, shed, gable, hip,
+pergola or glass (with optional grow lights) ([Roof tab](pages/roof-tab.md)); Elevations draws the four facades from the 3-D model, view only
 ([Elevations tab](pages/elevations.md)); Exterior shows the house in 3-D under the plan's sun
 ([Exterior tab](pages/exterior-tab.md)). The other tabs (Foundation, Interior, Plumbing, Electricity, Gas,
 Materials) show but are not built.
@@ -70,7 +70,7 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   and stays folded per browser ([Code conventions](pages/code-conventions.md)). The Library has three groups, in the user's order:
   Drawing (Wall, Outline, Open edge); Materials (Walls and Floors boxes, by family); Objects, with boxes for Doors
   (single, double, sliding), Windows (fixed, sliding, double hung, awning, casement), Gates (single, double, sliding)
-  ([Door, window and gate styles](pages/opening-styles.md)), Fireplaces (masonry), Colonnades (Roman, metal, timber), then
+  ([Door, window and gate styles](pages/opening-styles.md)), Fireplaces (masonry), Colonnades (Roman, metal, timber, glazed), then
   Counters (counter, kitchen island), Sinks, Bathtubs, Showers, Toilets (toilet, bidet), Beds, Sofas, Tables and
   Chairs. Click an item to arm its tool, or drag it onto a wall, fence or open edge (furniture: anywhere on the plan;
   a material: a wall's side or a named area).

@@ -383,3 +383,11 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/house-solids.md (glass roofs and grow lights in pergolaSolids, light palette material)
 - updated: pages/plan-model.md (format history), pages/materials-and-finishes.md (steel-galvanized, 38 materials)
 - updated: index.md (colonnades, roofs and materials summaries)
+
+## [2026-11-08] update | Greenhouse: fill gaps left by the hand edit
+- updated: pages/roof-tab.md (glass bars and .roof-light rows in Roofs.tsx; RoofPanel hides Covering, adds Grow lights)
+- updated: pages/colonnades.md (library lists every COLUMN_STYLES; glass under a window up to its sill; sliding door as greenhouse door; not a new wall kind)
+- updated: pages/roofs.md (ROOF_TYPES list includes glass; ~3.10 m wall needed for 10°)
+- updated: pages/house-solids.md (summary: glazed sides, pergola and glass roofs)
+- updated: overview.md (glazed sides, glass roofs, library Colonnades)
+- updated: index.md (overview and house-solids summaries)

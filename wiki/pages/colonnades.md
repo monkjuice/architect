@@ -2,7 +2,7 @@
 title: Colonnades
 type: component
 summary: "Columns along an open edge (SegmentSchema.colonnade: roman, metal, timber or glazed, a maximum spacing): src/model/colonnades.ts (COLUMNS sizes, columnSpots shared out evenly, layerColonnades leaving out ends a wall holds, heldByWall), setColonnade, the Colonnade tool and the library's Colonnades box, ColonnadeLayer on the plan, ColonnadeFields in the Selection panel, and stone, steel or teak beams and columns in 3-D; glazed edges are a greenhouse's glass sides."
-tags: [model, colonnades, segments, 3d, ui, carport]
+tags: [model, colonnades, segments, 3d, ui, carport, greenhouse]
 sources: []
 updated: 2026-11-08
 ---
@@ -25,8 +25,9 @@ an object: [Colonnades are an open-edge setting; fireplaces are an opening kind]
     1.00 m, a 0.08 m rail; `GLAZED_BASE` {height 0.4, width 0.15} is its concrete base. In 3-D (`solids.ts`) posts,
     rail and base are galvanized steel and concrete (`slab`, kind `sill` so no level mark or roof trim applies), with
     glass (`GLASS`) from the base up to the rail; `glazedCuts` leaves out posts, base and glass across its doors, gates
-    and windows (glass goes on over them from their heads). In plan: a `.column-glass` line broken at
-    `openingSpans`, posts as filled squares. Why a colonnade style: the same reasons as the colonnade itself (splits,
+    and windows (glass goes on over them from their heads; under a window, base and glass up to its sill). Doors
+    already go on open edges, so a sliding door there is the greenhouse's glass door. In plan: a `.column-glass` line broken at
+    `openingSpans`, posts as filled squares. Why a colonnade style and not a new wall kind: the same reasons as the colonnade itself (splits,
     kind switches, tool, library, Selection panel for free), and an open edge's beam already follows the roof, which a
     greenhouse's sloping side needs; plan shadows (walls only) correctly skip glass.
   - `columnSpots(length, spacing)`: `ceil(length / spacing)` equal bays, so columns stand evenly, at most `spacing`
@@ -41,7 +42,7 @@ an object: [Colonnades are an open-edge setting; fireplaces are an opening kind]
 
 - **Colonnade tool** (`src/ui/canvas/tools/colonnade.ts`, no key): hover an open edge and click to give it
   `EditorState.columnStyle` (default roman); over a wall or outline its tag warns.
-- **Library**: a *Colonnades* box (Box id `library-colonnade`) with Roman and Metal (`ColumnIcon`). A click arms the
+- **Library**: a *Colonnades* box (Box id `library-colonnade`) with one item per `COLUMN_STYLES` (`ColumnIcon`). A click arms the
   tool; a drag carries the style under `COLONNADE_DRAG_TYPE` to `dropColonnade`.
 - `applyColonnade` (`src/state/actions.ts`), shared by the tool and the drop: refuses a line that is not an open edge
   with a notice, keeps the spacing when the same style is applied again, selects the edge and activates its layer.

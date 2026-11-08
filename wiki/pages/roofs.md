@@ -19,7 +19,7 @@ are planes: [Roofs are drawn outlines](roofs-drawn-outlines.md). They are built 
 [Plan model and file format](plan-model.md)). Ref kind `'roof'`, ids `r1`, `r2`… per layer.
 
 - `outline` (≥ 3 points): what the roof covers, usually the walls' outside faces. It does not follow the walls.
-- `type`: one of `ROOF_TYPES` (`flat`, `shed`, `gable`, `hip`, and since `59bcfa6` `pergola`); `pitch` in degrees
+- `type`: one of `ROOF_TYPES` (`flat`, `shed`, `gable`, `hip`, since `59bcfa6` `pergola`, since `8b511e3` `glass`); `pitch` in degrees
   (0–70, unused when flat).
 - `height`: the underside where it crosses the outline at an eaves side (usually the wall tops).
 - `overhang` (0–3 m): the eaves stand that far beyond the outline.
@@ -124,8 +124,9 @@ house" (read as: sloping down toward the house, where the user will add a floor 
 - The greenhouse recipe: the free sides as open edges with *Glazed* columns ([Colonnades](colonnades.md)), a glass
   roof over the outline sloping down away from the wall, *Fit to the walls* to bring its high side to the wall's
   face, and height and pitch chosen so the high side meets the wall's top. On a copy of the user's plan (Invernadero,
-  14.2 × 5.1 m against the 2.70 m brick wall), a 2.20 m low side gives only 5.4°: glass wants about 10° or more, so
-  the user was told the wall or the low side would have to change for that.
+  14.2 × 5.1 m against the 2.70 m brick wall; the fitted roof is 5.26 m deep, out to the brick face and over its 0.1 m
+  front overhang), a 2.20 m low side gives only 5.4°: glass wants about 10° or more, so
+  the user was told that stretch of wall would need to be about 3.10 m high.
 
 `ROOF_TITLES` (a record) is exported from here, not from a component file: oxlint's `react/only-export-components`
 allows only literal constants ([Code conventions](code-conventions.md)).
