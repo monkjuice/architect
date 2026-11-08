@@ -558,7 +558,7 @@ export function addOpening(plan: Plan, layerId: string, opening: Opening): { pla
   return { plan: next, id }
 }
 
-export type OpeningPatch = Partial<Pick<Opening, 'segment' | 'offset' | 'width' | 'hinge' | 'swing'>> & { style?: OpeningStyle; finish?: string; height?: number }
+export type OpeningPatch = Partial<Pick<Opening, 'segment' | 'offset' | 'width' | 'hinge' | 'swing'>> & { style?: OpeningStyle; finish?: string; height?: number; sill?: number }
 
 /** Changes a door or window; a style of the other kind is refused. The same plan when nothing changes. */
 export function updateOpening(plan: Plan, layerId: string, id: string, patch: OpeningPatch): Plan {

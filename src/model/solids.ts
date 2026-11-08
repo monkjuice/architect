@@ -35,6 +35,8 @@ import { EXTERIOR_WALL, INTERIOR_WALL, layerWalls, WALL_HEIGHT, wallHeight, type
 export const DOOR_HEAD = 2.1
 export const WINDOW_SILL = 0.9
 export const HIGH_SILL = 1.5
+/** A window's sill: its own, or the usual one for its style. */
+export const windowSill = (o: Extract<Opening, { kind: 'window' }>): number => o.sill ?? (o.style === 'awning' ? HIGH_SILL : WINDOW_SILL)
 /** A gate in an open edge (a fence) is this tall; in a wall, as tall as the wall. */
 export const GATE_HEIGHT = 1.8
 /** A beam along an open edge, under the roof. */
@@ -890,13 +892,13 @@ function openingSolids(o: Opening, p: PlacedOpening, half: number, host: Host | 
     return
   }
 
-  // a door its own height or the usual one; no taller than its wall, and with no wall over it when as tall
-  const height = o.kind === 'door' && o.height ? o.height : DOOR_HEAD
+  // a door or window its own height or the usual one; no taller than its wall, and with no wall over it when as tall
+  const height = (o.kind === 'door' || o.kind === 'window') && o.height ? o.height : DOOR_HEAD
   const head = host ? Math.min(height, host.height) : height
   if (host && host.height - head > 1e-3) put('lintel', whole, head, host.height, host.material, host.ref)
 
   if (o.kind === 'window') {
-    const sill = Math.min(o.style === 'awning' ? HIGH_SILL : WINDOW_SILL, head - 0.3)
+    const sill = Math.min(windowSill(o), head - 0.3)
     if (host) put('sill', whole, 0, sill, host.material, host.ref)
     frame(0, FRAME, sill, head)
     frame(w - FRAME, w, sill, head)

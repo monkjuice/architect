@@ -362,8 +362,9 @@ The **Exterior** tab shows the house in 3-D, built again from the visible layers
 across tabs):
 
 - walls at their thickness and height, cut by their doors, windows and gates, with the wall over each door and
-  window and under each window; doors are 2.10 m tall unless given a height of their own (Selection panel; up to their wall's, with no wall over them then) and windows reach 2.10 m, windows sit on a 0.90 m sill (awnings on
-  1.50 m), gates are as tall as their wall (1.80 m in a fence drawn as an open edge);
+  window and under each window; doors are 2.10 m tall unless given a height of their own (Selection panel; up to their wall's, with no wall over them then) and windows reach 2.10 m and sit on a 0.90 m sill (awnings on
+  1.50 m) unless given a *Top* and *Sill* of their own (Selection panel: a top up to the wall's, a sill down to 0 for
+  glass from floor to ceiling), gates are as tall as their wall (1.80 m in a fence drawn as an open edge);
 - frames, glass and closed door and gate leaves;
 - the floor of every named area (tiled under cover, paved where outlines bound it: a pool, a terrace; a lot only
   when it has a ground cover), in its material when it has one;
@@ -426,7 +427,8 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   `double`, `sliding`), `window` (`fixed`, `sliding`, `double-hung`, `awning`, `casement`), `gate`
   (`single`, `double`, `sliding`) or `fireplace` (`masonry`); `offset` is the centre's distance from the segment's `a` end, `hinge` the
   end a single leaf hangs from (a sliding gate: the end it slides towards), `swing` the side it opens or
-  slides to (a fireplace: the side it stands on) looking from `a` to `b`), and `roofs` (id → `{outline, type, pitch, height, overhang, edge,
+  slides to (a fireplace: the side it stands on) looking from `a` to `b`; a door may have its own `height`, a window
+  its own `height`, its top, and `sill`, in m above the floor), and `roofs` (id → `{outline, type, pitch, height, overhang, edge,
   parapet}`: `type` is `flat`, `shed`, `gable` or `hip`, `pitch` in degrees, `height` the underside at the
   outline in meters, `edge` the outline side a shed slopes down to or a gable's ridge runs along), and
   `furniture` (id → `{kind, style, at, angle, width, depth}`: `kind` is `counter` (style `island` for a kitchen island, none against a wall), `sink` (`outdoor`, `kitchen`,

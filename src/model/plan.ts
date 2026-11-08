@@ -121,7 +121,15 @@ export const DoorSchema = z.strictObject({
   height: z.number().positive().max(6).optional(),
 })
 
-export const WindowSchema = z.strictObject({ kind: z.literal('window'), style: z.enum(WINDOW_STYLES).default('fixed'), ...OpeningFields })
+export const WindowSchema = z.strictObject({
+  kind: z.literal('window'),
+  style: z.enum(WINDOW_STYLES).default('fixed'),
+  ...OpeningFields,
+  /** Its top, m above the floor: 2.10 when not set, as a door's (a tall pane can reach its wall's full height). */
+  height: z.number().positive().max(6).optional(),
+  /** Its sill, m above the floor: 0.90 when not set (an awning's 1.50); 0 for glass down to the floor. */
+  sill: z.number().min(0).max(5).optional(),
+})
 
 /** Gates go in fences and boundary walls (often open edges): a pedestrian leaf, a pair, or a sliding gate. */
 export const GateSchema = z.strictObject({ kind: z.literal('gate'), style: z.enum(GATE_STYLES).default('single'), ...OpeningFields })

@@ -24,7 +24,7 @@ import { fitOffset, hasHinge, hasSide, overlappingOpening, parkingRoom, placeOpe
 import { dist, screenAngleDeg } from '../../model/geometry'
 import { measureSegments } from '../../model/pick'
 import { COLUMN_STYLES, findLayer, segmentKind, type ColumnStyle, type OpeningKind, type OpeningStyle, type Ref, type SegmentKind } from '../../model/plan'
-import { DOOR_HEAD } from '../../model/solids'
+import { DOOR_HEAD, windowSill } from '../../model/solids'
 import { EXTERIOR_WALL, INTERIOR_WALL, wallHeight } from '../../model/walls'
 import { deleteSelection } from '../../state/actions'
 import { areaSize, facesOutside, getPlacedAreas, getRegions, getThickness } from '../../state/derived'
@@ -249,10 +249,26 @@ function OpeningDetails({ layerId, id }: { layerId: string; id: string }) {
             min={0.5}
             onCommit={(height) => store.edit((p) => updateOpening(p, layerId, id, { height: Math.min(height, wallHeight(layer.segments[o.segment])) }))}
           />
+        ) : o.kind === 'window' ? (
+          // its top, up to its wall's; at least 0.30 m over its sill
+          <NumberField
+            label={`Top (wall ${wallHeight(layer.segments[o.segment]).toFixed(2)} m)`}
+            value={o.height ?? DOOR_HEAD}
+            min={0.5}
+            onCommit={(height) => store.edit((p) => updateOpening(p, layerId, id, { height: Math.max(windowSill(o) + 0.3, Math.min(height, wallHeight(layer.segments[o.segment]))) }))}
+          />
         ) : (
           <div />
         )}
         {aFirst ? [gapField('a'), gapField('b')] : [gapField('b'), gapField('a')]}
+        {o.kind === 'window' && (
+          <NumberField
+            label="Sill (0: to the floor)"
+            value={windowSill(o)}
+            min={0}
+            onCommit={(sill) => store.edit((p) => updateOpening(p, layerId, id, { sill: Math.min(sill, (o.height ?? DOOR_HEAD) - 0.3) }))}
+          />
+        )}
         {o.kind === 'fireplace' && (
           <MaterialField
             label="Material (exposed brick when none)"
