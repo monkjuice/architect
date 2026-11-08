@@ -123,4 +123,5 @@ and area `floor`, and after them the optional area `lot` (`z.literal(true)`), al
 2026-11-05 the optional roof `finish` and `soffit` came, also at version 1, and on 2026-11-06 the optional layer
 `level`, roof `skylights` and a fifth roof type, `pergola` (`59bcfa6`). On 2026-11-07 a third column style,
 `timber` (`acdb212`), also at version 1, then layer `storey`, `level` up to 20 and the `stair` furniture kind. On
-2026-11-08 the optional window `height` and `sill` (`bc10958`), still at version 1.
+2026-11-08 the optional window `height` and `sill` (`bc10958`), then a fourth column style `glazed`, a sixth roof
+type `glass` and the optional roof `lights` (`8b511e3`), still at version 1.

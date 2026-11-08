@@ -86,6 +86,12 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
   covering (`roof.finish`), a `PERGOLA_SHEET` (12 mm) sheet over the eaves polygon lies on the rafter tops, palette
   `glass` when the material is `clear` (no shadow, so the rafters' shadows show through), else `roof`. No skylights
   or soffit.
+- Glass roofs (`8b511e3`) go through `pergolaSolids` too: galvanized glazing bars (palette `metal`, finish
+  `steel-galvanized`) and always a glass sheet. With `lights`, each `growLights` row hangs `GROW_LIGHT.drop` under
+  the bars: an aluminium housing, a 1 cm strip of the new palette material `light` under it (emissive pink in
+  `house.ts`, so it glows at night; from above only the housings show) and 12 mm rods up to the bars every 2 m at
+  most, three solids in all, kind `roof` (hidden with the Exterior's Roof toggle). `Overhead.roofs` leaves out any
+  roof `raftersOf` names, not only pergolas. Glazed colonnades: [Colonnades](colonnades.md).
 - Walls: one prism per `layerWalls` fill at its own wall's height (`LayerWalls.owners`, [Walls](walls.md)).
 - Under overlapping roofs, the one with the highest underside at a point counts.
 - Walls stop at roofs (`b5b8220`, per wall since `96a2afa`). After the roofs are listed, each segment's `wall` and

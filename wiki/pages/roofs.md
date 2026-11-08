@@ -1,8 +1,8 @@
 ---
 title: "Roofs: model and geometry"
 type: component
-summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip/pergola, pitch, height at the eaves sides, overhang, reference edge, parapet, covering and soffit materials; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning, unionOutlines for Roof the house, galleryRoof (a 2° shed overhanging only its open sides, via offsetEdges), and a pergola's rafters (pergolaRafters)."
-tags: [model, roof, geometry, schema, finishes, gallery, skylights, pergola, carport]
+summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip/pergola/glass, pitch, height at the eaves sides, overhang, reference edge, parapet, covering and soffit materials; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning, unionOutlines for Roof the house, galleryRoof (a 2° shed overhanging only its open sides, via offsetEdges), a pergola's rafters (pergolaRafters), and a glass roof (steel glazing bars under glass) with optional grow lights (growLights)."
+tags: [model, roof, geometry, schema, finishes, gallery, skylights, pergola, carport, greenhouse]
 sources: []
 updated: 2026-11-08
 ---
@@ -105,6 +105,27 @@ add columns (the automatic ones at ends no wall holds, or a colonnade; [Colonnad
 - The timber carport the user sent as a reference (`acdb212`) is a pergola in standing seam on a `timber`
   colonnade ([Colonnades](colonnades.md)), fitted with `fitRoof`. The user's carport lives only in their browser
   draft, so it was checked on a copy, not edited.
+
+## Glass roof and grow lights (`8b511e3`)
+
+Asked for as "an assisted light steel greenhouse" behind the house (a photo of a galvanized steel glasshouse), using
+the brick boundary wall as its back wall, under a "glass shed with steel and its assisted lights, shed pointing to the
+house" (read as: sloping down toward the house, where the user will add a floor drain).
+
+- `ROOF_TYPES` gained `glass` (title *Glass*). It is built like a pergola: one slope, no slab, soffit or skylights.
+  `raftersOf(type)` gives `RAFTER` (pergola), `GLAZING_BAR` {depth 0.06, width 0.04, spacing 0.75} (glass) or null,
+  and is the test for "a frame under a sheet" in `roofPlanes`, the Roofs panel, the roof plan and the solids.
+  `roofThickness` is bar depth + `GLASS_SHEET` (0.01). `newRoof`: pitch 10°, overhang 0.1 m.
+- `pergolaRafters` serves both, sized by `raftersOf`. Its axes and crossings were factored into private helpers
+  `slopeAxes(roof)` and `chord(ring, origin, dir)`, which `growLights` also uses.
+- `RoofSchema.lights?: true` (glass only; `updateRoof` deletes it when patched to undefined). `growLights(roof)`: rows
+  `GROW_LIGHT.spacing` (1.2 m) apart up the slope, each parallel to `edge`, so level on a shed, cut to the outline
+  inset by `GROW_LIGHT.margin` (0.3 m).
+- The greenhouse recipe: the free sides as open edges with *Glazed* columns ([Colonnades](colonnades.md)), a glass
+  roof over the outline sloping down away from the wall, *Fit to the walls* to bring its high side to the wall's
+  face, and height and pitch chosen so the high side meets the wall's top. On a copy of the user's plan (Invernadero,
+  14.2 × 5.1 m against the 2.70 m brick wall), a 2.20 m low side gives only 5.4°: glass wants about 10° or more, so
+  the user was told the wall or the low side would have to change for that.
 
 `ROOF_TITLES` (a record) is exported from here, not from a component file: oxlint's `react/only-export-components`
 allows only literal constants ([Code conventions](code-conventions.md)).

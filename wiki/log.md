@@ -376,3 +376,10 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/house-solids.md (upperworks bullet)
 - updated: pages/roofs.md (unionOutlines' optional holes array)
 - updated: pages/areas.md (known limit: deleting lines can leave two areas on one region, counted twice)
+
+## [2026-11-08] update | Greenhouse: glazed edges, glass roofs, grow lights
+- updated: pages/roofs.md (glass type, raftersOf, GLAZING_BAR, growLights, lights, greenhouse recipe and the low pitch against a 2.70 m wall)
+- updated: pages/colonnades.md (glazed style, GLAZED_BASE, glazedCuts, why a colonnade style)
+- updated: pages/house-solids.md (glass roofs and grow lights in pergolaSolids, light palette material)
+- updated: pages/plan-model.md (format history), pages/materials-and-finishes.md (steel-galvanized, 38 materials)
+- updated: index.md (colonnades, roofs and materials summaries)

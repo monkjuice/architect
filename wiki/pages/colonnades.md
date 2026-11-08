@@ -1,10 +1,10 @@
 ---
 title: Colonnades
 type: component
-summary: "Columns along an open edge (SegmentSchema.colonnade: roman, metal or timber, a maximum spacing): src/model/colonnades.ts (COLUMNS sizes, columnSpots shared out evenly, layerColonnades leaving out ends a wall holds, heldByWall), setColonnade, the Colonnade tool and the library's Colonnades box, ColonnadeLayer on the plan, ColonnadeFields in the Selection panel, and stone, steel or teak beams and columns in 3-D."
+summary: "Columns along an open edge (SegmentSchema.colonnade: roman, metal, timber or glazed, a maximum spacing): src/model/colonnades.ts (COLUMNS sizes, columnSpots shared out evenly, layerColonnades leaving out ends a wall holds, heldByWall), setColonnade, the Colonnade tool and the library's Colonnades box, ColonnadeLayer on the plan, ColonnadeFields in the Selection panel, and stone, steel or teak beams and columns in 3-D; glazed edges are a greenhouse's glass sides."
 tags: [model, colonnades, segments, 3d, ui, carport]
 sources: []
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Colonnades
@@ -14,14 +14,21 @@ an object: [Colonnades are an open-edge setting; fireplaces are an opening kind]
 
 ## Model
 
-- `SegmentSchema.colonnade?: {style, spacing}` in `src/model/plan.ts` (`COLUMN_STYLES = ['roman', 'metal', 'timber']`, types
+- `SegmentSchema.colonnade?: {style, spacing}` in `src/model/plan.ts` (`COLUMN_STYLES = ['roman', 'metal', 'timber', 'glazed']`, types
   `ColumnStyle`, `Colonnade`). It counts only while the segment is an open edge; under another kind it is kept but
   unused, like a wall's thickness ([Open edges and outlines are segment kinds](segment-kind-not-layer.md)). Splits,
   moves to other layers and kind switches carry it with the segment, with no upkeep code.
 - `src/model/colonnades.ts`:
   - `COLUMNS`: Roman 0.32 m shaft, 2.40 m spacing, 0.35 m beam; metal 0.10 m, 3.00 m, 0.20 m; timber (`acdb212`,
     from the user's photo of a timber carport) a 0.14 m square post, 3.00 m, 0.22 m.
-    `newColonnade(style)` takes the style's spacing.
+    `newColonnade(style)` takes the style's spacing. Glazed (`8b511e3`, a greenhouse's sides): 0.05 m square posts,
+    1.00 m, a 0.08 m rail; `GLAZED_BASE` {height 0.4, width 0.15} is its concrete base. In 3-D (`solids.ts`) posts,
+    rail and base are galvanized steel and concrete (`slab`, kind `sill` so no level mark or roof trim applies), with
+    glass (`GLASS`) from the base up to the rail; `glazedCuts` leaves out posts, base and glass across its doors, gates
+    and windows (glass goes on over them from their heads). In plan: a `.column-glass` line broken at
+    `openingSpans`, posts as filled squares. Why a colonnade style: the same reasons as the colonnade itself (splits,
+    kind switches, tool, library, Selection panel for free), and an open edge's beam already follows the roof, which a
+    greenhouse's sloping side needs; plan shadows (walls only) correctly skip glass.
   - `columnSpots(length, spacing)`: `ceil(length / spacing)` equal bays, so columns stand evenly, at most `spacing`
     apart, one at each end (the 17.35 m Galeria front at 2.40 m gets 9).
   - `layerColonnades(layer, thickness)`: each colonnade's columns, leaving out an end that `heldByWall` (within a

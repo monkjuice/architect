@@ -1,7 +1,7 @@
 ---
 title: Materials and finishes
 type: component
-summary: "A materials catalogue (src/model/materials.ts: 37 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares, tile sizes, a stone pool lining under water, solid oak and teak for furniture, translucent polycarbonate for pergolas; brick, wood, lawn, standing seam metal, square tiles, stacked stone, dirt road, garden-bed mulch and oak and teak grain textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides, area floors, roofs and fireplaces (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish, area.floor and roof.finish/soffit in the plan), set by the Material tool, library drags, the Selection panel or the Roofs section, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
+summary: "A materials catalogue (src/model/materials.ts: 38 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares, tile sizes, a stone pool lining under water, solid oak and teak for furniture, translucent polycarbonate for pergolas; brick, wood, lawn, standing seam metal, square tiles, stacked stone, dirt road, garden-bed mulch and oak and teak grain textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides, area floors, roofs and fireplaces (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish, area.floor and roof.finish/soffit in the plan), set by the Material tool, library drags, the Selection panel or the Roofs section, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
 tags: [model, materials, finishes, walls, areas, roof, ui, 3d, library, lots, textures, pool, fireplace, roads, furniture, oak, teak, pergola]
 sources: []
 updated: 2026-11-06
@@ -15,14 +15,15 @@ material can go on, and materials shown in groups.
 
 ## Catalogue (`src/model/materials.ts`)
 
-- `MATERIALS`: 37 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
+- `MATERIALS`: 38 entries in picker order, a family (`group`) at a time: plaster and paint, brick and stone,
   concrete, wood, ceramic, metal, glass, roofing, ground and garden. Each has `surfaces` (`wall`, `floor`,
   `ceiling`, `roof`, `door`, `frame`), `indoor`/`outdoor` flags, and `color`, `roughness`, `metalness`, `clear` for
   the renderers. `wall`, `floor`, `roof` (a roof's covering) and `ceiling` (its soffit) are used so far.
   `metal-standing-seam` (Metal; roof and wall; outdoor; dark grey, metalness 0.55) came in `20dcb35`, after the user
   showed photos of a dark standing seam roof over a wood soffit. `polycarbonate` ("Polycarbonate (translucent)",
   Roofing, roof, outdoor, #eef2f3, roughness 0.3, `clear` 0.45; `59bcfa6`) covers pergolas: being `clear`, its sheet
-  is palette `glass` and casts no shadow ([House solids](house-solids.md)).
+  is palette `glass` and casts no shadow ([House solids](house-solids.md)). `steel-galvanized` (Metal, door and frame,
+  #b3b7ba, metalness 0.8; `8b511e3`) is the finish of glazed edges' posts and rails and glass roofs' bars.
 - `pattern` draws the library swatch (`MaterialIcon`) and, since `69111af`, picks the 3-D texture for `brick`,
   `planks`, `grass` and (since `20dcb35`) `seams` (src/render/textures.ts): real-size canvases (brick 512 px/m, a
   1 × 0.516 m repeat; boards 256 px/m, 2.5 × 0.9375 m; lawn 128 px/m, 8 m, as 4 m showed as a grid from above;
