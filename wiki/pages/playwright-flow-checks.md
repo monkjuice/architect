@@ -1,7 +1,7 @@
 ---
 title: Playwright flow-check pitfalls
 type: gotcha
-summary: "Python Playwright against the SVG canvas: SVG elements have no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft may show or hide its photo (shown, F frames the whole survey and area labels take clicks) and keeps changing, folded sections render nothing, panel sections must be found by data-box not position or text (Library boxes nest), a role name \"Wall\" also matches the \"Walls\" toggle, WebGL needs SwiftShader flags and reads back blank (measure screenshots), keyboard shortcuts are ignored while a checkbox has focus, React leaves an empty style=\"\" (check e.style.fill), a long-running dev server serves stale HMR module copies, a stopped background vite can keep its port, layer names are inputs, tool buttons' text has a newline before the key, flows on the user's live plan need a pinned fixture, bash heredocs mangle escapes in inline Python, and the Exterior's wheel zoom goes through the house (four 250-unit wheel events from the aerial preset frame it)."
+summary: "Python Playwright against the SVG canvas: SVG elements have no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft may show or hide its photo (shown, F frames the whole survey and area labels take clicks) and keeps changing, folded sections render nothing, panel sections must be found by data-box not position or text (Library boxes nest), a role name \"Wall\" also matches the \"Walls\" toggle and \"Materials\" both the tab and the Library group (scope to nav.tabs), WebGL needs SwiftShader flags and reads back blank (measure screenshots), keyboard shortcuts are ignored while a checkbox has focus, React leaves an empty style=\"\" (check e.style.fill), a long-running dev server serves stale HMR module copies, a stopped background vite can keep its port, layer names are inputs, tool buttons' text has a newline before the key, flows on the user's live plan need a pinned fixture, bash heredocs mangle escapes in inline Python, and the Exterior's wheel zoom goes through the house (four 250-unit wheel events from the aerial preset frame it)."
 tags: [gotcha, testing, playwright, python, webgl, vite, react, exterior]
 sources: []
 updated: 2026-11-08
@@ -113,3 +113,8 @@ Found on 2026-11-08, taking Exterior screenshots ([Exterior tab](exterior-tab.md
 - **Exterior wheel zoom carries on through the model** (by design, near the cursor's hit point it flies along the
   ray). From the aerial preset, ten 400-unit `mouse.wheel` events ended inside the house; four 250-unit events
   framed it.
+
+Found on 2026-11-08, with the Materials tab ([Materials list](materials-list.md)):
+
+- **`get_by_role('button', name='Materials')` matches two buttons**: the tab and the Library's Materials group
+  toggle. Scope it to `nav.tabs`.

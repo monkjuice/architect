@@ -1,10 +1,10 @@
 ---
 title: Editor store and state
 type: component
-summary: "src/state/: the EditorStore (immutable plan, undo via edit/preview/endGesture, editor-only state such as the open tab, active layer, tool, line kind, door/window/gate/fireplace style to place, column style, furniture and material picks, roof type to draw, view and prompt), user-level actions (openTab, roofTheHouse, applyColonnade, placeFurnitureAt, applyFinish among them), derived data cached per object (derived.ts: regions, wall thicknesses and shapes, covered area, 3-D solids), files (File System Access API, IndexedDB draft, image import) and per-browser prefs (per-style opening widths, folded panel sections, sun view settings, the View section's toggles, the Exterior's roof toggle and Up to floor)."
+summary: "src/state/: the EditorStore (immutable plan, undo via edit/preview/endGesture, editor-only state such as the open tab, active layer, tool, line kind, door/window/gate/fireplace style to place, column style, furniture and material picks, roof type to draw, view and prompt), user-level actions (openTab, roofTheHouse, applyColonnade, placeFurnitureAt, applyFinish among them), derived data cached per object (derived.ts: regions, wall thicknesses and shapes, covered area, 3-D solids, the materials takeoff), files (File System Access API, IndexedDB draft, image import) and per-browser prefs (per-style opening widths, folded panel sections, sun view settings, the View section's toggles, the Exterior's roof toggle and Up to floor)."
 tags: [state, undo, files, autosave, derived, prefs, tabs, roof, colonnades, fireplace, furniture, finishes, lots, storeys]
 sources: []
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Editor store and state
@@ -85,7 +85,8 @@ the other layers' areas, `visibleAreas` filters it, and `areaSize` gives a room'
 because openings cut walls; `coveredArea` sums indoor rooms (not lots) and their walls; `drawnHalfWidth` reads
 `prefs.thickWalls` and is passed to model hit tests as a callback ([Walls](walls.md)). `getSolids(plan)` (the 3-D
 solids of the Exterior and the [Elevations](elevations.md)) is cached per plan object and built from the faces and
-walls caches ([House solids](house-solids.md)). `storeyView(plan, activeLayer, below?)`, cached per plan, is the plan
+walls caches ([House solids](house-solids.md)); `getTakeoff(plan)` (the Materials tab's rows, cached per plan) builds
+on `getSolids` and the same caches ([Materials list](materials-list.md)). `storeyView(plan, activeLayer, below?)`, cached per plan, is the plan
 cut to the active layer's floor (and the floor below) for the canvas; never build an edit from it
 ([Floors](storeys.md)).
 

@@ -391,3 +391,12 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/house-solids.md (summary: glazed sides, pergola and glass roofs)
 - updated: overview.md (glazed sides, glass roofs, library Colonnades)
 - updated: index.md (overview and house-solids summaries)
+
+## [2026-11-08] update | Materials tab: a quantity takeoff of what the house needs
+- created: pages/materials-list.md (takeoff.ts model and constants, what is measured from solids vs plan, wall-kind and aggregated-basis gotchas, MaterialsTab, Catalogue tab planned)
+- updated: pages/tabs-over-one-plan.md (Materials tab built; Catalogue tab planned; Layers checkboxes)
+- updated: overview.md (tabs, takeoff.ts and MaterialsTab in the architecture, Materials open item)
+- updated: pages/materials-and-finishes.md (finishes feed the takeoff; link)
+- updated: pages/editor-store.md (getTakeoff in derived.ts)
+- updated: pages/playwright-flow-checks.md ("Materials" button name clash, scope to nav.tabs)
+- updated: index.md (new page; overview, tabs, editor-store and Playwright summaries)

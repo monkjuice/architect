@@ -1,7 +1,7 @@
 ---
 title: Overview
 type: overview
-summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman, metal or timber colonnades or glazed greenhouse sides, ground-level outlines, named areas (rooms, or lots of land with the share covered) with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs; wall-side and floor finishes from a materials catalogue) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable, hip, pergola and glass roofs, four auto-drawn Elevations and a basic 3-D Exterior); architecture, stack, build/run/test, where to start and open items."
+summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman, metal or timber colonnades or glazed greenhouse sides, ground-level outlines, named areas (rooms, or lots of land with the share covered) with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs; wall-side and floor finishes from a materials catalogue) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable, hip, pergola and glass roofs, four auto-drawn Elevations, a basic 3-D Exterior and a Materials list of what it takes to build); architecture, stack, build/run/test, where to start and open items."
 tags: [overview]
 sources: []
 updated: 2026-11-08
@@ -34,8 +34,9 @@ The bar's top row holds tabs over the same plan ([Tabs over one plan](pages/tabs
 drawing; Roof is a roof plan where roof outlines are drawn over the faded floor plan, each flat, shed, gable, hip,
 pergola or glass (with optional grow lights) ([Roof tab](pages/roof-tab.md)); Elevations draws the four facades from the 3-D model, view only
 ([Elevations tab](pages/elevations.md)); Exterior shows the house in 3-D under the plan's sun
-([Exterior tab](pages/exterior-tab.md)). The other tabs (Foundation, Interior, Plumbing, Electricity, Gas,
-Materials) show but are not built.
+([Exterior tab](pages/exterior-tab.md)); Materials lists the quantities the house needs to be built, down to bricks,
+concrete and cement bags, with a CSV ([Materials list](pages/materials-list.md)). The other tabs (Foundation,
+Interior, Plumbing, Electricity, Gas) show but are not built; a Catalogue tab is planned.
 
 The user owns two lots of the survey, 8a and 10a; the tests use lot 8a
 ([Development and testing](pages/development-and-testing.md)).
@@ -55,8 +56,9 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   ([Base image placement and calibration](pages/base-image-calibration.md)), the solar math (`sun.ts`, kept
   independent of the plan's geometry for reuse, [Sun and shadows](pages/sun.md)), roof geometry (`roofs.ts`,
   [Roofs: model and geometry](pages/roofs.md)), the house as 3-D solids made of faces with explicit normals
-  (`solids.ts`, with the face builders in `faces.ts`, [House solids](pages/house-solids.md)) and the elevations projected from them (`elevations.ts`,
-  [Elevations tab](pages/elevations.md)).
+  (`solids.ts`, with the face builders in `faces.ts`, [House solids](pages/house-solids.md)), the elevations projected from them (`elevations.ts`,
+  [Elevations tab](pages/elevations.md)) and the quantity takeoff measured from them and the plan (`takeoff.ts`,
+  [Materials list](pages/materials-list.md)).
 - `src/state/`: the `EditorStore` with undo and gestures, user-level actions, derived data cached per object
   (`derived.ts`, [Areas](pages/areas.md)), files and the autosaved draft, and prefs
   ([Editor store and state](pages/editor-store.md)).
@@ -66,7 +68,7 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   tools row, then in `panels/` the Library panel in the left column and the View, Base plan, Layers, Selection,
   Areas and Sun panels on the right, around the SVG canvas and its tool controllers,
   [Canvas and tools](pages/canvas-and-tools.md)), `RoofTab.tsx` (the same canvas in roof mode, roof tools and the
-  Roofs panel), `ElevationsTab.tsx` and `exterior/ExteriorTab.tsx`. Every panel section folds from its title
+  Roofs panel), `ElevationsTab.tsx`, `exterior/ExteriorTab.tsx` and `MaterialsTab.tsx`. Every panel section folds from its title
   and stays folded per browser ([Code conventions](pages/code-conventions.md)). The Library has three groups, in the user's order:
   Drawing (Wall, Outline, Open edge); Materials (Walls and Floors boxes, by family); Objects, with boxes for Doors
   (single, double, sliding), Windows (fixed, sliding, double hung, awning, casement), Gates (single, double, sliding)
@@ -140,8 +142,10 @@ Other candidates:
   ([Open edges and outlines are segment kinds](pages/segment-kind-not-layer.md)).
 - Materials: walls and floors take finishes since 2026-11-04 (the catalogue has a compatibility table and shows in
   groups); ceilings, roofs, doors and frames are in the table but not finishable yet, patterns show only in library
-  swatches (the checkered tile excepted, drawn as squares in plan and 3-D), and the Materials tab is still not built
-  ([Materials and finishes](pages/materials-and-finishes.md)).
+  swatches (the checkered tile excepted, drawn as squares in plan and 3-D)
+  ([Materials and finishes](pages/materials-and-finishes.md)). The Materials tab (2026-11-08) is a takeoff whose
+  dosages are constants and whose wall build-ups follow only a wall's kind and thickness; a Catalogue tab is still to come
+  ([Materials list](pages/materials-list.md)).
 - The other tabs (Foundation, Interior, Plumbing, Electricity, Gas) exist only as disabled buttons.
 - Plan shadows: each wall casts by its own height, but from its centreline, with no roofs and door gaps ignored
   ([Sun and shadows](pages/sun.md)); the Exterior's 3-D shadows include roofs and openings.

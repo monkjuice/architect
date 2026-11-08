@@ -2,9 +2,9 @@
 title: Materials and finishes
 type: component
 summary: "A materials catalogue (src/model/materials.ts: 38 MATERIALS by family, each with the surfaces it suits and whether it works indoors and/or outdoors, a checkered tile drawn as squares, tile sizes, a stone pool lining under water, solid oak and teak for furniture, translucent polycarbonate for pergolas; brick, wood, lawn, standing seam metal, square tiles, stacked stone, dirt road, garden-bed mulch and oak and teak grain textured in 3-D with relief by src/render/textures.ts; suits, materialGroups, findMaterial) and finishes on wall sides, area floors, roofs and fireplaces (src/model/finishes.ts: sides named left/right looking a→b, a side outdoor unless the region past its face is an indoor room, lots counting as outdoor; finishProblem; segment.finish, area.floor and roof.finish/soffit in the plan), set by the Material tool, library drags, the Selection panel or the Roofs section, drawn in plan (Finishes.tsx, AreaFills; off with View > Materials), in 3-D and in the elevations."
-tags: [model, materials, finishes, walls, areas, roof, ui, 3d, library, lots, textures, pool, fireplace, roads, furniture, oak, teak, pergola]
+tags: [model, materials, finishes, walls, areas, roof, ui, 3d, library, lots, textures, pool, fireplace, roads, furniture, oak, teak, pergola, takeoff]
 sources: []
-updated: 2026-11-06
+updated: 2026-11-08
 ---
 
 # Materials and finishes
@@ -108,6 +108,9 @@ gallery), the finish stays, and the Selection panel lists it as "(does not suit 
 - Library: the Materials group, with Walls and Floors boxes (family subheadings and a count of wall sides or floors
   per material) ([Code conventions](code-conventions.md)). `.library-name` ellipsizes long names. The catalogue title
   "Checkered tile" was shortened for that reason: the full name overflowed.
+
+Finishes feed the Materials tab's quantity takeoff (floors, wall finishes, coverings, soffits), which is not this
+catalogue: [Materials list](materials-list.md).
 
 3-D and elevations: [House solids](house-solids.md) (face tagging and the reveal split, roof covering, soffit and
 fascia, lot covers), [Exterior tab](exterior-tab.md) (textures, face UVs along a slope, the upside-down wall UVs),
