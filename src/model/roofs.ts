@@ -426,9 +426,10 @@ export function galleryRoof(ring: readonly Vec[], rooms: readonly (readonly Vec[
 
 /**
  * The outer boundaries of polygons put together (rooms that share walls), each running clockwise on screen.
- * The polygons must share their corners where they touch, as a layer's regions do; holes are left out.
+ * The polygons must share their corners where they touch, as a layer's regions do; holes are left out, or put in
+ * `holes` when given (a space the polygons ring round, such as a courtyard).
  */
-export function unionOutlines(rings: readonly (readonly Vec[])[]): Vec[][] {
+export function unionOutlines(rings: readonly (readonly Vec[])[], holes?: Vec[][]): Vec[][] {
   const key = (p: Vec) => `${Math.round(p.x * 1e5)},${Math.round(p.y * 1e5)}`
   // every edge once; one that a neighbour runs the other way is shared, so it is inside
   type Edge = { a: Vec; b: Vec; ka: string; kb: string }
@@ -458,8 +459,10 @@ export function unionOutlines(rings: readonly (readonly Vec[])[]): Vec[][] {
       k = from.get(e.kb)?.find((n) => !used.has(n))
     }
     const ring = normalized(loop)
+    if (ring.length < 3) continue
     // what is left once rooms are put together runs the other way round a hole
-    if (ring.length >= 3 && signedArea(loop) > 0) loops.push(ring)
+    if (signedArea(loop) > 0) loops.push(ring)
+    else holes?.push(ring)
   }
   return loops
 }

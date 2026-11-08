@@ -272,10 +272,17 @@ function upperworks(layer: Layer, level: number, source: SolidsSource): Solid[] 
   })
   if (!placed.length) return out
   const floored = new Set(placed.map((p) => p.r))
-  // a hole in a floored region is open unless a named area is in it (a closet inside a room)
-  const voids = [...floored].flatMap((r) => r.holes).filter((h) => !placed.some((p) => pointInPolygon(p.a.at, h)))
+  // a hole in a floored region is open unless a named area is in it (a closet inside a room), and so is a space the
+  // floored regions ring round together (a double-height room between the rooms and a balcony), out to the faces of
+  // the walls round it
+  const ringed: Vec[][] = []
+  const outlines = unionOutlines([...floored].map((r) => r.outer), ringed)
+  const voids = [
+    ...[...floored].flatMap((r) => r.holes).filter((h) => !placed.some((p) => pointInPolygon(p.a.at, h))),
+    ...ringed.map((h) => offsetPolygon(h, -EXTERIOR_WALL / 2)),
+  ]
   const areaRef: Ref = { layer: layer.id, kind: 'area', id: placed[0].id }
-  for (const ring of unionOutlines([...floored].map((r) => r.outer))) {
+  for (const ring of outlines) {
     const holes = voids.filter((h) => pointInPolygon(h[0], ring))
     out.push(prism('floor', offsetPolygon(ring, EXTERIOR_WALL / 2), holes, level - UPPER_SLAB, level, 'slab', areaRef))
   }
