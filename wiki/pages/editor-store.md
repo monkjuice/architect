@@ -1,7 +1,7 @@
 ---
 title: Editor store and state
 type: component
-summary: "src/state/: the EditorStore (immutable plan, undo via edit/preview/endGesture, editor-only state such as the open tab, active layer, tool, line kind, door/window/gate/fireplace style to place, column style, furniture and material picks, roof type to draw, view and prompt), user-level actions (openTab, roofTheHouse, applyColonnade, placeFurnitureAt, applyFinish among them), derived data cached per object (derived.ts: regions, wall thicknesses and shapes, covered area, 3-D solids, the materials takeoff), files (File System Access API, IndexedDB draft, image import) and per-browser prefs (per-style opening widths, folded panel sections, sun view settings, the View section's toggles, the Exterior's roof toggle and Up to floor)."
+summary: "src/state/: the EditorStore (immutable plan, undo via edit/preview/endGesture, editor-only state such as the open tab, active layer, tool, line kind, door/window/gate/fireplace style to place, column style, furniture and material picks, roof type to draw, view and prompt), user-level actions (openTab, roofTheHouse, applyColonnade, placeFurnitureAt, applyFinish among them), derived data cached per object (derived.ts: regions, wall thicknesses and shapes, covered area, 3-D solids, the materials takeoff), files (File System Access API, IndexedDB draft, image import) and per-browser prefs (per-style opening widths, folded panel sections, sun view settings, the View section's toggles, the Exterior's roof toggle and Up to floor, the Materials list's language)."
 tags: [state, undo, files, autosave, derived, prefs, tabs, roof, colonnades, fireplace, furniture, finishes, lots, storeys]
 sources: []
 updated: 2026-11-08
@@ -125,7 +125,8 @@ Since the eighth session the Floor tab's View section (`src/ui/panels/ViewPanel.
 [Materials and finishes](materials-and-finishes.md)) and `sun.visible`; the top bar no longer has these. Its *Base plan* box is
 `plan.image.visible`, plan data and undoable. `roofs` is the Exterior's *Roof* toggle (hides the drawn roofs and parapets,
 [Exterior tab](exterior-tab.md)). All default on except `calibration`. `topStorey` (`34d2174`, 0..`MAX_STOREY`,
-default `MAX_STOREY` = all) is the Exterior's *Up to* floor.
+default `MAX_STOREY` = all) is the Exterior's *Up to* floor. `language` (`b0134d3`, `'en'` | `'es'`, default
+`'en'`) is the Materials tab's list language ([Materials list](materials-list.md)).
 
 `load` validates every field (types, ranges, known seasons) and falls back to its default, so a bad stored value
 never breaks the app. The sun's north and location are in the plan, not here.

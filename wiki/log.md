@@ -400,3 +400,10 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/editor-store.md (getTakeoff in derived.ts)
 - updated: pages/playwright-flow-checks.md ("Materials" button name clash, scope to nav.tabs)
 - updated: index.md (new page; overview, tabs, editor-store and Playwright summaries)
+
+## [2026-11-08] update | Materials list in Spanish, language choice, price columns
+- updated: pages/materials-list.md (language-free TakeoffRow key/params, takeoffText.ts, prices.ts and the bought-rows-only pricing decision, basis gotcha retired, Language select, subtotals and total)
+- updated: pages/editor-store.md (language pref)
+- updated: pages/bash-hook-key-paths.md (`r.key` in an inline TypeScript heredoc blocked)
+- updated: overview.md (Materials tab languages and prices, takeoffText.ts and prices.ts, prices empty at b0134d3)
+- updated: index.md (materials-list and editor-store summaries)

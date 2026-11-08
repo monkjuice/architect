@@ -35,7 +35,7 @@ drawing; Roof is a roof plan where roof outlines are drawn over the faded floor 
 pergola or glass (with optional grow lights) ([Roof tab](pages/roof-tab.md)); Elevations draws the four facades from the 3-D model, view only
 ([Elevations tab](pages/elevations.md)); Exterior shows the house in 3-D under the plan's sun
 ([Exterior tab](pages/exterior-tab.md)); Materials lists the quantities the house needs to be built, down to bricks,
-concrete and cement bags, with a CSV ([Materials list](pages/materials-list.md)). The other tabs (Foundation,
+concrete and cement bags, in English or Spanish, priced in ARS, with a CSV ([Materials list](pages/materials-list.md)). The other tabs (Foundation,
 Interior, Plumbing, Electricity, Gas) show but are not built; a Catalogue tab is planned.
 
 The user owns two lots of the survey, 8a and 10a; the tests use lot 8a
@@ -57,8 +57,8 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   independent of the plan's geometry for reuse, [Sun and shadows](pages/sun.md)), roof geometry (`roofs.ts`,
   [Roofs: model and geometry](pages/roofs.md)), the house as 3-D solids made of faces with explicit normals
   (`solids.ts`, with the face builders in `faces.ts`, [House solids](pages/house-solids.md)), the elevations projected from them (`elevations.ts`,
-  [Elevations tab](pages/elevations.md)) and the quantity takeoff measured from them and the plan (`takeoff.ts`,
-  [Materials list](pages/materials-list.md)).
+  [Elevations tab](pages/elevations.md)) and the quantity takeoff measured from them and the plan (`takeoff.ts`, with its texts in `takeoffText.ts` and
+  prices in `prices.ts`, [Materials list](pages/materials-list.md)).
 - `src/state/`: the `EditorStore` with undo and gestures, user-level actions, derived data cached per object
   (`derived.ts`, [Areas](pages/areas.md)), files and the autosaved draft, and prefs
   ([Editor store and state](pages/editor-store.md)).
@@ -144,7 +144,8 @@ Other candidates:
   groups); ceilings, roofs, doors and frames are in the table but not finishable yet, patterns show only in library
   swatches (the checkered tile excepted, drawn as squares in plan and 3-D)
   ([Materials and finishes](pages/materials-and-finishes.md)). The Materials tab (2026-11-08) is a takeoff whose
-  dosages are constants and whose wall build-ups follow only a wall's kind and thickness; a Catalogue tab is still to come
+  dosages are constants and whose wall build-ups follow only a wall's kind and thickness; its prices were still
+  empty at `b0134d3`; a Catalogue tab is still to come
   ([Materials list](pages/materials-list.md)).
 - The other tabs (Foundation, Interior, Plumbing, Electricity, Gas) exist only as disabled buttons.
 - Plan shadows: each wall casts by its own height, but from its centreline, with no roofs and door gaps ignored

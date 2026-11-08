@@ -1,55 +1,74 @@
 ---
 title: Materials list (quantity takeoff)
 type: component
-summary: "The Materials tab: a quantity takeoff of what the house needs to be built, down to bricks, concrete, insulation, mortar, cement and lime bags; src/model/takeoff.ts (materialsList → TakeoffRow {chapter, item, quantity, unit, basis, where} aggregated and ordered by Argentine cómputo métrico chapters, takeoffCsv; assumptions as constants: mixes, bags, rebar, bricks, wall build-ups, footings, slabs) measured from the house solids and the plan, getTakeoff in derived.ts, and src/ui/MaterialsTab.tsx (Layers checkboxes, Save CSV, a table by chapter)."
-tags: [model, ui, materials, takeoff, tabs, csv, walls]
+summary: "The Materials tab: a quantity takeoff of what the house needs to be built, down to bricks, concrete, insulation, mortar, cement and lime bags, in English or Spanish and priced in ARS; src/model/takeoff.ts (materialsList → language-free TakeoffRow {chapter id, key, params, quantity, unit, where} in Argentine cómputo métrico chapters; assumptions as exported constants), takeoffText.ts (texts per key and language, number formats, takeoffCsv), prices.ts (AMBA retail prices, priceKey, rowCost; only rows bought as they are get a price), getTakeoff in derived.ts, and src/ui/MaterialsTab.tsx (Language select, Layers checkboxes, Save CSV, a table by chapter with subtotals and a total)."
+tags: [model, ui, materials, takeoff, tabs, csv, walls, i18n, spanish, prices]
 sources: []
 updated: 2026-11-08
 ---
 
 # Materials list (quantity takeoff)
 
-Added on 2026-11-08 (`5f4f641`). Asked what the Materials tab is for, the user said it is "dedicated for the
-materials the house needs to be built", with construction depth too (bricks, concrete, insulation, mortar from the
-build-ups), not only finishes. A separate **Catalogue** tab for the materials catalogue itself
-([Materials and finishes](materials-and-finishes.md)) may come later; it is not in `TABS` yet.
+Added on 2026-11-08 (`5f4f641`); Spanish, a language choice and price columns the same day (`b0134d3`, asked for as
+"a translation dropdown and spanish version of the materials, and then gather the local prices"). The user wants
+construction depth (bricks, concrete, insulation, mortar from the build-ups), not only finishes. A separate
+**Catalogue** tab for the catalogue itself ([Materials and finishes](materials-and-finishes.md)) may come later.
 
 ## Model (`src/model/takeoff.ts`, pure)
 
-- `materialsList(plan, solids = houseSolids(plan), source)` returns `TakeoffRow[]` (`chapter`, `item`, `quantity`,
-  `unit` m²/m³/m/u/kg/bags, `basis` = how it was measured or assumed, `where` = layer/area names), summed by
-  chapter|item|unit and ordered by `CHAPTERS` (Argentine cómputo métrico order, from Earthworks and foundations to
-  Basic materials). `takeoffCsv(rows)` writes the CSV.
-- Every assumption is a constant at the top: `MIXES` (per-m³ dosages: H-21, lean concrete, mortars and plaster
-  coats), `BAG` (cement 50 kg, lime 25 kg), `REBAR` 90 kg/m³, `BRICKS`, `wallBuildUp`, `FOOTING`, `RING_BEAM`,
-  `TIE_COLUMN`, slabs, screeds, `JOIST_SLAB`, `FLAT_ROOF`, pool shell and dig, `WASTE`. Change figures there.
-- `wallBuildUp(kind, thickness)`: an envelope wall ≥ 0.25 m is the insulated double wall advised to the user on
-  2026-11-02 (12 cm solid brick, cavity, 5 cm EPS, vapour barrier, 8 cm hollow brick); thinner envelopes and
-  partitions are hollow brick; boundary walls solid brick 24 or 12 cm (facing brick when brick-finished).
-- From the [house solids](house-solids.md): each wall side's area is the faces of wall/lintel/sill/infill solids
-  whose normal points to that side, so net of openings and including gable infills; masonry = the mean of both
-  sides. Also glass, columns, beams, railings, chimney flues, pool linings, upper slabs.
-- From the plan: floors (`region.floor` of named areas; `dirt` skipped as existing ground), skirting, ceilings
-  (the soffit of a roof over the room), roofs via `roofSummary`, gutters and downpipes, openings grouped by kind,
-  style and size, fixtures, garden plants. Free-standing furniture (beds, sofas, tables, chairs) is left out.
+- `materialsList(plan, solids = houseSolids(plan), source)` returns `TakeoffRow[]` with **no English text**:
+  `chapter` (an id, `foundations` … `basic`), `key` (what it is: `wall`, `cement`, `door`…), `params` (`RowParams`:
+  material, `waste` fraction, side, wall `build`, thickness, style, kind, w, h, outdoor, mix), `quantity`, `unit`
+  (m²/m³/m/u/kg/bags), `where`. Rows sum by chapter|key|unit|JSON(params), ordered by `CHAPTERS`.
+- Every assumption is an exported constant (`MIXES`, `BAG`, `REBAR`, `BRICKS`, `FOOTING`, `RING_BEAM`, `JOIST_SLAB`,
+  `FLAT_ROOF`, `POOL_*`, `WASTE`, `HYDROFUGE`…); the texts quote them, so change figures there only.
+- `wallBuildUp(kind, thickness)` → `{build, leaves, insulated}`: an envelope ≥ 0.25 m is the insulated `double` wall
+  advised on 2026-11-02 (12 cm solid brick, cavity, 5 cm EPS, vapour barrier, 8 cm hollow brick); thinner envelopes
+  and partitions are hollow brick; boundary walls solid 24 or 12 cm.
+- From the [house solids](house-solids.md): each wall side's area from the faces whose normal points that way (net
+  of openings, gable infills included); masonry = the mean of both sides; glass, columns, beams, railings, flues,
+  pools, slabs. From the plan: floors (`dirt` skipped), skirting, ceilings, roofs, gutters, openings by kind, style
+  and size, fixtures, plants. Free-standing furniture is left out. Paint is one row per side.
+
+## Texts (`src/model/takeoffText.ts`)
+
+`TEXT` maps each key to `[item, basis]` in `en` and `es`, each a string or a function of (params, number
+formatter); `rowText` falls back to the bare key, so **a new key needs both texts**. Spanish chapter titles are the
+usual rubros, plus Spanish titles for the catalogue materials, styles, build-ups and mixes. `formatNumber`: English
+groups with a thin space and a point; Spanish with points and a decimal comma. `takeoffCsv(rows, lang)` (moved here)
+adds unit price and cost; in Spanish it uses `;` and decimal commas, as Argentine spreadsheets expect.
+
+**Why language-free rows:** a row shows in any language and is priced by what it is, not by its wording. It also
+ended the old gotcha that a summed row kept its first contributor's basis: the basis is one text per key.
+
+## Prices (`src/model/prices.ts`)
+
+`PRICES`: price key → `{ars, sold?, source?, estimate?}`, AMBA retail in ARS with VAT, materials only, dated by
+`PRICES_SEEN`; **empty at `b0134d3`** (being gathered for the next commit). `priceKey`: catalogue materials →
+`material:<id>`; doors/windows/gates → `<kind>:<style>`, per m² of opening × w × h; paint → `paint.<side>`; fixtures
+and plants → `<kind>:<style>`; `SAME` aliases one product used twice (`eps.wall` → `eps`); else the key.
+`bought` rounds counts and bags up.
+
+**Decision:** only rows bought as they are (bricks, cement, a door) get a price. Work rows (a wall's m², footings,
+plaster, slabs) have no `PRICES` entry: their materials are already in the bought rows, so pricing them would count
+twice. Glass in windows and doors is in the opening's price.
 
 ## Gotchas
 
-- **Wall kind is not `wallSide().outdoor` alone.** A side is indoors only on a room that is walled off, not a lot,
-  and named or built over (a roof on its floor or above, or a named upper area over it); both sides outdoor =
-  boundary, one = envelope, none = partition. With `outdoor` alone, the user's "Pared exterior" boundary walls came
-  out as insulated house walls: the land they enclose is an unnamed region (the lot is marked on another layer),
-  which [regions](regions.md) count as indoor.
-- **A summed row keeps its first contributor's `basis`**, so write bases generically ("the wall's thickness × 20 cm"),
-  not with one wall's figures.
+- **Wall kind is not `wallSide().outdoor` alone.** A side is indoors only on a walled-off room that is not a lot and
+  is named or built over; both sides outdoor = boundary, one = envelope, none = partition. With `outdoor` alone the
+  user's boundary walls came out insulated: the land they enclose is an unnamed region, which
+  [regions](regions.md) count as indoor.
+- The wall item names the drawn thickness apart ("24 cm brick wall (drawn 30 cm)"), or it read as two build-ups.
 
 ## UI and state
 
-- `getTakeoff(plan)` in `src/state/derived.ts`, cached per plan, reuses `getSolids` and the faces/walls caches, so it
-  follows layer visibility ([Editor store and state](editor-store.md)).
-- `src/ui/MaterialsTab.tsx`: the tab-actions row has *Layers* checkboxes (as on the [Elevations tab](elevations.md);
-  hiding a layer hides it on every tab) and *Save CSV* (`<file>-materials.csv`); a table by chapter (Item,
-  Quantity, Unit, Where, How) under an intro listing the assumptions. Counts round up; thousands are grouped with a
-  narrow no-break space, not a comma or point, which Argentine readers would take as a decimal.
+- `getTakeoff(plan)` in `src/state/derived.ts`, cached per plan on `getSolids`, follows layer visibility
+  ([Editor store and state](editor-store.md)).
+- `src/ui/MaterialsTab.tsx`: action row with *Language* (`prefs.language`), *Layers* checkboxes (as on the
+  [Elevations tab](elevations.md)) and *Save CSV* (`-materials.csv` / `-materiales.csv`); columns Item, Quantity,
+  Unit, Unit price, Cost, Where, How; chapter subtotals and a total; estimated prices marked ≈, with how sold and
+  source in the tooltip.
 
-On the user's plan (2026-11-08): 143 rows, e.g. ~1,240 cement bags, ~6.7 t rebar, 412 m² of insulated double wall.
+On the user's plan: 143 rows at `5f4f641` (~1,240 cement bags, ~6.7 t rebar); 126 at `b0134d3`, every key with
+both texts (a probe checked).
