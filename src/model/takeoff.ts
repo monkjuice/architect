@@ -2,7 +2,6 @@ import { dist, EPS, polygonArea, polylineLength } from './geometry'
 import { columnSpots, GLAZED_BASE, layerColonnades } from './colonnades'
 import type { Face, Vec3 } from './faces'
 import { sideNormal, wallSide, type WallSide } from './finishes'
-import { furnitureInfo } from './furniture'
 import { findMaterial } from './materials'
 import { placeOpening } from './openings'
 import { segmentKind, storeyOf, type Layer, type Plan, type Roof } from './plan'
@@ -20,122 +19,144 @@ import { INTERIOR_WALL, layerWalls, wallHeight } from './walls'
  * What the plan draws is measured: wall sides net of their openings (gable ends included, from the solids), floors
  * inside the walls, roof surfaces, openings by size, columns, pools, fixtures. What lies behind it is assumed from
  * usual practice for a house of brick walls on strip footings with ring beams and tie columns (confined masonry),
- * joist and block slabs, and the build-ups below, chosen by what each wall separates and how thick it is. Every row
- * says how it was worked out. Foundations are assumed until the Foundation tab exists, and a structural design will
- * change the concrete.
+ * joist and block slabs, and the build-ups below, chosen by what each wall separates and how thick it is.
+ * Foundations are assumed until the Foundation tab exists, and a structural design will change the concrete.
+ *
+ * Each row is a key and its parameters, the same in every language: takeoffText.ts says what it is and how it was
+ * worked out, in English or Spanish, and prices.ts what it costs.
  */
 
 export const CHAPTERS = [
-  'Earthworks and foundations',
-  'Concrete structure',
-  'Masonry',
-  'Damp-proofing and insulation',
-  'Plaster and paint',
-  'Sub-floors and screeds',
-  'Floors and skirting',
-  'Wall finishes',
-  'Ceilings',
-  'Roofing',
-  'Doors and windows',
-  'Glazing',
-  'Metalwork and timber',
-  'Pools',
-  'Fixtures',
-  'Garden',
-  'Basic materials',
+  'foundations',
+  'structure',
+  'masonry',
+  'insulation',
+  'plaster',
+  'subfloors',
+  'floors',
+  'cladding',
+  'ceilings',
+  'roofing',
+  'openings',
+  'glazing',
+  'metalwork',
+  'pools',
+  'fixtures',
+  'garden',
+  'basic',
 ] as const
 
 export type Chapter = (typeof CHAPTERS)[number]
 export type Unit = 'm²' | 'm³' | 'm' | 'u' | 'kg' | 'bags'
+export type Side = 'interior' | 'exterior'
+
+/** What tells one row of a key from another: a material, a style and size, a side, a wall's build-up. */
+export interface RowParams {
+  /** A material id (see materials.ts). */
+  material?: string
+  /** Extra for cuts, as a fraction (0.1). */
+  waste?: number
+  side?: Side
+  /** A wall's build-up (see wallBuildUp) and thickness, m. */
+  build?: WallBuild
+  thickness?: number
+  /** An opening's, a fixture's or a plant's style; for fixtures and plants, what it is. */
+  style?: string
+  kind?: string
+  /** An opening's or a stair's size, m. */
+  w?: number
+  h?: number
+  /** A floor in the open rather than covered. */
+  outdoor?: boolean
+  mix?: Mix
+}
 
 export interface TakeoffRow {
   chapter: Chapter
-  item: string
+  /** What it is: a key of takeoffText.ts, and with its parameters, of prices.ts. */
+  key: string
+  params: RowParams
   quantity: number
   unit: Unit
-  /** How it was measured or what was assumed. */
-  basis: string
   /** Where in the plan: layer, area or room names. */
   where: string[]
 }
 
 /** Mortars and concretes, per m³ of mix: cement and lime in kg, sand and gravel (or brick rubble) in m³. */
 export const MIXES = {
-  concrete: { title: 'Concrete H-21', cement: 350, lime: 0, sand: 0.55, gravel: 0.7 },
-  lean: { title: 'Lean concrete with brick rubble (1/4:1:4:8)', cement: 40, lime: 85, sand: 0.45, gravel: 0.9 },
-  masonry: { title: 'Masonry mortar and base coat (1/4:1:4)', cement: 65, lime: 165, sand: 1.1, gravel: 0 },
-  finish: { title: 'Finish coat (1/8:1:3)', cement: 30, lime: 230, sand: 1.0, gravel: 0 },
-  screed: { title: 'Cement mortar (1:3), screeds and damp-proofing', cement: 450, lime: 0, sand: 1.05, gravel: 0 },
+  concrete: { cement: 350, lime: 0, sand: 0.55, gravel: 0.7 },
+  lean: { cement: 40, lime: 85, sand: 0.45, gravel: 0.9 },
+  masonry: { cement: 65, lime: 165, sand: 1.1, gravel: 0 },
+  finish: { cement: 30, lime: 230, sand: 1.0, gravel: 0 },
+  screed: { cement: 450, lime: 0, sand: 1.05, gravel: 0 },
 } as const
 
-type Mix = keyof typeof MIXES
+export type Mix = keyof typeof MIXES
 
 /** Bags: cement in 50 kg, hydrated lime in 25 kg. Rebar per m³ of reinforced concrete, kg. Hydrofuge per kg of cement in damp-proofing. */
 export const BAG = { cement: 50, lime: 25 }
 export const REBAR = 90
-const HYDROFUGE = 0.02
+export const HYDROFUGE = 0.02
 
-/** Bricks and blocks: how many per m² of wall (breakage included) and the mortar they take, m³ per m². */
+/** Bricks and blocks: their row's key, how many per m² of wall (breakage included) and the mortar they take, m³ per m². */
 export const BRICKS = {
-  solid12: { item: 'Solid common brick 5.5 × 12 × 25 cm', units: 60, mortar: 0.035 },
-  facing12: { item: 'Facing brick 5.5 × 12 × 25 cm (ladrillo visto)', units: 60, mortar: 0.035 },
-  solid24: { item: 'Solid common brick 5.5 × 12 × 25 cm', units: 120, mortar: 0.085 },
-  facing24: { item: 'Facing brick 5.5 × 12 × 25 cm (ladrillo visto)', units: 120, mortar: 0.085 },
-  hollow8: { item: 'Hollow ceramic brick 8 × 18 × 33 cm', units: 16, mortar: 0.012 },
-  hollow12: { item: 'Hollow ceramic brick 12 × 18 × 33 cm', units: 16, mortar: 0.016 },
-  hollow18: { item: 'Hollow ceramic brick 18 × 18 × 33 cm', units: 16, mortar: 0.022 },
+  solid12: { key: 'brick.solid', units: 60, mortar: 0.035 },
+  facing12: { key: 'brick.facing', units: 60, mortar: 0.035 },
+  solid24: { key: 'brick.solid', units: 120, mortar: 0.085 },
+  facing24: { key: 'brick.facing', units: 120, mortar: 0.085 },
+  hollow8: { key: 'brick.hollow8', units: 16, mortar: 0.012 },
+  hollow12: { key: 'brick.hollow12', units: 16, mortar: 0.016 },
+  hollow18: { key: 'brick.hollow18', units: 16, mortar: 0.022 },
 }
 
 type Brick = keyof typeof BRICKS
 
+export type WallBuild = 'double' | 'exterior18' | 'exterior12' | 'partition18' | 'partition12' | 'partition8' | 'solid24' | 'solid12'
+
 /**
  * A wall's build-up, by what it separates and how thick it is: a room from the outside (the envelope), two rooms (a
  * partition) or nothing indoors (a boundary or garden wall). Its leaves from the outside in; a solid brick leaf
- * facing the outside is facing brick when that side is finished in brick.
+ * facing the outside is facing brick when that side is finished in brick. The insulated one has 5 cm of EPS and a
+ * vapour barrier in its cavity.
  */
-interface WallBuildUp {
-  title: string
-  leaves: Brick[]
-  /** 5 cm of EPS and a vapour barrier in its cavity. */
-  insulated?: boolean
-}
-
-export function wallBuildUp(kind: 'envelope' | 'partition' | 'boundary', thickness: number): WallBuildUp {
+export function wallBuildUp(kind: 'envelope' | 'partition' | 'boundary', thickness: number): { build: WallBuild; leaves: Brick[]; insulated?: boolean } {
   if (kind === 'envelope') {
-    if (thickness >= 0.25) return { title: 'Insulated double wall: 12 cm solid brick, cavity, 5 cm EPS, 8 cm hollow brick', leaves: ['solid12', 'hollow8'], insulated: true }
-    return thickness >= 0.17 ? { title: 'Exterior wall of 18 cm hollow brick', leaves: ['hollow18'] } : { title: 'Exterior wall of 12 cm hollow brick', leaves: ['hollow12'] }
+    if (thickness >= 0.25) return { build: 'double', leaves: ['solid12', 'hollow8'], insulated: true }
+    return thickness >= 0.17 ? { build: 'exterior18', leaves: ['hollow18'] } : { build: 'exterior12', leaves: ['hollow12'] }
   }
-  if (kind === 'boundary') return thickness >= 0.25 ? { title: 'Solid brick wall, 24 cm', leaves: ['solid24'] } : { title: 'Solid brick wall, 12 cm', leaves: ['solid12'] }
-  if (thickness >= 0.17) return { title: 'Partition of 18 cm hollow brick', leaves: ['hollow18'] }
-  return thickness >= 0.1 ? { title: 'Partition of 12 cm hollow brick', leaves: ['hollow12'] } : { title: 'Partition of 8 cm hollow brick', leaves: ['hollow8'] }
+  if (kind === 'boundary') return thickness >= 0.25 ? { build: 'solid24', leaves: ['solid24'] } : { build: 'solid12', leaves: ['solid12'] }
+  if (thickness >= 0.17) return { build: 'partition18', leaves: ['hollow18'] }
+  return thickness >= 0.1 ? { build: 'partition12', leaves: ['hollow12'] } : { build: 'partition8', leaves: ['hollow8'] }
 }
 
 /** Plaster: the base coat and the finish coat, m³ of mix per m². */
-const PLASTER = { base: 0.02, finish: 0.005 }
+export const PLASTER = { base: 0.02, finish: 0.005 }
 /** A strip footing under a wall: its width beyond the wall's thickness (at least `min`) and its depth, m. */
-const FOOTING = { extra: 0.15, min: 0.3, deep: 0.6, shallow: 0.4 }
+export const FOOTING = { extra: 0.15, min: 0.3, deep: 0.6, shallow: 0.4 }
 /** A ring beam's depth, and tie columns' side and the most they stand apart along a load-bearing wall, m. */
-const RING_BEAM = 0.2
-const TIE_COLUMN = { side: 0.2, spacing: 4 }
-/** A ground floor's lean concrete sub-floor and the screed over every built floor, m. */
-const SUB_FLOOR = 0.12
-const PAVING_BASE = 0.1
-const SCREED = 0.03
+export const RING_BEAM = 0.2
+export const TIE_COLUMN = { side: 0.2, spacing: 4 }
+/** A ground floor's lean concrete sub-floor, an outdoor paving's base and the screed over every built floor, m. */
+export const SUB_FLOOR = 0.12
+export const PAVING_BASE = 0.1
+export const SCREED = 0.03
 /**
  * A joist and block slab (losa de viguetas): prestressed joists 0.50 m apart, ceramic blocks between them and a 5 cm
  * concrete topping on a welded mesh; per m² of slab.
  */
-const JOIST_SLAB = { joists: 2, blocks: 8, concrete: 0.065, mesh: 1.1 }
-/** A flat roof over its slab: a sloping lean concrete fill (its average depth, m), and a membrane's laps and upturns. */
-const FLAT_ROOF = { slope: 0.08, membrane: 1.15, drainArea: 40 }
+export const JOIST_SLAB = { joists: 2, blocks: 8, concrete: 0.065, mesh: 1.1 }
+/** A flat roof over its slab: a sloping lean concrete fill (its average depth, m), a membrane's laps and upturns, a drain per area. */
+export const FLAT_ROOF = { slope: 0.08, membrane: 1.15, drainArea: 40 }
 /** A pool's concrete shell, m thick; how much deeper than the pool its dig goes, m. */
-const POOL_SHELL = 0.2
-const POOL_DIG = 0.25
+export const POOL_SHELL = 0.2
+export const POOL_DIG = 0.25
 /** Extra for cuts and breakage: tiles and boards, sheets and rolls, the rest. */
-const WASTE = { tiles: 1.1, sheet: 1.05, other: 1.05 }
+export const WASTE = { tiles: 0.1, sheet: 0.05, other: 0.05 }
+/** A grow light's bar, m; a gutter's length per downpipe, m. */
+export const GROW_BAR = 1.2
+export const PER_DOWNPIPE = 10
 
 const round = (x: number) => Math.round(x * 100) / 100
-const size = (w: number, h: number) => `${round(w).toFixed(2)} × ${round(h).toFixed(2)} m`
 
 /** A planar ring's area in 3-D (Newell's method). */
 function ringArea(pts: readonly Vec3[]): number {
@@ -159,37 +180,39 @@ const footprint = (s: Solid) => Math.max(0, ...s.faces.filter((f) => Math.abs(f.
 
 const direct: SolidsSource = { faces: layerFaces, walls: (layer) => layerWalls(layer, layerFaces(layer).thickness) }
 
+type Add = (chapter: Chapter, key: string, unit: Unit, quantity: number, where?: string, params?: RowParams) => void
+
 export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids(plan), source: SolidsSource = direct): TakeoffRow[] {
   const rows = new Map<string, TakeoffRow>()
   const mixes = new Map<Mix, number>()
   let rebar = 0
   let hydrofuge = 0
 
-  const add = (chapter: Chapter, item: string, unit: Unit, quantity: number, basis: string, where?: string) => {
+  const add: Add = (chapter, key, unit, quantity, where, params = {}) => {
     if (!(quantity > 1e-9)) return
-    const key = `${chapter}|${item}|${unit}`
-    let row = rows.get(key)
-    if (!row) rows.set(key, (row = { chapter, item, quantity: 0, unit, basis, where: [] }))
+    const id = `${chapter}|${key}|${unit}|${JSON.stringify(params)}`
+    let row = rows.get(id)
+    if (!row) rows.set(id, (row = { chapter, key, params, quantity: 0, unit, where: [] }))
     row.quantity += quantity
     if (where && !row.where.includes(where)) row.where.push(where)
   }
   const mix = (m: Mix, volume: number) => mixes.set(m, (mixes.get(m) ?? 0) + volume)
   /** Reinforced concrete: its volume, and the concrete and rebar it takes. */
-  const concrete = (chapter: Chapter, item: string, volume: number, basis: string, where: string) => {
-    add(chapter, item, 'm³', volume, `${basis}; H-21 with ${REBAR} kg/m³ of rebar`, where)
+  const concrete = (chapter: Chapter, key: string, volume: number, where: string) => {
+    add(chapter, key, 'm³', volume, where)
     mix('concrete', volume)
     rebar += volume * REBAR
   }
-  const joistSlab = (area: number, item: string, where: string) => {
-    add('Concrete structure', item, 'm²', area, 'Joist and block slab: prestressed joists 0.50 m apart, ceramic blocks, 5 cm topping on a mesh', where)
-    add('Concrete structure', 'Prestressed concrete joists', 'm', area * JOIST_SLAB.joists, `${JOIST_SLAB.joists} m per m² of slab`, where)
-    add('Concrete structure', 'Ceramic slab blocks 12 × 42 × 25 cm', 'u', area * JOIST_SLAB.blocks, `${JOIST_SLAB.blocks} per m² of slab`, where)
-    add('Concrete structure', 'Welded mesh 15 × 15 cm, Ø 4.2 mm', 'm²', area * JOIST_SLAB.mesh, 'Slab area, laps included', where)
-    add('Concrete structure', 'Slab topping and ribs (H-21)', 'm³', area * JOIST_SLAB.concrete, `${JOIST_SLAB.concrete} m³ per m² of slab`, where)
+  const joistSlab = (area: number, key: string, where: string) => {
+    add('structure', key, 'm²', area, where)
+    add('structure', 'slab.joists', 'm', area * JOIST_SLAB.joists, where)
+    add('structure', 'slab.blocks', 'u', area * JOIST_SLAB.blocks, where)
+    add('structure', 'slab.mesh', 'm²', area * JOIST_SLAB.mesh, where)
+    add('structure', 'slab.topping', 'm³', area * JOIST_SLAB.concrete, where)
     mix('concrete', area * JOIST_SLAB.concrete)
   }
-  const plaster = (area: number, item: string, basis: string, where: string, coats: 'both' | 'base' = 'both') => {
-    add('Plaster and paint', item, 'm²', area, basis, where)
+  const plaster = (area: number, key: string, where: string, params: RowParams = {}, coats: 'both' | 'base' = 'both') => {
+    add('plaster', key, 'm²', area, where, params)
     mix('masonry', area * PLASTER.base)
     if (coats === 'both') mix('finish', area * PLASTER.finish)
   }
@@ -247,47 +270,46 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
       const kind = outdoor.left && outdoor.right ? 'boundary' : outdoor.left || outdoor.right ? 'envelope' : 'partition'
       const area = sides.get(`${layer.id}:${id}`) ?? { left: 0, right: 0 }
       const wall = (area.left + area.right) / 2
-      const build = wallBuildUp(kind, t)
+      const { build, leaves, insulated } = wallBuildUp(kind, t)
       const outside: WallSide | null = kind === 'envelope' ? (outdoor.left ? 'left' : 'right') : null
       const brickFinish = (side: WallSide) => findMaterial(s.finish?.[side])?.pattern === 'brick'
 
       // masonry: the wall's area at its mid-plane, its leaves' bricks and mortar
-      add('Masonry', `${build.title} (${Math.round(t * 100)} cm)`, 'm²', wall, 'Both sides, net of openings, up to the roof over it, averaged', where)
-      build.leaves.forEach((leaf, i) => {
+      add('masonry', 'wall', 'm²', wall, where, { build, thickness: round(t) })
+      leaves.forEach((leaf, i) => {
         // the outer leaf of an envelope wall (a boundary wall's only one) shows on the outside
         const exposed = i === 0 && (outside ? brickFinish(outside) : kind === 'boundary' && (brickFinish('left') || brickFinish('right')))
         const brick = BRICKS[exposed && leaf === 'solid12' ? 'facing12' : exposed && leaf === 'solid24' ? 'facing24' : leaf]
-        const per = leaf.startsWith('hollow') ? `${brick.units} per m² of wall` : `${BRICKS.solid12.units} per m² of a 12 cm leaf, ${BRICKS.solid24.units} of a 24 cm wall`
-        add('Masonry', brick.item, 'u', wall * brick.units, `${per}, breakage included`, where)
-        add('Masonry', 'Masonry mortar (1/4:1:4)', 'm³', wall * brick.mortar, 'Per brick type, joints of 1–1.5 cm', where)
+        add('masonry', brick.key, 'u', wall * brick.units, where)
+        add('masonry', 'mortar.masonry', 'm³', wall * brick.mortar, where)
         mix('masonry', wall * brick.mortar)
       })
-      if (build.insulated) {
-        add('Damp-proofing and insulation', 'EPS board 50 mm (wall cavity)', 'm²', wall * WASTE.sheet, 'Envelope walls 25 cm or more, 5% for cuts', where)
-        add('Damp-proofing and insulation', 'Polyethylene vapour barrier 200 µm', 'm²', wall * 1.1, 'Wall cavity, 10% for laps', where)
+      if (insulated) {
+        add('insulation', 'eps.wall', 'm²', wall * (1 + WASTE.sheet), where)
+        add('insulation', 'barrier.wall', 'm²', wall * 1.1, where)
       }
 
       // each side's finish: plaster and paint, exposed brick, or a cladding on a base coat
       for (const side of ['left', 'right'] as WallSide[]) {
         const sideArea = area[side]
-        const out = outdoor[side]
+        const facing: Side = outdoor[side] ? 'exterior' : 'interior'
         const m = findMaterial(s.finish?.[side])
         // the face of a solid brick leaf: an insulated wall's outside, a boundary wall's either side
-        const solidFace = (side === outside && build.leaves[0].startsWith('solid')) || kind === 'boundary'
+        const solidFace = (side === outside && leaves[0].startsWith('solid')) || kind === 'boundary'
         if (!m) {
-          plaster(sideArea, `Plaster, ${out ? 'exterior' : 'interior'} (finish not chosen)`, 'Not finished in the plan: assumed plastered and painted', where)
-          add('Plaster and paint', `Latex paint, ${out ? 'exterior' : 'interior'} (finish not chosen)`, 'm²', sideArea, 'Not finished in the plan: two coats', where)
+          plaster(sideArea, 'plaster.unchosen', where, { side: facing })
+          add('plaster', 'paint', 'm²', sideArea, where, { side: facing })
         } else if (m.pattern === 'brick' && solidFace) {
-          add('Wall finishes', `${m.title}: pointing and sealer`, 'm²', sideArea, 'Facing brick left exposed', where)
-          if (m.id === 'brick-white') add('Plaster and paint', `Latex paint, ${out ? 'exterior' : 'interior'}`, 'm²', sideArea, 'Painted brick: two coats', where)
+          add('cladding', 'brick.pointing', 'm²', sideArea, where, { material: m.id })
+          if (m.id === 'brick-white') add('plaster', 'paint', 'm²', sideArea, where, { side: facing })
         } else if (m.group === 'Plaster and paint') {
-          plaster(sideArea, `${m.title}, ${out ? 'exterior' : 'interior'}`, 'Base and finish coats', where)
-          if (m.id === 'plaster-white') add('Plaster and paint', `Latex paint, ${out ? 'exterior' : 'interior'}`, 'm²', sideArea, 'Over white plaster: two coats', where)
-          if (m.id === 'plaster-sand') add('Wall finishes', 'Textured coating (revestimiento plástico)', 'm²', sideArea, 'Over the base coat', where)
+          plaster(sideArea, 'plaster.material', where, { material: m.id, side: facing })
+          if (m.id === 'plaster-white') add('plaster', 'paint', 'm²', sideArea, where, { side: facing })
+          if (m.id === 'plaster-sand') add('cladding', 'coating.textured', 'm²', sideArea, where)
         } else {
-          plaster(sideArea, 'Base coat under claddings', 'Under a tile, stone, wood or brick cladding', where, 'base')
+          plaster(sideArea, 'plaster.base', where, {}, 'base')
           const waste = m.pattern === 'tiles' || m.pattern === 'planks' || m.pattern === 'brick' ? WASTE.tiles : WASTE.other
-          add('Wall finishes', m.title, 'm²', sideArea * waste, `${Math.round((waste - 1) * 100)}% for cuts`, where)
+          add('cladding', 'cladding', 'm²', sideArea * (1 + waste), where, { material: m.id, waste })
         }
       }
 
@@ -296,18 +318,17 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
       if (ground) {
         const width = Math.max(FOOTING.min, t + FOOTING.extra)
         const deep = t >= 0.25 ? FOOTING.deep : FOOTING.shallow
-        const trench = `The wall's thickness + ${FOOTING.extra} m wide (at least ${FOOTING.min} m), ${FOOTING.deep} m deep under walls of 25 cm or more and ${FOOTING.shallow} m under the rest`
-        add('Earthworks and foundations', 'Excavation for strip footings', 'm³', length * width * deep, `${trench}, along each wall (assumed)`, where)
-        add('Earthworks and foundations', 'Strip footing, lean concrete with brick rubble', 'm³', length * width * deep, 'The same trench, filled (assumed until the Foundation tab)', where)
+        add('foundations', 'excavation.footing', 'm³', length * width * deep, where)
+        add('foundations', 'footing', 'm³', length * width * deep, where)
         mix('lean', length * width * deep)
-        if (bearing) concrete('Earthworks and foundations', 'Foundation ring beam', length * t * RING_BEAM, `The wall's thickness × ${RING_BEAM * 100} cm, on the footing of each load-bearing wall`, where)
+        if (bearing) concrete('foundations', 'beam.foundation', length * t * RING_BEAM, where)
         const dpc = length * (2 * t + 0.3)
-        add('Damp-proofing and insulation', 'Damp-proof course (capa aisladora, cajón)', 'm²', dpc, 'Two horizontal layers and their sides: (2 × thickness + 0.30) per m of wall', where)
+        add('insulation', 'dpc', 'm²', dpc, where)
         mix('screed', dpc * 0.02)
         hydrofuge += dpc * 0.02 * MIXES.screed.cement * HYDROFUGE
       }
       if (bearing) {
-        concrete('Concrete structure', 'Ring beam on top of walls (encadenado)', length * t * RING_BEAM, `The wall's thickness × ${RING_BEAM * 100} cm, on each load-bearing wall`, where)
+        concrete('structure', 'beam.ring', length * t * RING_BEAM, where)
         const h = wallHeight(s)
         for (const k of columnSpots(length, TIE_COLUMN.spacing)) {
           const p = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }
@@ -318,12 +339,12 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
       // a precast lintel over each door and window that does not reach the top of the wall
       for (const o of Object.values(layer.openings)) {
         if (o.segment !== id || (o.kind !== 'door' && o.kind !== 'window')) continue
-        if ((o.height ?? DOOR_HEAD) < wallHeight(s) - 1e-3) add('Masonry', 'Precast concrete lintel', 'm', o.width + 0.4, 'Opening width + 0.20 m bearing each side', where)
+        if ((o.height ?? DOOR_HEAD) < wallHeight(s) - 1e-3) add('masonry', 'lintel', 'm', o.width + 0.4, where)
       }
     }
     for (const h of tieColumns.values()) {
-      add('Concrete structure', 'Tie column (columna de encadenado)', 'u', 1, `At the ends of load-bearing walls and at most ${TIE_COLUMN.spacing} m apart`, where)
-      concrete('Concrete structure', 'Tie columns', TIE_COLUMN.side * TIE_COLUMN.side * h, `${TIE_COLUMN.side * 100} × ${TIE_COLUMN.side * 100} cm, as tall as their walls`, where)
+      add('structure', 'column.tie.count', 'u', 1, where)
+      concrete('structure', 'column.tie', TIE_COLUMN.side * TIE_COLUMN.side * h, where)
     }
 
     // floors: what each named area stands on and is finished in; rooms' skirting and ceilings
@@ -334,73 +355,66 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
       if (area.depth) {
         // its lining's faces: its floor and the walls down to it
         const basin = solids.find((s) => s.ref.layer === layer.id && s.ref.kind === 'area' && s.ref.id === areaId && s.material === 'ceramic')
-        const liningArea = basin ? basin.faces.reduce((sum, f) => sum + faceArea(f), 0) : 0
-        add('Pools', 'Excavation', 'm³', r.area * (area.depth + POOL_DIG), `Its area × (depth + ${POOL_DIG} m)`, area.name)
-        concrete('Pools', 'Reinforced concrete shell', liningArea * POOL_SHELL, `${POOL_SHELL * 100} cm under its floor and walls`, area.name)
-        add('Pools', 'Waterproofing (cementitious, two coats)', 'm²', liningArea, 'Its floor and walls', area.name)
-        add('Pools', m && !m.clear ? m.title : 'Pool tile (lining not chosen)', 'm²', liningArea * WASTE.tiles, 'Its floor and walls, 10% for cuts', area.name)
+        const lining = basin ? basin.faces.reduce((sum, f) => sum + faceArea(f), 0) : 0
+        add('pools', 'pool.dig', 'm³', r.area * (area.depth + POOL_DIG), area.name)
+        concrete('pools', 'pool.shell', lining * POOL_SHELL, area.name)
+        add('pools', 'pool.waterproofing', 'm²', lining, area.name)
+        add('pools', 'pool.lining', 'm²', lining * (1 + WASTE.tiles), area.name, m && !m.clear ? { material: m.id } : {})
         continue
       }
       const covered = isCovered(r)
       const floor = r.floor
       if (m?.group === 'Ground and garden') {
-        if (m.id !== 'dirt') add('Garden', m.title, 'm²', floor, 'Its area', area.name)
+        if (m.id !== 'dirt') add('garden', 'garden.cover', 'm²', floor, area.name, { material: m.id })
         continue
       }
       if (ground) {
-        const depth = covered ? SUB_FLOOR : PAVING_BASE
-        add('Sub-floors and screeds', covered ? 'Sub-floor, lean concrete 12 cm' : 'Paving base, lean concrete 10 cm', 'm²', floor, 'Inside its walls, on compacted ground', area.name)
-        mix('lean', floor * depth)
-        if (covered) add('Damp-proofing and insulation', 'Polyethylene under the sub-floor 200 µm', 'm²', floor * 1.1, '10% for laps', area.name)
+        add('subfloors', covered ? 'subfloor' : 'paving.base', 'm²', floor, area.name)
+        mix('lean', floor * (covered ? SUB_FLOOR : PAVING_BASE))
+        if (covered) add('insulation', 'barrier.floor', 'm²', floor * 1.1, area.name)
       }
-      add('Sub-floors and screeds', 'Cement screed 3 cm (carpeta)', 'm²', floor, 'Under its floor finish', area.name)
+      add('subfloors', 'screed', 'm²', floor, area.name)
       mix('screed', floor * SCREED)
-      const waste = m?.pattern === 'tiles' || m?.checker ? WASTE.tiles : WASTE.other
-      add('Floors and skirting', m ? m.title : `Floor finish not chosen (${covered ? 'covered' : 'outdoor'})`, 'm²', floor * (m ? waste : 1), m ? `Inside its walls, ${Math.round((waste - 1) * 100)}% for cuts` : 'Inside its walls', area.name)
+      if (m) {
+        const waste = m.pattern === 'tiles' || m.checker ? WASTE.tiles : WASTE.other
+        add('floors', 'floor', 'm²', floor * (1 + waste), area.name, { material: m.id, waste })
+      } else add('floors', 'floor.unchosen', 'm²', floor, area.name, { outdoor: !covered })
       if (r.indoor) {
-        add('Floors and skirting', 'Skirting', 'm', r.walls, 'Along its walls (centrelines), doors not deducted', area.name)
+        add('floors', 'skirting', 'm', r.walls, area.name)
         // its ceiling: the soffit of the roof over it on its layer, or plaster
         const roof = Object.values(layer.roofs).find((rf) => pointInPolygon(area.at, eavesOf(rf)))
         const ceiling = findMaterial(roof?.soffit)
-        if (ceiling) add('Ceilings', ceiling.title, 'm²', floor * WASTE.other, 'The soffit of the roof over it, 5% for cuts', area.name)
-        else plaster(floor, 'Plaster ceiling (applied or suspended)', 'Its floor area', area.name)
+        if (ceiling) add('ceilings', 'ceiling', 'm²', floor * (1 + WASTE.other), area.name, { material: ceiling.id })
+        else plaster(floor, 'plaster.ceiling', area.name)
       }
     }
 
     // roofs
-    for (const roof of Object.values(layer.roofs)) roofRows(roof, layer, { add, mix, joistSlab, plaster })
+    for (const roof of Object.values(layer.roofs)) roofRows(roof, layer, add, mix, joistSlab, plaster)
 
     // doors, windows and gates by kind, style and size
     for (const o of Object.values(layer.openings)) {
       const s = layer.segments[o.segment]
       const p = s && placeOpening(layer, o)
       if (!p) continue
-      const w = Math.min(o.width, p.length)
+      const w = round(Math.min(o.width, p.length))
       const wall = segmentKind(s) === 'wall' ? wallHeight(s) : Infinity
-      if (o.kind === 'fireplace') {
-        add('Fixtures', o.style === 'parrilla' ? 'Parrilla (built-in grill), brick' : 'Masonry fireplace', 'u', 1, `${w.toFixed(2)} m wide`, where)
-        continue
-      }
-      if (o.kind === 'gate') {
-        add('Doors and windows', `Gate, ${o.style}, ${size(w, Number.isFinite(wall) ? wall : GATE_HEIGHT)}`, 'u', 1, 'Width × height', where)
-        continue
-      }
-      const head = Math.min(o.height ?? DOOR_HEAD, wall)
-      if (o.kind === 'door') add('Doors and windows', `Door, ${o.style}, ${size(w, head)}`, 'u', 1, 'Width × height, frame included', where)
+      if (o.kind === 'fireplace') add('fixtures', 'fireplace', 'u', 1, where, { style: o.style })
+      else if (o.kind === 'gate') add('openings', 'gate', 'u', 1, where, { style: o.style, w, h: round(Number.isFinite(wall) ? wall : GATE_HEIGHT) })
       else {
-        const sill = Math.min(windowSill(o), head - 0.3)
-        add('Doors and windows', `Window, ${o.style}, ${size(w, head - sill)}`, 'u', 1, `Width × height, sill at ${sill.toFixed(2)} m`, where)
+        const head = Math.min(o.height ?? DOOR_HEAD, wall)
+        const sill = o.kind === 'window' ? Math.min(windowSill(o), head - 0.3) : 0
+        add('openings', o.kind, 'u', 1, where, { style: o.style, w, h: round(head - sill) })
       }
     }
 
     // fixtures, the stair and the garden's plants (furniture that stands free is left out)
     for (const f of Object.values(layer.furniture)) {
       const style = 'style' in f ? f.style : undefined
-      const info = furnitureInfo(f.kind, style)
-      if (f.kind === 'counter') add('Fixtures', info.title, 'm', f.width, 'Its length', where)
-      else if (f.kind === 'stair') add('Fixtures', `${info.title}, ${size(f.width, f.depth)}`, 'u', 1, 'Width × run', where)
-      else if (f.kind === 'tree' || f.kind === 'plant') add('Garden', info.title, 'u', 1, 'Counted', where)
-      else if (['sink', 'bathtub', 'shower', 'toilet', 'bidet'].includes(f.kind)) add('Fixtures', f.kind === 'bathtub' ? `Bathtub, ${info.title.toLowerCase()}` : info.title, 'u', 1, 'Counted', where)
+      if (f.kind === 'counter') add('fixtures', 'counter', 'm', f.width, where, style ? { style } : {})
+      else if (f.kind === 'stair') add('fixtures', 'stair', 'u', 1, where, { w: round(f.width), h: round(f.depth) })
+      else if (f.kind === 'tree' || f.kind === 'plant') add('garden', 'plant', 'u', 1, where, { kind: f.kind, style })
+      else if (['sink', 'bathtub', 'shower', 'toilet', 'bidet'].includes(f.kind)) add('fixtures', 'fixture', 'u', 1, where, style ? { kind: f.kind, style } : { kind: f.kind })
     }
 
     // glazed edges, colonnades and plain open-edge beams and columns, measured on the solids
@@ -413,124 +427,120 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
       const length = dist(layer.vertices[seg.a], layer.vertices[seg.b])
       const h = s.top - s.bottom
       if (s.kind === 'column') {
-        if (style === 'roman') add('Metalwork and timber', 'Roman stone column', 'u', 1, `${h.toFixed(2)} m tall`, where)
-        else if (style === 'glazed') add('Metalwork and timber', 'Galvanized steel tube 50 × 50 mm (glazed sides, posts)', 'm', h, 'Post heights', where)
-        else if (style === 'metal') add('Metalwork and timber', 'Steel post Ø 100 mm', 'm', h, 'Post heights', where)
+        if (style === 'roman') add('metalwork', 'column.roman', 'u', 1, where)
+        else if (style === 'glazed') add('metalwork', 'tube.glazed.post', 'm', h, where)
+        else if (style === 'metal') add('metalwork', 'post.steel100', 'm', h, where)
         else if (style === 'timber') {
-          if (s.material === 'wood') add('Metalwork and timber', 'Teak post 14 × 14 cm', 'm', h, 'Post heights', where)
-          else if (h < 0.151) add('Metalwork and timber', 'Steel post shoe with two knee braces', 'u', 1, 'One per timber post', where)
-        } else if (s.material === 'facade') concrete('Concrete structure', 'Columns under open-edge beams', footprint(s) * h, 'Where no wall holds a beam end', where)
+          if (s.material === 'wood') add('metalwork', 'post.teak', 'm', h, where)
+          else if (h < 0.151) add('metalwork', 'post.shoe', 'u', 1, where)
+        } else if (s.material === 'facade') concrete('structure', 'column.open', footprint(s) * h, where)
       } else if (s.kind === 'beam') {
-        if (style === 'roman') add('Metalwork and timber', 'Stone beam over Roman columns', 'm', length, 'Its edge', where)
-        else if (style === 'glazed') add('Metalwork and timber', 'Galvanized steel tube 60 × 80 mm (glazed sides, top rail)', 'm', length, 'Its edge', where)
-        else if (style === 'metal') add('Metalwork and timber', 'Steel beam 120 × 200 mm', 'm', length, 'Its edge', where)
-        else if (style === 'timber') add('Metalwork and timber', 'Teak beam 14 × 22 cm', 'm', length, 'Its edge', where)
-        else concrete('Concrete structure', 'Beams along open edges', 0.15 * 0.3 * length, '15 × 30 cm under the roof', where)
+        if (style === 'roman') add('metalwork', 'beam.stone', 'm', length, where)
+        else if (style === 'glazed') add('metalwork', 'tube.glazed.rail', 'm', length, where)
+        else if (style === 'metal') add('metalwork', 'beam.steel', 'm', length, where)
+        else if (style === 'timber') add('metalwork', 'beam.teak', 'm', length, where)
+        else concrete('structure', 'beam.open', 0.15 * 0.3 * length, where)
       } else if (s.kind === 'sill' && segmentKind(seg) === 'open') {
         const volume = broadSide(s) * GLAZED_BASE.width
-        add('Concrete structure', 'Concrete base of glazed sides', 'm³', volume, `${GLAZED_BASE.width * 100} cm wide, ${GLAZED_BASE.height * 100} cm tall, doors left out`, where)
+        add('structure', 'glazed.base', 'm³', volume, where)
         mix('concrete', volume)
-      } else if (s.kind === 'railing' && s.material === 'metal' && h < 0.06) {
-        add('Metalwork and timber', 'Glass railing: steel posts every 1.5 m and a handrail', 'm', length, 'Along open edges with a floor on one side', where)
-      }
+      } else if (s.kind === 'railing' && s.material === 'metal' && h < 0.06) add('metalwork', 'railing', 'm', length, where)
     }
   }
 
   // glass, by what holds it, from the solids
   for (const s of solids) {
     if (s.material !== 'glass' || s.finish === 'water') continue
-    const layer = plan.layers.find((l) => l.id === s.ref.layer)
-    const where = layer?.name ?? ''
-    if (s.ref.kind === 'opening') add('Glazing', 'Glass in windows and doors (double glazing advised)', 'm²', broadSide(s), 'Each pane', where)
-    else if (s.kind === 'railing') add('Glazing', 'Laminated safety glass 5+5 (railings)', 'm²', broadSide(s), 'Each panel', where)
-    else if (s.kind === 'glass' && s.ref.kind === 'segment') add('Glazing', 'Tempered glass 5 mm (glazed sides)', 'm²', broadSide(s), 'Each run, between base and rail', where)
+    const where = plan.layers.find((l) => l.id === s.ref.layer)?.name
+    if (s.ref.kind === 'opening') add('glazing', 'glass.openings', 'm²', broadSide(s), where)
+    else if (s.kind === 'railing') add('glazing', 'glass.railing', 'm²', broadSide(s), where)
+    else if (s.kind === 'glass' && s.ref.kind === 'segment') add('glazing', 'glass.glazed', 'm²', broadSide(s), where)
     // a skylight's pane is two faces, up and down
-    else if (s.kind === 'glass' && s.ref.kind === 'roof') add('Glazing', 'Laminated glass 4+4 (skylights)', 'm²', s.faces.reduce((sum, f) => sum + faceArea(f), 0) / 2, 'Each skylight', where)
+    else if (s.kind === 'glass' && s.ref.kind === 'roof') add('glazing', 'glass.skylight', 'm²', s.faces.reduce((sum, f) => sum + faceArea(f), 0) / 2, where)
   }
   for (const s of solids) {
-    if (s.kind === 'chimney' && s.material === 'brick') add('Fixtures', 'Chimney flue, brick', 'm', s.top - s.bottom, 'From the fireplace to above the roof', plan.layers.find((l) => l.id === s.ref.layer)?.name)
+    if (s.kind === 'chimney' && s.material === 'brick') add('fixtures', 'chimney', 'm', s.top - s.bottom, plan.layers.find((l) => l.id === s.ref.layer)?.name)
   }
 
   // upper floors' slabs and a raised ground floor's fill, from the solids
   for (const s of solids) {
     const layer = plan.layers.find((l) => l.id === s.ref.layer)
     if (!layer || s.kind !== 'floor' || s.material !== 'slab' || s.ref.kind !== 'area') continue
-    const top = Math.max(...s.faces.filter((f) => f.normal.z > 0.99).map(faceArea), 0)
-    if (storeyOf(layer)) joistSlab(top, 'Floor slab (upper floor)', layer.name)
-    else add('Earthworks and foundations', 'Compacted fill under the raised floor', 'm³', top * (s.top - s.bottom), 'Under its rooms and galleries, out to the walls', layer.name)
+    const top = footprint(s)
+    if (storeyOf(layer)) joistSlab(top, 'slab.floor', layer.name)
+    else add('foundations', 'fill', 'm³', top * (s.top - s.bottom), layer.name)
   }
 
   // what the mortars and concretes take
   const total = { cement: 0, lime: 0, sand: 0, gravel: 0 }
   for (const [m, volume] of mixes) {
-    add('Basic materials', MIXES[m].title, 'm³', volume, 'All the work above')
+    add('basic', 'mix', 'm³', volume, undefined, { mix: m })
     for (const k of ['cement', 'lime', 'sand', 'gravel'] as const) total[k] += volume * MIXES[m][k]
   }
-  add('Basic materials', 'Portland cement, 50 kg bags', 'bags', Math.ceil(total.cement / BAG.cement), 'From the mixes')
-  add('Basic materials', 'Hydrated lime, 25 kg bags', 'bags', Math.ceil(total.lime / BAG.lime), 'From the mixes')
-  add('Basic materials', 'Sand', 'm³', total.sand, 'From the mixes')
-  add('Basic materials', 'Gravel and brick rubble', 'm³', total.gravel, 'From the mixes')
-  add('Basic materials', 'Rebar (ADN 420)', 'kg', rebar, `${REBAR} kg per m³ of reinforced concrete`)
-  add('Basic materials', 'Hydrofuge', 'kg', hydrofuge, '2% of the cement in the damp-proofing')
+  add('basic', 'cement', 'bags', Math.ceil(total.cement / BAG.cement))
+  add('basic', 'lime', 'bags', Math.ceil(total.lime / BAG.lime))
+  add('basic', 'sand', 'm³', total.sand)
+  add('basic', 'gravel', 'm³', total.gravel)
+  add('basic', 'rebar', 'kg', rebar)
+  add('basic', 'hydrofuge', 'kg', hydrofuge)
 
   return [...rows.values()].sort((x, y) => CHAPTERS.indexOf(x.chapter) - CHAPTERS.indexOf(y.chapter))
 }
 
-interface Adders {
-  add: (chapter: Chapter, item: string, unit: Unit, quantity: number, basis: string, where?: string) => void
-  mix: (m: Mix, volume: number) => void
-  joistSlab: (area: number, item: string, where: string) => void
-  plaster: (area: number, item: string, basis: string, where: string) => void
-}
-
 /** One roof: its slab or frame, covering, insulation, gutters and downpipes, eaves soffit, a glass roof's grow lights. */
-function roofRows(roof: Roof, layer: Layer, { add, mix, joistSlab, plaster }: Adders) {
+function roofRows(
+  roof: Roof,
+  layer: Layer,
+  add: Add,
+  mix: (m: Mix, volume: number) => void,
+  joistSlab: (area: number, key: string, where: string) => void,
+  plaster: (area: number, key: string, where: string) => void,
+) {
   const where = layer.name
   const { planArea, surface } = roofSummary(roof)
   const eaves = eavesOf(roof)
   const cover = findMaterial(roof.finish)
   if (roof.type === 'flat') {
-    joistSlab(planArea, 'Roof slab (flat roof)', where)
-    add('Roofing', 'Sloping fill, lean concrete (average 8 cm)', 'm²', planArea, 'Over the slab, down to its drains', where)
+    joistSlab(planArea, 'slab.roof', where)
+    add('roofing', 'roof.fill', 'm²', planArea, where)
     mix('lean', planArea * FLAT_ROOF.slope)
-    add('Damp-proofing and insulation', 'EPS board 50 mm (flat roof)', 'm²', planArea * WASTE.sheet, '5% for cuts', where)
-    add('Roofing', 'Asphalt membrane 4 mm with aluminium foil', 'm²', planArea * FLAT_ROOF.membrane, 'Laps and upturns: 15%', where)
-    if (cover) add('Roofing', cover.title, 'm²', planArea * WASTE.other, 'Over the membrane', where)
-    add('Roofing', 'Roof drain', 'u', Math.max(1, Math.ceil(planArea / FLAT_ROOF.drainArea)), `One per ${FLAT_ROOF.drainArea} m²`, where)
+    add('insulation', 'eps.roof', 'm²', planArea * (1 + WASTE.sheet), where)
+    add('roofing', 'roof.membrane', 'm²', planArea * FLAT_ROOF.membrane, where)
+    if (cover) add('roofing', 'roof.cover', 'm²', planArea * (1 + WASTE.other), where, { material: cover.id, waste: WASTE.other })
+    add('roofing', 'roof.drain', 'u', Math.max(1, Math.ceil(planArea / FLAT_ROOF.drainArea)), where)
     if (roof.parapet > 0) {
       const run = polylineLength(eaves, true)
-      add('Masonry', 'Parapet of 12 cm hollow brick', 'm²', run * roof.parapet, 'Round the slab', where)
-      add('Masonry', BRICKS.hollow12.item, 'u', run * roof.parapet * BRICKS.hollow12.units, `${BRICKS.hollow12.units} per m²`, where)
+      add('masonry', 'parapet', 'm²', run * roof.parapet, where)
+      add('masonry', BRICKS.hollow12.key, 'u', run * roof.parapet * BRICKS.hollow12.units, where)
       mix('masonry', run * roof.parapet * BRICKS.hollow12.mortar)
-      plaster(run * roof.parapet * 2, 'Plaster, exterior (parapets)', 'Both sides', where)
-      add('Roofing', 'Parapet coping', 'm', run, 'Round the slab', where)
+      plaster(run * roof.parapet * 2, 'plaster.parapet', where)
+      add('roofing', 'coping', 'm', run, where)
     }
     return
   }
   if (roof.type === 'pergola' || roof.type === 'glass') {
     const rafters = pergolaRafters(roof).reduce((sum, [a, b]) => sum + dist(a, b), 0)
     if (roof.type === 'pergola') {
-      add('Metalwork and timber', 'Teak rafter 7 × 20 cm (pergola)', 'm', rafters, 'Every 0.60 m, eaves to eaves', where)
-      if (cover) add('Roofing', `${cover.title} (pergola)`, 'm²', surface * WASTE.sheet, 'Its slope, 5% for laps', where)
+      add('metalwork', 'rafter.teak', 'm', rafters, where)
+      if (cover) add('roofing', 'roof.cover', 'm²', surface * (1 + WASTE.sheet), where, { material: cover.id, waste: WASTE.sheet })
       return
     }
-    add('Metalwork and timber', 'Galvanized steel glazing bar 40 × 60 mm (glass roof)', 'm', rafters, 'Every 0.75 m, eaves to eaves', where)
-    add('Roofing', 'Laminated glass 3+3 (glass roof)', 'm²', surface, 'Its slope', where)
+    add('metalwork', 'bar.glazing', 'm', rafters, where)
+    add('roofing', 'glass.roof', 'm²', surface, where)
     const lights = growLights(roof)
-    if (lights.length) {
-      const run = lights.reduce((sum, [a, b]) => sum + dist(a, b), 0)
-      add('Roofing', 'LED grow light, 1.2 m bar', 'u', lights.reduce((sum, [a, b]) => sum + Math.ceil(dist(a, b) / 1.2), 0), 'Rows of bars, 1.2 m each', where)
-      add('Roofing', 'Grow light hanging rods and cable tray', 'm', run, 'Along each row', where)
-    }
+    add('roofing', 'growlight', 'u', lights.reduce((sum, [a, b]) => sum + Math.ceil(dist(a, b) / GROW_BAR), 0), where)
+    add('roofing', 'growlight.rods', 'm', lights.reduce((sum, [a, b]) => sum + dist(a, b), 0), where)
   } else {
     // a pitched roof: its covering on steel purlins (metal) or timber rafters and battens (tiles), insulated
     const metal = cover?.group === 'Metal'
-    add('Roofing', cover ? cover.title : 'Roof covering not chosen', 'm²', surface * (metal ? WASTE.sheet : WASTE.tiles), `Its slopes, ${metal ? 5 : 10}% for laps and cuts`, where)
-    add('Damp-proofing and insulation', 'Glass wool 50 mm with aluminium foil (roof)', 'm²', surface * WASTE.sheet, 'Its slopes, 5% for laps', where)
-    if (metal) add('Roofing', 'Steel C purlin 100 mm, 1 m apart', 'm', surface, '1 m per m² of slope', where)
+    const waste = metal ? WASTE.sheet : WASTE.tiles
+    if (cover) add('roofing', 'roof.cover', 'm²', surface * (1 + waste), where, { material: cover.id, waste })
+    else add('roofing', 'roof.cover.unchosen', 'm²', surface, where)
+    add('insulation', 'glasswool.roof', 'm²', surface * (1 + WASTE.sheet), where)
+    if (metal) add('roofing', 'purlin.c100', 'm', surface, where)
     else {
-      add('Roofing', 'Timber rafter 2 × 6 in, 0.50 m apart', 'm', surface * 2, '2 m per m² of slope', where)
-      add('Roofing', 'Timber batten 1 × 2 in', 'm', surface * 3, '3 m per m² of slope', where)
+      add('roofing', 'rafter.timber', 'm', surface * 2, where)
+      add('roofing', 'batten.timber', 'm', surface * 3, where)
     }
   }
   // gutters along its eaves at the lowest height (a shed's low side, a gable's eaves, all round a hip), downpipes
@@ -541,18 +551,10 @@ function roofRows(roof: Roof, layer: Layer, { add, mix, joistSlab, plaster }: Ad
     const q = eaves[(i + 1) % eaves.length]
     if (underside(roof, planes, p) < low + 0.01 && underside(roof, planes, q) < low + 0.01) gutter += dist(p, q)
   })
-  add('Roofing', 'Gutter, galvanized sheet', 'm', gutter, 'Along its low eaves', where)
-  add('Roofing', 'Downpipe Ø 100 mm', 'u', gutter ? Math.max(1, Math.ceil(gutter / 10)) : 0, 'One per 10 m of gutter', where)
+  add('roofing', 'gutter', 'm', gutter, where)
+  add('roofing', 'downpipe', 'u', gutter ? Math.max(1, Math.ceil(gutter / PER_DOWNPIPE)) : 0, where)
   // its soffit under the overhang
   const soffit = findMaterial(roof.soffit)
   const overhang = planArea - polygonArea(roof.outline)
-  if (soffit && overhang > 0.01) add('Ceilings', `${soffit.title} (eaves soffit)`, 'm²', overhang, 'Under its overhang', where)
-}
-
-/** The list as CSV, one row per line (chapter, item, quantity, unit, where, basis), quantities to two decimals. */
-export function takeoffCsv(rows: readonly TakeoffRow[]): string {
-  const cell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)
-  const lines = [['Chapter', 'Item', 'Quantity', 'Unit', 'Where', 'Basis'].join(',')]
-  for (const r of rows) lines.push([r.chapter, r.item, r.quantity.toFixed(r.unit === 'u' || r.unit === 'bags' ? 0 : 2), r.unit, r.where.join('; '), r.basis].map(cell).join(','))
-  return `${lines.join('\n')}\n`
+  if (soffit && overhang > 0.01) add('ceilings', 'soffit.eaves', 'm²', overhang, where, { material: soffit.id })
 }

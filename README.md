@@ -394,8 +394,10 @@ The **Materials** tab lists what the house needs to be built, worked out from th
 checkboxes leave out the street or a neighbour's lot), in the chapters of an Argentine *cómputo métrico*:
 earthworks and foundations, concrete structure, masonry, damp-proofing and insulation, plaster and paint, sub-floors
 and screeds, floors and skirting, wall finishes, ceilings, roofing, doors and windows, glazing, metalwork and timber,
-pools, fixtures, garden, and the basic materials. Each row has its quantity and unit, where it is used and how it
-was worked out. *Save CSV* downloads it for a spreadsheet.
+pools, fixtures, garden, and the basic materials. Each row has its quantity and unit, its unit price and cost,
+where it is used and how it was worked out. *Language* shows it in English or Spanish (Argentine building terms,
+numbers as 1.234,5); the choice is kept per browser. *Save CSV* downloads it for a spreadsheet, in the language
+shown (in Spanish with semicolons and decimal commas, as a spreadsheet set to Argentina reads it).
 
 - **Measured** from the plan and the 3-D model: each side of each wall net of its openings and up to the roof
   over it (gable ends included), floors inside the walls, skirting along the rooms' walls, roof slopes, doors,
@@ -413,8 +415,15 @@ was worked out. *Save CSV* downloads it for a spreadsheet.
 - **Basic materials**: cement (50 kg bags), hydrated lime (25 kg bags), sand, gravel and rubble from the usual
   dosages of each mortar and concrete; rebar at 90 kg per m³ of reinforced concrete.
 
-The build-ups, rates and dosages are constants at the top of `src/model/takeoff.ts`. Foundations are assumed until
-the Foundation tab exists, and a structural design will change the concrete. No prices yet.
+- **Prices**: retail in the Buenos Aires area (AMBA), in pesos with VAT, materials only (no labour), from the
+  sources noted in `src/model/prices.ts` (hover a unit price for how it is sold and where it was seen; ≈ marks an
+  estimate). Only rows that are bought as they are have a price: work rows (a wall's m², a footing, plaster) take
+  their materials from the rows that are, so nothing is counted twice; doors, windows and gates are priced per m²
+  of opening, glass included. Each chapter shows its subtotal and the list its total.
+
+The build-ups, rates and dosages are constants at the top of `src/model/takeoff.ts`, the words in
+`src/model/takeoffText.ts` and the prices in `src/model/prices.ts`. Foundations are assumed until the Foundation
+tab exists, and a structural design will change the concrete. Prices go stale quickly: update them with their date.
 
 ## Tools and keys
 
@@ -486,7 +495,8 @@ changes.
   `colonnades.ts` (column styles and where columns stand), `furniture.ts` (the furniture catalogue, where pieces
   stand and snap, their plan symbols), `furniture3d.ts` (furniture in 3-D), `materials.ts` (the materials
   catalogue, which suit which surfaces, outdoors or in), `finishes.ts` (a wall's two sides, what each faces),
-  `faces.ts` (the flat faces solids are made of), `takeoff.ts` (the materials list and its build-ups),
+  `faces.ts` (the flat faces solids are made of), `takeoff.ts` (the materials list and its build-ups), `takeoffText.ts` (its words in English and Spanish),
+  `prices.ts` (local prices),
   `sun.ts` (sun position, sunrise and sunset, shadows), `roofs.ts` (roof slopes, faces, eaves and the house's
   outline), `solids.ts` (the house in 3-D as solids of flat faces), `elevations.ts` (the facades from the
   solids), `snap.ts`, `pick.ts` (hit tests, loops),

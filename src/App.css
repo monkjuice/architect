@@ -1031,6 +1031,11 @@ button.icon {
   color: var(--text-muted);
 }
 
+.materials-total th {
+  border-top: 2px solid var(--border-strong);
+  color: var(--text);
+}
+
 /* ---- exterior: the 3-D view fills the tab --------------------------------------------------------------- */
 
 .exterior-main {

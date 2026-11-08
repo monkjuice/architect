@@ -3,6 +3,7 @@ import { styleInfo, styleKey } from '../model/openings'
 import type { OpeningKind, OpeningStyle } from '../model/plan'
 import { MAX_STOREY } from '../model/storeys'
 import { SEASONS, type Season } from '../model/sun'
+import { LANGUAGES, type Lang } from '../model/takeoffText'
 
 /** Editor preferences: per browser, not part of the plan file. */
 export interface Prefs {
@@ -29,6 +30,8 @@ export interface Prefs {
   /** Ids of the panel sections that are folded away. */
   collapsed: string[]
   sun: SunPrefs
+  /** The language the Materials tab's list is in. */
+  language: Lang
 }
 
 /** The sun as the user plays with it: a view setting, so it is per browser and not in the plan. */
@@ -60,6 +63,7 @@ const DEFAULTS: Prefs = {
   widths: {},
   collapsed: [],
   sun: SUN_DEFAULTS,
+  language: 'en',
 }
 
 let prefs: Prefs = load()
@@ -90,6 +94,7 @@ function load(): Prefs {
       widths,
       collapsed,
       sun: loadSun(stored.sun),
+      language: LANGUAGES.includes(stored.language as Lang) ? (stored.language as Lang) : DEFAULTS.language,
     }
   } catch {
     return DEFAULTS
