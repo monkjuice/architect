@@ -1,6 +1,6 @@
 import { add, closestOnSegment, dist, EPS, lerp, mul, sub, type Vec } from './geometry'
 import { band, clipFace, frustumFaces, norm, prismFaces, profileFaces, ring, smoothSides, v3, type Face, type Vec3 } from './faces'
-import { COLUMNS, heldByWall, layerColonnades } from './colonnades'
+import { COLUMNS, GLAZED_BASE, heldByWall, layerColonnades } from './colonnades'
 import { placeFurniture } from './furniture'
 import { furnitureParts } from './furniture3d'
 import { sideNormal, wallSide, type WallSide } from './finishes'
@@ -8,7 +8,25 @@ import { findMaterial } from './materials'
 import { besideWall, FIREPLACE_DEPTH, fireplaceShape, HEARTH, hasHinge, PARRILLA_CHEEK, PARRILLA_DEPTH, placeOpening, type PlacedOpening } from './openings'
 import { segmentKind, storeyOf, type ColumnStyle, type Layer, type Opening, type Plan, type Ref, type Roof } from './plan'
 import { layerFaces, pointInPolygon, regionAt, type LayerFaces, type Region } from './regions'
-import { eavesOf, offsetPolygon, PARAPET_WALL, PERGOLA_SHEET, pergolaRafters, RAFTER, roofFaces, roofPlanes, roofThickness, skylights, SLAB, underside, undersideAlong, unionOutlines } from './roofs'
+import {
+  eavesOf,
+  GLASS_SHEET,
+  growLights,
+  GROW_LIGHT,
+  offsetPolygon,
+  PARAPET_WALL,
+  PERGOLA_SHEET,
+  pergolaRafters,
+  raftersOf,
+  roofFaces,
+  roofPlanes,
+  roofThickness,
+  skylights,
+  SLAB,
+  underside,
+  undersideAlong,
+  unionOutlines,
+} from './roofs'
 import { RAILING, stairRise, UPPER_SLAB } from './storeys'
 import { EXTERIOR_WALL, INTERIOR_WALL, layerWalls, WALL_HEIGHT, wallHeight, type LayerWalls } from './walls'
 
@@ -23,7 +41,9 @@ import { EXTERIOR_WALL, INTERIOR_WALL, layerWalls, WALL_HEIGHT, wallHeight, type
  * - the roofs drawn on the Roof tab (see roofs.ts), a flat roof's parapet, and the walls that face outside
  *   filled up to the roof over them (a gable end);
  * - open edges under a roof as beams following its underside, on columns where no wall holds them; a colonnade's
- *   columns (Roman or metal) along its edge under its own beam, under a roof or not;
+ *   columns (Roman or metal) along its edge under its own beam, under a roof or not; a glazed edge's steel posts,
+ *   with glass between them on a low concrete base;
+ * - a pergola's rafters and a glass roof's glazing bars, under their sheet, and a glass roof's grow lights;
  * - fireplaces against their walls, with a chimney up through the roof over them;
  * - furniture and fixtures where they stand (see furniture3d.ts);
  * - a raised ground floor's plinth and steps, and an upper floor's slab and railings (see storeys.ts).
@@ -82,7 +102,7 @@ export type SolidKind =
  * What a solid is made of: walls that face outside and the structure are `facade`, walls between rooms `interior`;
  * a pitched roof is `roof` and a flat one `slab`; covered floors are `floor` and floors in the open `paving`.
  * Roman columns are `stone` and metal ones `metal`; fireplaces and chimneys are `brick`, with a `soot` firebox.
- * Furniture adds `ceramic` (basins, tubs), `wood` and `fabric` (a bed's cover).
+ * Furniture adds `ceramic` (basins, tubs), `wood` and `fabric` (a bed's cover). Grow lights' diodes are `light`: they glow.
  */
 export type SolidMaterial =
   | 'facade'
@@ -109,6 +129,7 @@ export type SolidMaterial =
   | 'flower'
   | 'lavender'
   | 'blossom'
+  | 'light'
 
 export type { Face, Vec3 } from './faces'
 
@@ -164,7 +185,7 @@ export function houseSolids(plan: Plan, source: SolidsSource = direct): Solid[] 
     // the roofs drawn on the floors above, at their heights over this layer's floor
     const overhead: Overhead = {
       roofs: plan.layers.flatMap((l) =>
-        l.visible && storeyOf(l) > storey ? Object.values(l.roofs).flatMap((r) => (r.type === 'pergola' ? [] : [{ ...r, height: r.height + (l.level ?? 0) - level }])) : [],
+        l.visible && storeyOf(l) > storey ? Object.values(l.roofs).flatMap((r) => (raftersOf(r.type) ? [] : [{ ...r, height: r.height + (l.level ?? 0) - level }])) : [],
       ),
       floored: (p) => floored.some((f) => f.storey > storey && pointInPolygon(p, f.r.outer) && !f.r.holes.some((h) => pointInPolygon(p, h))),
     }
@@ -328,6 +349,7 @@ function columnFaces(style: ColumnStyle, p: Vec, top: number, dir: Vec): Face[] 
   if (style === 'metal') {
     return [...prismFaces(square(0.22), [], 0, 0.012), ...smoothSides(prismFaces(ring(p, d / 2, 12), [], 0.012, top - 0.012)), ...prismFaces(square(0.18), [], top - 0.012, top)]
   }
+  if (style === 'glazed') return prismFaces(square(d), [], 0, top)
   const r = d / 2
   return [
     ...prismFaces(square(1.3 * d), [], 0, 0.08),
@@ -384,46 +406,84 @@ function upward(pts: readonly Vec3[]): Vec3 {
 const prism = (kind: SolidKind, outline: readonly Vec[], holes: readonly (readonly Vec[])[], bottom: number, top: number, material: SolidMaterial, ref: Ref) =>
   solid(kind, prismFaces(outline, holes, bottom, top), material, ref)
 
+/** Steel left bare outdoors, on a glazed edge's posts and rail and a glass roof's bars, is galvanized. */
+const GALVANIZED = 'steel-galvanized'
+
 /**
- * A pergola: no slab, but timber rafters on the beams of its open edges (built with them, under its underside),
- * running down its slope; and on them, when it has one, its covering as a thin sheet (polycarbonate lets the light
- * through, and casts no shadow).
+ * A pergola or a glass roof: no slab, but rafters on the beams of its open edges (built with them, under its
+ * underside), running down its slope: a pergola's timber, a glass roof's galvanized steel glazing bars. On them, a
+ * thin sheet: a pergola's covering when it has one (polycarbonate lets the light through, and casts no shadow), a
+ * glass roof's glass. Under a glass roof, its grow lights when it has them: rows of LED bars, level, hung on rods
+ * GROW_LIGHT.drop under its bars.
  */
 function pergolaSolids(roof: Roof, planes: ReturnType<typeof roofPlanes>, ref: Ref, out: Solid[]) {
+  const glass = roof.type === 'glass'
+  const size = raftersOf(roof.type)!
   const z = (p: Vec) => underside(roof, planes, p)
   for (const [a, b] of pergolaRafters(roof)) {
     const len = dist(a, b)
     if (len < EPS) continue
     const dir = mul(sub(b, a), 1 / len)
     const [z0, z1] = [z(a), z(b)]
-    const faces = profileFaces(a, dir, RAFTER.width / 2, [
+    const faces = profileFaces(a, dir, size.width / 2, [
       [0, z0],
       [len, z1],
-      [len, z1 + RAFTER.depth],
-      [0, z0 + RAFTER.depth],
-    ]).map((f) => ({ ...f, grain: { x: dir.x, y: dir.y, z: (z1 - z0) / len } }))
-    const rafter = solid('roof', faces, 'wood', ref)
-    rafter.finish = 'teak'
+      [len, z1 + size.depth],
+      [0, z0 + size.depth],
+    ])
+    const rafter = glass ? solid('roof', faces, 'metal', ref) : solid('roof', faces.map((f) => ({ ...f, grain: { x: dir.x, y: dir.y, z: (z1 - z0) / len } })), 'wood', ref)
+    rafter.finish = glass ? GALVANIZED : 'teak'
     out.push(rafter)
   }
-  const cover = findMaterial(roof.finish)
-  if (!cover) return
-  const eaves = eavesOf(roof)
-  const k = Math.tan((roof.pitch * Math.PI) / 180)
-  const up = norm({ x: -k * planes[0].a, y: -k * planes[0].b, z: 1 })
-  const top = (p: Vec, dz: number) => v3(p, z(p) + RAFTER.depth + dz)
-  const faces: Face[] = [
-    { pts: eaves.map((p) => top(p, PERGOLA_SHEET)), holes: [], normal: up },
-    { pts: eaves.map((p) => top(p, 0)), holes: [], normal: { x: -up.x, y: -up.y, z: -up.z } },
-  ]
-  eaves.forEach((p, i) => {
-    const q = eaves[(i + 1) % eaves.length]
-    const d = sub(q, p)
-    faces.push({ pts: [top(p, 0), top(q, 0), top(q, PERGOLA_SHEET), top(p, PERGOLA_SHEET)], holes: [], normal: norm({ x: d.y, y: -d.x, z: 0 }) })
-  })
-  const sheet = solid('roof', faces, cover.clear ? 'glass' : 'roof', ref)
-  sheet.finish = roof.finish
-  out.push(sheet)
+  const cover = glass ? undefined : findMaterial(roof.finish)
+  if (glass || cover) {
+    const thick = glass ? GLASS_SHEET : PERGOLA_SHEET
+    const eaves = eavesOf(roof)
+    const k = Math.tan((roof.pitch * Math.PI) / 180)
+    const up = norm({ x: -k * planes[0].a, y: -k * planes[0].b, z: 1 })
+    const top = (p: Vec, dz: number) => v3(p, z(p) + size.depth + dz)
+    const faces: Face[] = [
+      { pts: eaves.map((p) => top(p, thick)), holes: [], normal: up },
+      { pts: eaves.map((p) => top(p, 0)), holes: [], normal: { x: -up.x, y: -up.y, z: -up.z } },
+    ]
+    eaves.forEach((p, i) => {
+      const q = eaves[(i + 1) % eaves.length]
+      const d = sub(q, p)
+      faces.push({ pts: [top(p, 0), top(q, 0), top(q, thick), top(p, thick)], holes: [], normal: norm({ x: d.y, y: -d.x, z: 0 }) })
+    })
+    const sheet = solid('roof', faces, glass || cover!.clear ? 'glass' : 'roof', ref)
+    if (cover) sheet.finish = roof.finish
+    out.push(sheet)
+  }
+  // each light's housing, the diodes under it, and its rods up to the bars at its ends and at most 2 m apart
+  const { drop, width, depth } = GROW_LIGHT
+  const [housings, diodes, rods]: Face[][] = [[], [], []]
+  for (const [a, b] of growLights(roof)) {
+    const len = dist(a, b)
+    if (len < EPS) continue
+    const dir = mul(sub(b, a), 1 / len)
+    const [z0, z1] = [z(a) - drop, z(b) - drop]
+    // from d0 to d1 under its top
+    const bar = (d0: number, d1: number): [number, number][] => [
+      [0, z0 - d1],
+      [len, z1 - d1],
+      [len, z1 - d0],
+      [0, z0 - d0],
+    ]
+    housings.push(...profileFaces(a, dir, width / 2, bar(0, depth - 0.01)))
+    diodes.push(...profileFaces(a, dir, width / 2 - 0.01, bar(depth - 0.01, depth)))
+    const n = Math.max(1, Math.ceil((len - 0.2) / 2 - 1e-9))
+    for (let i = 0; i <= n; i++) {
+      const p = add(a, mul(dir, 0.1 + ((len - 0.2) * i) / n))
+      const u = mul(dir, 0.006)
+      rods.push(...prismFaces(band(sub(p, u), add(p, u), 0.006), [], z(p) - drop, z(p)))
+    }
+  }
+  if (housings.length) {
+    const housing = solid('roof', housings, 'metal', ref)
+    housing.finish = 'aluminium-natural'
+    out.push(housing, solid('roof', diodes, 'light', ref), solid('roof', rods, 'metal', ref))
+  }
 }
 
 /** A roof's slab: each slope's face on top and under it, and its edge round the eaves. */
@@ -546,7 +606,7 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   // roofs, and what stands up to them
   const roofs = Object.entries(layer.roofs).map(([id, roof]) => ({ id, roof, eaves: eavesOf(roof), planes: roofPlanes(roof) }))
   for (const { id, roof, eaves, planes } of roofs) {
-    if (roof.type === 'pergola') {
+    if (raftersOf(roof.type)) {
       pergolaSolids(roof, planes, ref('roof', id), out)
       continue
     }
@@ -664,23 +724,33 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
           [length, tallest],
         ]
     const timber = c.colonnade.style === 'timber'
+    const glazed = c.colonnade.style === 'glazed'
     const material: SolidMaterial = c.colonnade.style === 'roman' ? 'stone' : timber ? 'wood' : 'metal'
     const shape: [number, number][] = [...under.map(([u, z]): [number, number] => [u, z - info.beam]), ...[...under].reverse()]
-    const width = c.colonnade.style === 'roman' ? 1.1 * info.diameter : timber ? info.diameter : 0.12
+    const width = c.colonnade.style === 'roman' ? 1.1 * info.diameter : timber ? info.diameter : glazed ? 0.06 : 0.12
     const beam = solid('beam', profileFaces(c.a, dir, width / 2, shape), material, ref('segment', c.segment))
     if (timber) {
       beam.faces = beam.faces.map((f) => ({ ...f, grain: { x: dir.x, y: dir.y, z: 0 } }))
       beam.finish = 'teak'
     }
+    if (glazed) beam.finish = GALVANIZED
     out.push(beam)
+    // a glazed edge's doors (gates, windows) stand in it: no post, base or glass in their way
+    const cuts = glazed ? glazedCuts(layer, c.segment) : []
     for (const { t, p } of c.columns) {
       const top = heightAlong(under, t * length) - info.beam
+      if (cuts.some((k) => t * length > k.u0 + EPS && t * length < k.u1 - EPS)) continue
       if (top > 0.6) {
         if (timber) out.push(...timberPost(p, top, dir, ref('segment', c.segment)))
-        else out.push(solid('column', columnFaces(c.colonnade.style, p, top, dir), material, ref('segment', c.segment)))
+        else {
+          const column = solid('column', columnFaces(c.colonnade.style, p, top, dir), material, ref('segment', c.segment))
+          if (glazed) column.finish = GALVANIZED
+          out.push(column)
+        }
       }
       colonnadeColumns.push(p)
     }
+    if (glazed) glazing(c.a, dir, length, under.map(([u, z]): [number, number] => [u, z - info.beam]), cuts, ref('segment', c.segment), out)
   }
 
   // other open edges under a roof: beams following its underside, and columns at their ends that no wall or
@@ -776,6 +846,62 @@ function runsAlong(a: Vec, b: Vec, length: number, roofAt: (p: Vec) => Roof | un
     else runs.push({ roof, t0: i / steps, t1: (i + 1) / steps })
   }
   return runs
+}
+
+/** What a door, gate or window takes out of a glazed edge: its stretch along it (from its `a` end), its sill and its head. */
+interface GlazedCut {
+  u0: number
+  u1: number
+  sill: number
+  head: number
+}
+
+function glazedCuts(layer: Layer, segment: string): GlazedCut[] {
+  return Object.values(layer.openings)
+    .flatMap((o) => {
+      if (o.segment !== segment || o.kind === 'fireplace') return []
+      const p = placeOpening(layer, o)
+      if (!p) return []
+      const half = Math.min(o.width, p.length) / 2
+      const head = o.kind === 'gate' ? GATE_HEIGHT : (o.height ?? DOOR_HEAD)
+      return [{ u0: p.offset - half, u1: p.offset + half, sill: o.kind === 'window' ? Math.min(windowSill(o), head - 0.3) : 0, head }]
+    })
+    .sort((x, y) => x.u0 - y.u0)
+}
+
+/**
+ * A glazed edge's concrete base and its glass, from `a` along `dir` for `length` m: glass from the base up to its
+ * rail (`rail`, the rail's underside as (distance, height) points), stopping at its doors and gates and going on
+ * over them from their heads; under a window, base and glass up to its sill.
+ */
+function glazing(a: Vec, dir: Vec, length: number, rail: [number, number][], cuts: readonly GlazedCut[], ref: Ref, out: Solid[]) {
+  const base = GLAZED_BASE.height
+  /** From `u0` to `u1` along it, from `bottom` up to `top`, or up to the rail when null. */
+  const put = (kind: SolidKind, u0: number, u1: number, bottom: number, top: number | null) => {
+    if (u1 - u0 < EPS) return
+    const tops: [number, number][] =
+      top !== null
+        ? [
+            [u0, top],
+            [u1, top],
+          ]
+        : [[u0, heightAlong(rail, u0)], ...rail.filter(([u]) => u > u0 + EPS && u < u1 - EPS), [u1, heightAlong(rail, u1)]]
+    if (tops.every(([, z]) => z <= bottom + EPS)) return
+    const shape: [number, number][] = [[u0, bottom], [u1, bottom], ...tops.reverse().map(([u, z]): [number, number] => [u, Math.max(z, bottom)])]
+    const glass = kind === 'glass'
+    out.push(solid(kind, profileFaces(a, dir, glass ? GLASS / 2 : GLAZED_BASE.width / 2, shape), glass ? 'glass' : 'slab', ref))
+  }
+  let from = 0
+  for (const k of cuts) {
+    put('sill', from, k.u0, 0, base)
+    put('glass', from, k.u0, base, null)
+    put('sill', Math.max(from, k.u0), k.u1, 0, Math.min(base, k.sill))
+    put('glass', Math.max(from, k.u0), k.u1, base, k.sill)
+    put('glass', Math.max(from, k.u0), k.u1, k.head, null)
+    from = Math.max(from, k.u1)
+  }
+  put('sill', from, length, 0, base)
+  put('glass', from, length, base, null)
 }
 
 /** Height along a profile of (distance, height) points, in order of distance. */

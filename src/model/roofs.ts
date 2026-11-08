@@ -11,18 +11,31 @@ import { EXTERIOR_WALL, WALL_HEIGHT } from './walls'
  * - shed: one slope, rising away from the outline edge `edge` (its low side);
  * - gable: two slopes rising from the sides parallel to `edge` to a ridge along it; the other sides are gable ends;
  * - hip: a slope rising from every side, meeting at hips and a ridge. Exact for convex outlines only: an L-shaped
- *   house takes two overlapping roofs.
+ *   house takes two overlapping roofs;
+ * - pergola and glass: one slope, as a shed, but no slab: rafters (timber; a glass roof's steel glazing bars) under a
+ *   thin sheet (a pergola's covering, if any; glass), and on a glass roof, when it has them, grow lights hung under it.
  *
  * Each slope is a plane, given as f(p), the distance into the roof from its eaves line. The underside is
  * height + tan(pitch) · min f, so slopes meet where they cross (ridges, hips) and carry on, lower, over the
  * overhang.
  */
 
-export const ROOF_TITLES: Record<RoofType, string> = { flat: 'Flat', shed: 'Shed', gable: 'Gable', hip: 'Hip', pergola: 'Pergola' }
+export const ROOF_TITLES: Record<RoofType, string> = { flat: 'Flat', shed: 'Shed', gable: 'Gable', hip: 'Hip', pergola: 'Pergola', glass: 'Glass' }
 
 /** A pergola's rafters: how deep and wide they are and how far apart, m; its covering, when it has one, on them. */
 export const RAFTER = { depth: 0.2, width: 0.07, spacing: 0.6 }
 export const PERGOLA_SHEET = 0.012
+/** A glass roof's steel glazing bars, as RAFTER, and its glass on them. */
+export const GLAZING_BAR = { depth: 0.06, width: 0.04, spacing: 0.75 }
+export const GLASS_SHEET = 0.01
+/** The rafters a roof is built of, with no slab: a pergola's, a glass roof's glazing bars; null for the others. */
+export const raftersOf = (type: RoofType): typeof RAFTER | null => (type === 'pergola' ? RAFTER : type === 'glass' ? GLAZING_BAR : null)
+
+/**
+ * Grow lights: how far apart their rows are up the slope, how far in from the outline they stop, how far under the
+ * glazing bars they hang, and the size of their LED bars across and deep, m.
+ */
+export const GROW_LIGHT = { spacing: 1.2, margin: 0.3, drop: 0.35, width: 0.1, depth: 0.05 }
 
 /** Thickness of a flat slab and of a pitched roof (rafters and covering), measured vertically. */
 export const SLAB = 0.2
@@ -153,40 +166,63 @@ export function skylights(roof: Roof, slope?: readonly Vec[]): Vec[][] {
   }).filter((poly) => poly.length >= 3 && polygonArea(poly) > 0.05)
 }
 
-/**
- * A pergola's rafters in plan, as lines: RAFTER.spacing apart along its `edge` (a shed's eaves), each running down
- * its slope from eaves to eaves (out over its overhang).
- */
-export function pergolaRafters(roof: Roof): [Vec, Vec][] {
-  const eaves = eavesOf(roof)
+/** A one-slope roof's axes: a corner `a` of its `edge`, `u` along that edge and `v` across it, into the roof. */
+function slopeAxes(roof: Roof): { a: Vec; u: Vec; v: Vec } {
   const pts = normalized(roof.outline)
   const [a, b] = [pts[roof.edge % pts.length], pts[(roof.edge + 1) % pts.length]]
   const u = unit(sub(b, a))
-  let v = { x: -u.y, y: u.x }
+  const v = { x: -u.y, y: u.x }
   const middle = mul(pts.reduce(add, { x: 0, y: 0 }), 1 / pts.length)
-  if (dot(sub(middle, a), v) < 0) v = mul(v, -1)
+  return { a, u, v: dot(sub(middle, a), v) < 0 ? mul(v, -1) : v }
+}
+
+/** Where the line through `origin` along `dir` meets `ring`: its first and last crossings; null when it misses. */
+function chord(ring: readonly Vec[], origin: Vec, dir: Vec): [Vec, Vec] | null {
+  const ts: number[] = []
+  ring.forEach((p, j) => {
+    const q = ring[(j + 1) % ring.length]
+    const d = sub(q, p)
+    const den = cross(dir, d)
+    if (Math.abs(den) < 1e-12) return
+    const t = cross(sub(p, origin), d) / den
+    const s = cross(sub(p, origin), dir) / den
+    if (s >= -1e-9 && s <= 1 + 1e-9) ts.push(t)
+  })
+  return ts.length < 2 ? null : [add(origin, mul(dir, Math.min(...ts))), add(origin, mul(dir, Math.max(...ts)))]
+}
+
+/**
+ * A pergola's rafters (a glass roof's glazing bars) in plan, as lines: their spacing apart along its `edge` (a
+ * shed's eaves), each running down its slope from eaves to eaves (out over its overhang).
+ */
+export function pergolaRafters(roof: Roof): [Vec, Vec][] {
+  const size = raftersOf(roof.type) ?? RAFTER
+  const eaves = eavesOf(roof)
+  const { a, u, v } = slopeAxes(roof)
   const us = eaves.map((p) => dot(sub(p, a), u))
   const [u0, u1] = [Math.min(...us), Math.max(...us)]
-  const n = Math.max(2, Math.round((u1 - u0 - RAFTER.width) / RAFTER.spacing) + 1)
+  const n = Math.max(2, Math.round((u1 - u0 - size.width) / size.spacing) + 1)
   const out: [Vec, Vec][] = []
   for (let i = 0; i < n; i++) {
-    const c = u0 + RAFTER.width / 2 + ((u1 - u0 - RAFTER.width) * i) / (n - 1)
-    const origin = add(a, mul(u, c))
-    // where the line across the roof at `c` meets its eaves: the first and last crossings
-    const ts: number[] = []
-    eaves.forEach((p, j) => {
-      const q = eaves[(j + 1) % eaves.length]
-      const d = sub(q, p)
-      const den = cross(v, d)
-      if (Math.abs(den) < 1e-12) return
-      const t = cross(sub(p, origin), d) / den
-      const s = cross(sub(p, origin), v) / den
-      if (s >= -1e-9 && s <= 1 + 1e-9) ts.push(t)
-    })
-    if (ts.length < 2) continue
-    out.push([add(origin, mul(v, Math.min(...ts))), add(origin, mul(v, Math.max(...ts)))])
+    const c = u0 + size.width / 2 + ((u1 - u0 - size.width) * i) / (n - 1)
+    const line = chord(eaves, add(a, mul(u, c)), v)
+    if (line) out.push(line)
   }
   return out
+}
+
+/**
+ * A glass roof's grow lights in plan, as lines: rows GROW_LIGHT.spacing apart up its slope, each running along its
+ * `edge` (so level under it), kept GROW_LIGHT.margin in from its outline. None when it has none.
+ */
+export function growLights(roof: Roof): [Vec, Vec][] {
+  if (roof.type !== 'glass' || !roof.lights) return []
+  const inner = offsetPolygon(roof.outline, -GROW_LIGHT.margin)
+  const { a, u, v } = slopeAxes(roof)
+  const vs = inner.map((p) => dot(sub(p, a), v))
+  const [v0, v1] = [Math.min(...vs), Math.max(...vs)]
+  const n = Math.max(1, Math.round((v1 - v0) / GROW_LIGHT.spacing))
+  return Array.from({ length: n }, (_, i) => chord(inner, add(a, mul(v, v0 + ((v1 - v0) * (i + 0.5)) / n)), u)).filter((l) => l !== null)
 }
 
 /** How far a roof's side moves to meet a wall running along it, at most (in or out), m. */
@@ -264,11 +300,12 @@ export function roofPlanes(roof: Roof): Plane[] {
   const low = Math.min(...s)
   const high = Math.max(...s)
   const rising: Plane = { a: n.x, b: n.y, c: -low }
-  // a pergola slopes one way, as a shed does
-  return roof.type === 'shed' || roof.type === 'pergola' ? [rising] : [rising, { a: -n.x, b: -n.y, c: high }]
+  // a pergola and a glass roof slope one way, as a shed does
+  return roof.type === 'shed' || raftersOf(roof.type) ? [rising] : [rising, { a: -n.x, b: -n.y, c: high }]
 }
 
-export const roofThickness = (roof: Pick<Roof, 'type'>): number => (roof.type === 'flat' ? SLAB : roof.type === 'pergola' ? RAFTER.depth + PERGOLA_SHEET : COVERING)
+export const roofThickness = (roof: Pick<Roof, 'type'>): number =>
+  roof.type === 'flat' ? SLAB : roof.type === 'pergola' ? RAFTER.depth + PERGOLA_SHEET : roof.type === 'glass' ? GLAZING_BAR.depth + GLASS_SHEET : COVERING
 
 /** Height of the roof's underside over plan point `p`. */
 export function underside(roof: Roof, planes: readonly Plane[], p: Vec): number {
@@ -388,8 +425,8 @@ export function newRoof(outline: readonly Vec[], type: RoofType, height = WALL_H
     if (dist(p, pts[(i + 1) % pts.length]) > dist(pts[edge], pts[(edge + 1) % pts.length])) edge = i
   })
   const flat = type === 'flat'
-  const pitch = type === 'pergola' ? 2 : type === 'shed' ? 10 : 25
-  return { outline: pts, type, pitch, height, overhang: flat ? 0 : type === 'pergola' ? 0.3 : 0.5, edge, parapet: flat ? 0.3 : 0 }
+  const pitch = type === 'pergola' ? 2 : type === 'shed' || type === 'glass' ? 10 : 25
+  return { outline: pts, type, pitch, height, overhang: flat ? 0 : type === 'pergola' ? 0.3 : type === 'glass' ? 0.1 : 0.5, edge, parapet: flat ? 0.3 : 0 }
 }
 
 /** The pitch a gallery's roof starts at, in degrees: as near flat as still sheds water; and its overhang, m. */

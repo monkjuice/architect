@@ -18,12 +18,18 @@ export interface ColumnInfo {
 /**
  * Roman: stone columns with a base and a capital, under a stone beam. Metal: slim steel posts under a steel beam.
  * Timber: square timber posts on black steel shoes, curved steel knee braces up to a timber beam (a carport's).
+ * Glazed: a greenhouse's side, square galvanized steel posts with glass between them, on a low concrete base, under
+ * a steel rail (its doors break the base and the glass).
  */
 export const COLUMNS: Record<ColumnStyle, ColumnInfo> = {
   roman: { title: 'Roman', diameter: 0.32, spacing: 2.4, beam: 0.35 },
   metal: { title: 'Metal', diameter: 0.1, spacing: 3, beam: 0.2 },
   timber: { title: 'Timber', diameter: 0.14, spacing: 3, beam: 0.22 },
+  glazed: { title: 'Glazed', diameter: 0.05, spacing: 1, beam: 0.08 },
 }
+
+/** A glazed edge's concrete base: how tall and how thick, m. */
+export const GLAZED_BASE = { height: 0.4, width: 0.15 }
 
 export const newColonnade = (style: ColumnStyle): Colonnade => ({ style, spacing: COLUMNS[style].spacing })
 

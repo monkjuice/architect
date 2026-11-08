@@ -34,6 +34,8 @@ const PALETTE: Record<SolidMaterial, THREE.MeshStandardMaterialParameters> = {
   flower: { color: '#6a66d4', roughness: 0.9 },
   lavender: { color: '#8e80b8', roughness: 1 },
   blossom: { color: '#f4f2ec', roughness: 0.9 },
+  // grow lights' red and blue diodes, glowing pink
+  light: { color: '#ffd6f2', emissive: '#ff3fc0', emissiveIntensity: 1.6, roughness: 0.3 },
 }
 
 export const GRASS = '#6d8f4e'

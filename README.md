@@ -209,9 +209,10 @@ over it (or stands level with the walls' height when there is none).
 | **Roman** | 0.32 m stone columns on a square plinth, with a round base, a shaft that narrows towards the top and a capital, under a 0.35 m stone beam; 2.40 m apart at most. |
 | **Metal** | 0.10 m round steel posts between plates, under a 0.20 m steel beam; 3.00 m apart at most. |
 | **Timber** | 0.14 m square timber posts on black steel shoes, a curved steel knee brace each way up to a 0.22 m timber beam (a carport's or a pergola's); 3.00 m apart at most. |
+| **Glazed** | A greenhouse's side: 0.05 m square galvanized steel posts with glass between them, on a 0.40 m concrete base, up to a 0.08 m steel rail that follows the roof over it; 1.00 m apart at most. A door, gate or window put in the edge breaks the base and the glass (glass goes on over it from its head). |
 
 Pick one in the library (*Colonnades*) and click an open edge, or drag it there; walls and outlines are refused.
-Select an open edge to change its columns (*None*, *Roman*, *Metal*, *Timber*) and their spacing in the Selection panel,
+Select an open edge to change its columns (*None*, *Roman*, *Metal*, *Timber*, *Glazed*) and their spacing in the Selection panel,
 which also says how many there are. The plan draws each column at its size.
 
 ### Furniture
@@ -317,6 +318,7 @@ covers, usually the walls' outside faces) on a layer, and its eaves stand an **o
 | **Gable** | Two slopes meeting at a ridge along one side's direction; the other sides are gable ends. *Turn the ridge* runs it the other way. |
 | **Hip** | A slope from every side, meeting at hips and a ridge. It needs a convex outline: draw an L-shaped house as two overlapping roofs (the panel warns otherwise). |
 | **Pergola** | No slab: timber rafters (0.07 × 0.20 m, every 0.60 m) on the beams of the open edges under it, running down its slight slope (2° unless set); with a *Covering* they carry a thin sheet of it (*Polycarbonate* lets the light through and casts no shadow), without one it is open. For a carport or a garden pergola: enclose the area with open edges (columns where no wall holds them, or a colonnade for timber, steel or stone columns along them), name it, and draw a pergola over it; *Fit to the walls* (Roofs section) then brings its sides that run along a wall (a boundary wall, the house, on any layer, within 1.5 m) to that wall's face, so it sits between them, and puts its overhang on its free sides only. |
+| **Glass** | A greenhouse's roof: no slab, but galvanized steel glazing bars (0.04 × 0.06 m, every 0.75 m) on the beams of the open edges under it, running down its slope (10° unless set), under glass. *Grow lights* (Roofs section) hangs rows of LED grow lights 1.2 m apart, level, 0.35 m under the bars, drawn dashed pink on the roof plan; their diodes glow. For a lean-to greenhouse against a wall: draw its other sides as open edges with *Glazed* columns, draw a glass roof over it sloping down away from the wall (*Turn the slope*), and *Fit to the walls* to bring its high side to the wall's face; set its height and pitch so the high side meets the top of the wall. |
 
 - **Roof the house** covers the active layer's covered areas out to the walls' outside faces (0.15 m past the
   centrelines), as high as their tallest wall: one roof of the type picked under *New roofs* per group of rooms
@@ -419,7 +421,7 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   ground floor), `vertices` (id → `{x, y}` in meters, +y down), `segments` (id → `{a, b}` vertex ids, plus
   `kind: "open"` for an open edge or `"outline"` for an outline, a wall's own `thickness` and `height` in
   meters when set (without them it is automatic and 2.70 m), and an open edge's `colonnade` (`{style, spacing}`,
-  `style` `roman` or `metal`, `spacing` the most its columns stand apart in m), and a wall's `finish` (`{left,
+  `style` `roman`, `metal`, `timber` or `glazed`, `spacing` the most its columns stand apart in m), and a wall's `finish` (`{left,
   right}`, the material ids of its two sides looking from `a` to `b`, either left out when unfinished)), `areas`
   (id → `{name, at, floor, lot}`, `at` being a point inside the area, `floor` its floor's material id when set,
   `lot: true` for the land of a lot) and
@@ -429,8 +431,9 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   end a single leaf hangs from (a sliding gate: the end it slides towards), `swing` the side it opens or
   slides to (a fireplace: the side it stands on) looking from `a` to `b`; a door may have its own `height`, a window
   its own `height`, its top, and `sill`, in m above the floor), and `roofs` (id → `{outline, type, pitch, height, overhang, edge,
-  parapet}`: `type` is `flat`, `shed`, `gable` or `hip`, `pitch` in degrees, `height` the underside at the
-  outline in meters, `edge` the outline side a shed slopes down to or a gable's ridge runs along), and
+  parapet}`: `type` is `flat`, `shed`, `gable`, `hip`, `pergola` or `glass`, `pitch` in degrees, `height` the underside at the
+  outline in meters, `edge` the outline side a shed slopes down to or a gable's ridge runs along; a glass roof's
+  `lights: true` hangs grow lights under it), and
   `furniture` (id → `{kind, style, at, angle, width, depth}`: `kind` is `counter` (style `island` for a kitchen island, none against a wall), `sink` (`outdoor`, `kitchen`,
   `bathroom`), `bathtub` (`alcove`, `clawfoot`, `drop-in`, `corner`, with `shower`, the shower head's place
   round the rim from 0 to 4), `shower` (with `shower` too), `toilet`, `bidet`, `bed` (`single`, `double`, `queen`, `king`), `sofa`

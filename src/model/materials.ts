@@ -71,6 +71,7 @@ export const MATERIALS: readonly Material[] = [
   m('aluminium-white', 'White aluminium', 'Metal', ['frame', 'door'], 'both', '#e8e8e6', 0.4, { metalness: 0.3 }),
   m('aluminium-natural', 'Anodised aluminium', 'Metal', ['frame', 'door'], 'both', '#b9bbbe', 0.3, { metalness: 0.9 }),
   m('steel-black', 'Black steel', 'Metal', ['door', 'frame'], 'both', '#232425', 0.5, { metalness: 0.7 }),
+  m('steel-galvanized', 'Galvanized steel', 'Metal', ['door', 'frame'], 'both', '#b3b7ba', 0.38, { metalness: 0.8 }),
   m('metal-standing-seam', 'Standing seam metal', 'Metal', ['roof', 'wall'], 'outdoor', '#3b3e42', 0.42, { metalness: 0.55, pattern: 'seams' }),
   m('metal-sheet', 'Corrugated metal sheet', 'Metal', ['roof', 'wall'], 'outdoor', '#8e9396', 0.45, { metalness: 0.6 }),
   m('glass', 'Glass', 'Glass', ['door'], 'both', '#9fb8c4', 0.05, { clear: 0.7 }),

@@ -19,7 +19,8 @@ import { z } from 'zod'
  * Doors, windows and gates are openings hosted by a segment: they sit at a distance along it, so they follow it when
  * it moves, and they leave a gap in the line. They do not open regions: a room stays closed through its doors.
  * A fireplace is hosted the same way, against one side of a wall, but leaves no gap; its chimney goes up through
- * the roof. An open edge can carry a colonnade: columns shared out along it under a beam.
+ * the roof. An open edge can carry a colonnade: columns shared out along it under a beam (or, glazed, steel posts
+ * with glass between them: a greenhouse's sides).
  *
  * Walls are finished on each side and areas on their floors with materials (see materials.ts and finishes.ts).
  *
@@ -44,7 +45,7 @@ const Positive = z.number().positive()
 
 export const VecSchema = z.strictObject({ x: Num, y: Num })
 
-export const COLUMN_STYLES = ['roman', 'metal', 'timber'] as const
+export const COLUMN_STYLES = ['roman', 'metal', 'timber', 'glazed'] as const
 
 export const SegmentSchema = z.strictObject({
   a: z.string().min(1),
@@ -237,12 +238,15 @@ export const FurnitureSchema = z.discriminatedUnion('kind', [
   StairSchema,
 ])
 
-export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip', 'pergola'] as const
+export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip', 'pergola', 'glass'] as const
 
 export const RoofSchema = z.strictObject({
   /** What the roof covers, usually the walls' outside faces; the eaves stand `overhang` beyond it. */
   outline: z.array(VecSchema).min(3),
-  /** A flat slab, one slope (shed), two slopes meeting at a ridge (gable) or a slope from every side (hip). */
+  /**
+   * A flat slab, one slope (shed), two slopes meeting at a ridge (gable) or a slope from every side (hip); or one
+   * slope of rafters under a sheet (pergola) or of steel glazing bars under glass (glass, a greenhouse's).
+   */
   type: z.enum(ROOF_TYPES),
   /** Slope in degrees; a flat roof has none. */
   pitch: z.number().min(0).max(70),
@@ -259,6 +263,8 @@ export const RoofSchema = z.strictObject({
   soffit: z.string().min(1).optional(),
   /** Glazed openings in it: `count` strips `width` m wide, evenly spaced along its `edge`, running across it. */
   skylights: z.strictObject({ count: z.number().int().min(1).max(40), width: z.number().positive().max(10) }).optional(),
+  /** A glass roof's grow lights: rows of LED bars hung under its glazing bars. */
+  lights: z.literal(true).optional(),
 })
 
 export const LayerSchema = z.strictObject({

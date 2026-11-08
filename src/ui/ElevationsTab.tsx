@@ -35,6 +35,7 @@ const FILL: Record<SolidMaterial, string> = {
   flower: '#8f8bdc',
   lavender: '#a99dc9',
   blossom: '#f7f5f0',
+  light: '#f2a6dc',
 }
 const INK = '#2a2a2d'
 

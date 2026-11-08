@@ -4,17 +4,20 @@ import { fireplaceShape, placeOpening } from '../../model/openings'
 import type { Layer, Roof } from '../../model/plan'
 import { findMaterial } from '../../model/materials'
 import { labelPoint } from '../../model/regions'
-import { eavesOf, pergolaRafters, ROOF_TITLES, roofFaces, roofProblem, roofSummary, skylights, type RoofFace } from '../../model/roofs'
+import { eavesOf, growLights, pergolaRafters, raftersOf, ROOF_TITLES, roofFaces, roofProblem, roofSummary, skylights, type RoofFace } from '../../model/roofs'
 import { hostThickness } from '../../state/derived'
 import { flueMark } from './symbols'
 
 /**
  * The roof plan: each roof's slopes shaded by the way they face, as roof plans draw them (light from the top
  * left of the sheet), its eaves line, the walls' line under an overhang (dashed), an arrow down each slope, and
- * a label with its type, pitch and top. The chimneys of the layer's fireplaces come up through them.
+ * a label with its type, pitch and top; a pergola's rafters and a glass roof's glazing bars, and its grow lights. The
+ * chimneys of the layer's fireplaces come up through them.
  */
 
 const ring = (pts: readonly Vec[]) => `M${pts.map((p) => `${p.x} ${p.y}`).join('L')}Z`
+
+const lines = (list: readonly [Vec, Vec][]) => list.map(([p, q]) => `M${p.x} ${p.y}L${q.x} ${q.y}`).join('')
 
 const centroid = (pts: readonly Vec[]): Vec => mul(pts.reduce(add, { x: 0, y: 0 }), 1 / pts.length)
 
@@ -74,8 +77,9 @@ function RoofShape({ roof, px, selected, hovered }: { roof: Roof; px: number; se
       {faces.map((f, i) => (
         <path key={i} className="roof-face" d={ring(f.pts)} fillOpacity={shade(f)} style={cover ? { fill: cover.color } : undefined} />
       ))}
-      {roof.type === 'pergola' && <path className="roof-rafter" d={pergolaRafters(roof).map(([p, q]) => `M${p.x} ${p.y}L${q.x} ${q.y}`).join('')} />}
-      {roof.type !== 'pergola' && skylights(roof).map((h, i) => (
+      {raftersOf(roof.type) && <path className="roof-rafter" d={lines(pergolaRafters(roof))} />}
+      {roof.type === 'glass' && <path className="roof-light" d={lines(growLights(roof))} />}
+      {!raftersOf(roof.type) && skylights(roof).map((h, i) => (
         <path key={`sky${i}`} className="roof-skylight" d={ring(h)} />
       ))}
       <path className="roof-eaves" d={ring(eaves)} />

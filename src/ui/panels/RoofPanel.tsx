@@ -1,10 +1,10 @@
 import type { CSSProperties } from 'react'
 import { updateRoof } from '../../model/edit'
 import { ROOF_TYPES, sameRef, type Roof } from '../../model/plan'
-import { nextEdge, RAFTER, ROOF_TITLES, roofProblem, roofSummary } from '../../model/roofs'
+import { GLAZING_BAR, GROW_LIGHT, nextEdge, RAFTER, raftersOf, ROOF_TITLES, roofProblem, roofSummary } from '../../model/roofs'
 import { chooseTool, deleteSelection, fitRoofToWalls } from '../../state/actions'
 import { getStore, useEditor } from '../../state/store'
-import { Box, MaterialField, NumberField, Segmented } from '../fields'
+import { Box, CheckField, MaterialField, NumberField, Segmented } from '../fields'
 
 const titleOf = (roof: Roof) => (roof.type === 'flat' ? ROOF_TITLES.flat : `${ROOF_TITLES[roof.type]} ${roof.pitch.toFixed(0)}°`)
 
@@ -70,6 +70,7 @@ function RoofFields({ layer, id, roof }: { layer: string; id: string; roof: Roof
   const summary = roofSummary(roof)
   const problem = roofProblem(roof)
   const pitched = roof.type !== 'flat'
+  const framed = !!raftersOf(roof.type)
   return (
     <div className="roof-fields">
       <h3>Selected roof</h3>
@@ -79,7 +80,7 @@ function RoofFields({ layer, id, roof }: { layer: string; id: string; roof: Roof
         <NumberField label="Height at the walls" min={0.5} value={roof.height} onCommit={(height) => set({ height })} />
         <NumberField label="Overhang" min={0} value={roof.overhang} onCommit={(overhang) => set({ overhang: Math.min(3, overhang) })} />
         {roof.type === 'flat' && <NumberField label="Parapet" min={0} value={roof.parapet} onCommit={(parapet) => set({ parapet: Math.min(2, parapet) })} />}
-        {(roof.type === 'shed' || roof.type === 'gable' || roof.type === 'pergola') && (
+        {(roof.type === 'shed' || roof.type === 'gable' || framed) && (
           <div className="field">
             <label>&nbsp;</label>
             <button onClick={() => set({ edge: nextEdge(roof) })} title={roof.type === 'gable' ? 'Run the ridge the other way' : 'Slope down to the next side'}>
@@ -96,7 +97,21 @@ function RoofFields({ layer, id, roof }: { layer: string; id: string; roof: Roof
             Rafters every {RAFTER.spacing.toFixed(2)} m on the beams of its open edges; with no covering it is open (polycarbonate lets the light through).
           </p>
         )}
-        {roof.type !== 'pergola' && (
+        {roof.type === 'glass' && (
+          <>
+            <p className="hint field-wide">
+              A greenhouse's: glass on galvanized steel glazing bars every {GLAZING_BAR.spacing.toFixed(2)} m, on the beams of its open edges (make
+              them Glazed for glass sides). Against a wall, slope it away from the wall and use Fit to the walls.
+            </p>
+            <CheckField
+              label="Grow lights"
+              title={`Rows of LED grow lights ${GROW_LIGHT.spacing.toFixed(1)} m apart, hung ${GROW_LIGHT.drop.toFixed(2)} m under the glazing bars`}
+              checked={!!roof.lights}
+              onChange={(on) => set({ lights: on || undefined })}
+            />
+          </>
+        )}
+        {!framed && (
           <NumberField
             label="Skylights (0: none)"
             digits={0}
@@ -108,7 +123,7 @@ function RoofFields({ layer, id, roof }: { layer: string; id: string; roof: Roof
             }}
           />
         )}
-        {roof.type !== 'pergola' && roof.skylights && (
+        {!framed && roof.skylights && (
           <NumberField
             label="Skylight width"
             min={0.2}
@@ -116,8 +131,10 @@ function RoofFields({ layer, id, roof }: { layer: string; id: string; roof: Roof
             onCommit={(width) => set({ skylights: { count: roof.skylights!.count, width: Math.min(10, width) } })}
           />
         )}
-        <MaterialField label="Covering" surface="roof" outdoor value={roof.finish} onChange={(finish) => set({ finish: finish ?? undefined })} />
-        {roof.type !== 'pergola' && (
+        {roof.type !== 'glass' && (
+          <MaterialField label="Covering" surface="roof" outdoor value={roof.finish} onChange={(finish) => set({ finish: finish ?? undefined })} />
+        )}
+        {!framed && (
           <MaterialField
             label="Soffit (its underside)"
             surface="ceiling"

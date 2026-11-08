@@ -1329,8 +1329,20 @@ button.icon {
   stroke-width: 1.5;
 }
 
-.colonnade.metal .column-shaft {
+.colonnade:is(.metal, .glazed) .column-shaft {
   fill-opacity: 1;
+}
+
+.colonnade.glazed .column-shaft {
+  stroke-width: 1;
+}
+
+/* a glazed edge's glass, over its dashed open edge */
+.column-glass {
+  fill: none;
+  stroke: var(--layer);
+  stroke-width: 2.5;
+  stroke-opacity: 0.55;
 }
 
 .column-plinth {
@@ -1797,10 +1809,19 @@ button.icon {
   vector-effect: non-scaling-stroke;
 }
 
-/* a pergola's rafters in the roof plan */
+/* a pergola's rafters (a glass roof's glazing bars) in the roof plan */
 .roof-rafter {
   fill: none;
   stroke: var(--text-muted);
   stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* a glass roof's grow lights in the roof plan */
+.roof-light {
+  fill: none;
+  stroke: #e040b0;
+  stroke-width: 2;
+  stroke-dasharray: 6 3;
   vector-effect: non-scaling-stroke;
 }

@@ -1,4 +1,4 @@
-import { COLUMNS, layerColonnades, newColonnade } from '../../model/colonnades'
+import { COLUMNS, GLAZED_BASE, layerColonnades, newColonnade } from '../../model/colonnades'
 import {
   moveAreas,
   moveSegments,
@@ -404,7 +404,10 @@ function ColonnadeFields({ refs }: { refs: Ref[] }) {
               <span className="readout">{columns}</span>
             </div>
           )}
-          <p className="hint field-wide">Shared out evenly along the edge, one at each end a wall does not hold.</p>
+          <p className="hint field-wide">
+            Shared out evenly along the edge, one at each end a wall does not hold.
+            {style === 'glazed' && ` Glass between them on a ${GLAZED_BASE.height.toFixed(2)} m concrete base, up to a steel rail under the roof; doors and gates in the edge break it.`}
+          </p>
         </div>
       )}
     </>
