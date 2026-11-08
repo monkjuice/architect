@@ -367,7 +367,10 @@ across tabs):
 - frames, glass and closed door and gate leaves;
 - the floor of every named area (tiled under cover, paved where outlines bound it: a pool, a terrace; a lot only
   when it has a ground cover), in its material when it has one;
-- the roofs from the Roof tab, with the walls that face outside filled up to the roof over them (gable ends);
+- the roofs from the Roof tab, with the walls that face outside filled up to the roof over them (gable ends), and a
+  wall between rooms under different roofs filled up to the higher one (a double-height room beside a lower one); a
+  wall with no roof of its own layer over it and no floor built over it rises to a roof drawn on a floor above (a
+  double-height room roofed from the 1st floor), and so does a fireplace's chimney;
 - open edges under a roof as beams following its underside, on columns where no wall holds them, and colonnades
   with their columns;
 - fireplaces, with their chimneys through the roof.

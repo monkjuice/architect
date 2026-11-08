@@ -145,14 +145,31 @@ export function houseSolids(plan: Plan, source: SolidsSource = direct): Solid[] 
     })
     return deep.length ? unionOutlines(deep) : []
   })
+  // the floors above the ground where they have a floor: their named areas (but lots and pools)
+  const floored = plan.layers.flatMap((layer) => {
+    if (!layer.visible || !storeyOf(layer)) return []
+    const regions = source.faces(layer).regions
+    return Object.values(layer.areas).flatMap((a) => {
+      const r = !a.lot && !a.depth ? regionAt(regions, a.at) : null
+      return r ? [{ storey: storeyOf(layer), r }] : []
+    })
+  })
   plan.layers.forEach((layer, index) => {
     if (!layer.visible) return
     const start = out.length
-    const upper = storeyOf(layer) > 0
-    layerSolids(layer, index * LAYER_LIFT, source, out, pools, { upper, rise: stairRise(plan, layer) })
+    const storey = storeyOf(layer)
+    const level = layer.level ?? 0
+    // the roofs drawn on the floors above, at their heights over this layer's floor
+    const overhead: Overhead = {
+      roofs: plan.layers.flatMap((l) =>
+        l.visible && storeyOf(l) > storey ? Object.values(l.roofs).flatMap((r) => (r.type === 'pergola' ? [] : [{ ...r, height: r.height + (l.level ?? 0) - level }])) : [],
+      ),
+      floored: (p) => floored.some((f) => f.storey > storey && pointInPolygon(p, f.r.outer) && !f.r.holes.some((h) => pointInPolygon(p, h))),
+    }
+    const upper = storey > 0
+    layerSolids(layer, index * LAYER_LIFT, source, out, pools, { upper, rise: stairRise(plan, layer) }, overhead)
     // a raised layer: everything on it up to its floor level (but what is under the ground), on its groundworks, or
     // on a floor above, on its slab
-    const level = layer.level ?? 0
     if (level <= 0) return
     for (const s of out.slice(start)) if (s.bottom >= -1e-6) raise(s, level)
     out.push(...(upper ? upperworks(layer, level, source) : groundworks(layer, level, source)))
@@ -437,8 +454,14 @@ function roofSolidFaces(roof: Roof): Face[] {
 
 // ---- a layer ----------------------------------------------------------------------------------------------
 
+/** What is over a layer from the floors above: their roofs (at heights over its floor), and where they have a floor. */
+interface Overhead {
+  roofs: Roof[]
+  floored: (p: Vec) => boolean
+}
+
 /** `storey`: whether the layer is on a floor above the ground, and how high its stairs climb. */
-function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Solid[], pools: readonly Vec[][], storey: { upper: boolean; rise: number }) {
+function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Solid[], pools: readonly Vec[][], storey: { upper: boolean; rise: number }, overhead: Overhead) {
   const faces = source.faces(layer)
   const ref = (kind: Ref['kind'], id: string): Ref => ({ layer: layer.id, kind, id })
   const wallIds = Object.keys(layer.segments).filter((id) => segmentKind(layer.segments[id]) === 'wall')
@@ -544,13 +567,20 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   }
   /** The roof over a plan point with the highest underside there; a point on its edge (a gallery's front under the eaves) counts. */
   const covers = (eaves: readonly Vec[], p: Vec) => pointInPolygon(p, eaves) || eaves.some((e, i) => closestOnSegment(p, e, eaves[(i + 1) % eaves.length]).dist <= 0.01)
-  const over = (p: Vec) => {
+  const highest = (list: typeof roofs, p: Vec) => {
     let best: (typeof roofs)[number] | undefined
-    for (const r of roofs) {
+    for (const r of list) {
       if (covers(r.eaves, p) && (!best || underside(r.roof, r.planes, p) > underside(best.roof, best.planes, p))) best = r
     }
     return best?.roof
   }
+  const over = (p: Vec) => highest(roofs, p)
+  const high = overhead.roofs.map((roof) => ({ id: '', roof, eaves: eavesOf(roof), planes: roofPlanes(roof) }))
+  /**
+   * The roof a wall or a chimney rises to at `p`: the layer's own over it, or with none one drawn on a floor above, when
+   * no floor is built over the points `clear` in between (a double-height room).
+   */
+  const ceiling = (p: Vec, clear: readonly Vec[] = [p]) => over(p) ?? (clear.some(overhead.floored) ? undefined : highest(high, p))
   /** A wall or edge's underside profile under `roof`, as (distance along it, height). */
   const profile = (roof: Roof, a: Vec, b: Vec): [number, number][] => undersideAlong(roof, a, b).map(({ t, z }) => [t * dist(a, b), z])
 
@@ -580,13 +610,25 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
     s.top = Math.max(...s.faces.flatMap((f) => f.pts.map((p) => p.z)))
   }
 
-  // walls that face outside rise to the roof over them: a gable end's triangle, a shed's high side
+  // walls rise to the roof over them: one that faces outside to the roof over its middle (a gable end's triangle, a
+  // shed's high side, a double-height room's roof drawn on the floor above), one between rooms whose roofs differ to the
+  // higher of them (a step in the roofline, over a double-height room)
   for (const id of wallIds) {
-    if (!faces.exterior.has(id)) continue
     const s = layer.segments[id]
     const [a, b] = [layer.vertices[s.a], layer.vertices[s.b]]
     const length = dist(a, b)
-    const roof = length > EPS ? over(lerp(a, b, 0.5)) : undefined
+    if (length < EPS) continue
+    const mid = lerp(a, b, 0.5)
+    const n = mul(sideNormal(a, b, 'left'), (faces.thickness.get(id) ?? INTERIOR_WALL) / 2 + 0.1)
+    const sides = [add(mid, n), sub(mid, n)]
+    let roof: Roof | undefined
+    if (faces.exterior.has(id)) roof = ceiling(mid, sides)
+    else {
+      const [left, right] = sides.map((p) => ceiling(p, sides))
+      if (left === right) continue
+      const at = (r: Roof | undefined) => (r ? underside(r, roofPlanes(r), mid) : -Infinity)
+      roof = at(left) >= at(right) ? left : right
+    }
     if (!roof) continue
     const top = wallHeight(s)
     const under = profile(roof, a, b)
@@ -689,7 +731,7 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
     if (!p) continue
     const half = (faces.thickness.get(o.segment) ?? INTERIOR_WALL) / 2
     const flue = fireplaceShape(p, o, half).flue
-    const roof = over(mul(flue.reduce(add, { x: 0, y: 0 }), 1 / flue.length))
+    const roof = ceiling(mul(flue.reduce(add, { x: 0, y: 0 }), 1 / flue.length))
     fireplaceSolids(o, p, half, roof, wallHeight(s), ref('opening', id), out)
   }
 
