@@ -577,8 +577,8 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   const over = (p: Vec) => highest(roofs, p)
   const high = overhead.roofs.map((roof) => ({ id: '', roof, eaves: eavesOf(roof), planes: roofPlanes(roof) }))
   /**
-   * The roof a wall or a chimney rises to at `p`: the layer's own over it, or with none one drawn on a floor above, when
-   * no floor is built over the points `clear` in between (a double-height room).
+   * The roof a chimney rises to at `p`: the layer's own over it, or with none one drawn on a floor above, when no floor
+   * is built over the points `clear` in between (a double-height room).
    */
   const ceiling = (p: Vec, clear: readonly Vec[] = [p]) => over(p) ?? (clear.some(overhead.floored) ? undefined : highest(high, p))
   /** A wall or edge's underside profile under `roof`, as (distance along it, height). */
@@ -610,31 +610,45 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
     s.top = Math.max(...s.faces.flatMap((f) => f.pts.map((p) => p.z)))
   }
 
-  // walls rise to the roof over them: one that faces outside to the roof over its middle (a gable end's triangle, a
-  // shed's high side, a double-height room's roof drawn on the floor above), one between rooms whose roofs differ to the
-  // higher of them (a step in the roofline, over a double-height room)
-  for (const id of wallIds) {
+  // walls rise to the roof over them: one that faces outside to its layer's roof over its middle (a gable end's
+  // triangle, a shed's high side), else along the stretches with no floor built over them to a roof drawn on a floor
+  // above (a double-height room's); one between rooms whose roofs differ, along such stretches, to the higher of them
+  // (a step in the roofline, beside a double-height room). Where a floor is built over a wall, it closes the space
+  for (const id of roofs.length || high.length ? wallIds : []) {
     const s = layer.segments[id]
     const [a, b] = [layer.vertices[s.a], layer.vertices[s.b]]
     const length = dist(a, b)
     if (length < EPS) continue
-    const mid = lerp(a, b, 0.5)
-    const n = mul(sideNormal(a, b, 'left'), (faces.thickness.get(id) ?? INTERIOR_WALL) / 2 + 0.1)
-    const sides = [add(mid, n), sub(mid, n)]
-    let roof: Roof | undefined
-    if (faces.exterior.has(id)) roof = ceiling(mid, sides)
-    else {
-      const [left, right] = sides.map((p) => ceiling(p, sides))
-      if (left === right) continue
-      const at = (r: Roof | undefined) => (r ? underside(r, roofPlanes(r), mid) : -Infinity)
-      roof = at(left) >= at(right) ? left : right
-    }
-    if (!roof) continue
+    const half = (faces.thickness.get(id) ?? INTERIOR_WALL) / 2
+    const dir = mul(sub(b, a), 1 / length)
+    const n = mul(sideNormal(a, b, 'left'), half + 0.1)
     const top = wallHeight(s)
-    const under = profile(roof, a, b)
-    if (Math.max(...under.map(([, z]) => z)) <= top + 1e-3) continue
-    const shape: [number, number][] = [[0, top], [length, top], ...under.reverse().map(([u, z]): [number, number] => [u, Math.max(z, top)])]
-    out.push(solid('infill', profileFaces(a, mul(sub(b, a), 1 / length), (faces.thickness.get(id) ?? INTERIOR_WALL) / 2, shape), finish(id), ref('segment', id)))
+    const fill = (roof: Roof, t0: number, t1: number) => {
+      const [p, q] = [lerp(a, b, t0), lerp(a, b, t1)]
+      const run = dist(p, q)
+      const under = profile(roof, p, q)
+      if (run < EPS || Math.max(...under.map(([, z]) => z)) <= top + 1e-3) return
+      const shape: [number, number][] = [[0, top], [run, top], ...under.reverse().map(([u, z]): [number, number] => [u, Math.max(z, top)])]
+      out.push(solid('infill', profileFaces(p, dir, half, shape), finish(id), ref('segment', id)))
+    }
+    const exterior = faces.exterior.has(id)
+    const own = exterior ? over(lerp(a, b, 0.5)) : undefined
+    if (own) {
+      fill(own, 0, 1)
+      continue
+    }
+    for (const [t0, t1] of clearRuns(a, b, length, n, overhead.floored)) {
+      const m = lerp(a, b, (t0 + t1) / 2)
+      let roof: Roof | undefined
+      if (exterior) roof = highest(high, m)
+      else {
+        const [left, right] = [add(m, n), sub(m, n)].map((p) => over(p) ?? highest(high, p))
+        if (left === right) continue
+        const at = (r: Roof | undefined) => (r ? underside(r, roofPlanes(r), m) : -Infinity)
+        roof = at(left) >= at(right) ? left : right
+      }
+      if (roof) fill(roof, t0, t1)
+    }
   }
 
   // colonnades: their columns under a beam that follows the roof over them, or level at the walls' height
@@ -744,6 +758,23 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
       out.push(s)
     }
   }
+}
+
+/**
+ * The stretches of a wall from `a` to `b` (as fractions of its `length`) with no floor built over either side, its
+ * sides being `n` from its line, found in steps of 10 cm.
+ */
+function clearRuns(a: Vec, b: Vec, length: number, n: Vec, floored: (p: Vec) => boolean): [number, number][] {
+  const steps = Math.max(1, Math.ceil(length / 0.1))
+  const runs: [number, number][] = []
+  for (let i = 0; i < steps; i++) {
+    const p = lerp(a, b, (i + 0.5) / steps)
+    if (floored(add(p, n)) || floored(sub(p, n))) continue
+    const last = runs[runs.length - 1]
+    if (last && Math.abs(last[1] - i / steps) < 1e-9) last[1] = (i + 1) / steps
+    else runs.push([i / steps, (i + 1) / steps])
+  }
+  return runs
 }
 
 /** Height along a profile of (distance, height) points, in order of distance. */
