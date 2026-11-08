@@ -576,11 +576,6 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
   }
   const over = (p: Vec) => highest(roofs, p)
   const high = overhead.roofs.map((roof) => ({ id: '', roof, eaves: eavesOf(roof), planes: roofPlanes(roof) }))
-  /**
-   * The roof a chimney rises to at `p`: the layer's own over it, or with none one drawn on a floor above, when no floor
-   * is built over the points `clear` in between (a double-height room).
-   */
-  const ceiling = (p: Vec, clear: readonly Vec[] = [p]) => over(p) ?? (clear.some(overhead.floored) ? undefined : highest(high, p))
   /** A wall or edge's underside profile under `roof`, as (distance along it, height). */
   const profile = (roof: Roof, a: Vec, b: Vec): [number, number][] => undersideAlong(roof, a, b).map(({ t, z }) => [t * dist(a, b), z])
 
@@ -739,7 +734,10 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
     if (!p) continue
     const half = (faces.thickness.get(o.segment) ?? INTERIOR_WALL) / 2
     const flue = fireplaceShape(p, o, half).flue
-    const roof = ceiling(mul(flue.reduce(add, { x: 0, y: 0 }), 1 / flue.length))
+    // up through its layer's roof or, with none over it, through the floors above (a double-height room, a balcony)
+    // and the roof drawn over them
+    const centre = mul(flue.reduce(add, { x: 0, y: 0 }), 1 / flue.length)
+    const roof = over(centre) ?? highest(high, centre)
     fireplaceSolids(o, p, half, roof, wallHeight(s), ref('opening', id), out)
   }
 
