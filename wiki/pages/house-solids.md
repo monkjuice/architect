@@ -119,8 +119,7 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
   only where its roof is over it (the same for a wall wholly under one roof). The floored check, and own roofs
   coming first, keep the ground walls under the 1st floor from filling up through it, coplanar with the 1F's walls.
   Trimming ("walls stop at roofs" above, whose rejected per-point choices concern the trim) stays one roof per wall.
-  Overhead roofs feed only infills and chimneys (`ceiling(p)`, now used by chimneys only); beams and colonnades use
-  the layer's own roofs. The Exterior's *Up to* filters by `ref.layer`, so these infills stay when the floor above is
+  Overhead roofs feed only infills and chimneys; beams and colonnades use the layer's own roofs. The Exterior's *Up to* filters by `ref.layer`, so these infills stay when the floor above is
   hidden.
 - Openings ([Doors, windows and gates](doors-and-windows.md)): wall over doors and windows from `DOOR_HEAD` 2.10 m,
   or a door's own `height`, capped at the wall's height; the lintel is built only with more than 1 mm of wall above
@@ -150,8 +149,11 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
 - Fireplaces ([Fireplaces](fireplaces.md)) are built after the roofs, because the chimney's height needs the roof
   over its flue: brick and stone up to the `MANTEL` (1.10 m), or a parrilla's counter, grill and hood up to 2.3 m,
   then the chimney to `CHIMNEY_ABOVE` (1 m) over that roof (thickness and a flat roof's parapet included), or 1 m
-  over its wall, under a stone cap. The roof is `ceiling(flue centre)` (see `infill`), so a chimney in a
-  double-height room goes through a roof drawn on the floor above. Their walls are not cut.
+  over its wall, under a stone cap. The roof is `over(centre) ?? highest(high, centre)` at the flue centre: the
+  layer's own roof, else the highest roof drawn on any floor above, whether or not a floor is built over the flue
+  (`170e1cb`, which removed the `ceiling(p, clear)` helper). Before, a floor over the flue stopped the chimney 1 m
+  over its wall: in the user's plan it ended 0.7 m above a 1st-floor balcony, and under an upper room it would end
+  inside the room. Their walls are not cut.
 - Furniture last: `furnitureParts(f, placeFurniture(layer, f))` from `src/model/furniture3d.ts`, one `furniture`
   solid per part, ref to the piece; a kitchen sink without its counter is skipped
   ([Furniture and fixtures](furniture.md)).

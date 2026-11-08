@@ -4,7 +4,7 @@ type: component
 summary: "A fireplace is a fourth opening kind (FireplaceSchema, style masonry 1.20 m or parrilla, an Argentine built-in grill, 1.80 m; optional finish material for its masonry) hosted by a wall on its swing side that cuts no gap (cutsWall false); fireplaceShape/besideWall (box, firebox, hearth, flue; depth by fireplaceDepth) feed the plan symbol, the roof plan's chimney and the solids; wall-only targets; picked anywhere on its surround; brick (or its finish), stone, soot and metal in 3-D with a chimney 1 m over the roof at its flue."
 tags: [model, openings, fireplace, parrilla, roof, 3d, ui, finishes]
 sources: []
-updated: 2026-11-05
+updated: 2026-11-08
 ---
 
 # Fireplaces
@@ -51,7 +51,8 @@ opening behaviour (placing, dragging, following walls) is in [Doors, windows and
 
 Built after the roofs ([House solids](house-solids.md)): a stone hearth; a brick base, cheeks, back and head around a
 `soot` firebox; a stone mantel shelf at `MANTEL` 1.10 m. The chimney rises on the flue's footprint from the mantel to
-`CHIMNEY_ABOVE` (1 m) over the roof over the flue's centre: the highest underside at the flue's corners plus the
+`CHIMNEY_ABOVE` (1 m) over the roof over the flue's centre (its layer's own, else the highest drawn on any floor
+above, through floors built in between; `170e1cb`): the highest underside at the flue's corners plus the
 roof's thickness, plus the parapet on a flat roof. With no roof it ends 1 m over its wall. A 0.06 m stone cap tops it.
 
 **Parrilla** (`4097821`, from the user's photos of Argentine gallery grills; `PARRILLA` heights in `solids.ts`): a

@@ -37,9 +37,27 @@ and columns under a roof only when one side is the outside (no region), so a sta
 elevations mark slab tops as levels.
 
 Double-height rooms (`9f30985`): draw the roof over one on the floor above. A lower layer's walls (exterior, or
-interior at a step between roofs) and chimneys rise to a higher floor's roof where the layer has no roof of its own
-and no named area of that floor is over the wall's sides; since `b3a61f0` walls decide this per 10 cm stretch, so a
-wall partly under the floor above rises only along its clear part ([House solids](house-solids.md), `infill`).
+interior at a step between roofs) rise to a higher floor's roof where the layer has no roof of its own and no named
+area of that floor is over the wall's sides; since `b3a61f0` walls decide this per 10 cm stretch, so a wall partly
+under the floor above rises only along its clear part ([House solids](house-solids.md), `infill`). A chimney with no
+roof of its own layer over its flue rises through any floors above to the highest roof drawn over it (`170e1cb`).
+
+## How-to: a balcony, and a flat band under a double-height space
+
+From the user's loft plan (2026-11-08; built in a copy, `house-plan-loft-roofs.json`, by a node script, no code):
+
+- A balcony is a named area on the upper floor's layer drawn over the floor below's roof area, bounded by the
+  bedroom's wall and open edges (railings) placed on the centrelines of the walls below. It gets the upper floor's
+  slab, so the floor below needs no roof there.
+- A flat roof on the floor below beside it must not overlap the balcony's slab (which reaches 0.15 m past the
+  balcony's edges): tops coplanar at the upper level flicker. Keep the flat roof's outline clear of the slab, or
+  0.1 m lower.
+- A flat roof whose slab tops out at the upper floor's level needs height = upper level − ground level − `SLAB`
+  (0.2, a flat roof's thickness in `src/model/roofs.ts`), e.g. 3.6 for levels 4.1 and 0.3.
+- Closing a double-height space behind a lower flat band takes 1st-floor walls along the band's back edge (they
+  stand on the flat roof's top). That made the 1st-floor living room indoor (its open edge no longer reached the
+  outside), so automatic walls between it and the bedrooms became interior, 0.15 m
+  ([Indoor means unreachable from outside](indoor-reachability-rule.md)).
 
 The rule "open edge = railing, outline = plain" was chosen so the user controls it by line kind: an outline is
 where a stair arrives, or a loft's edge against a wall or roof of the floor below.
@@ -67,6 +85,5 @@ by floor; `coveredArea(plan, storey?)` gives the ground floor's share for FOS an
 ## Open
 
 No L or U stairs, no handrail on a stair's open side, no automatic stairwell; ground roofs under an upper floor
-are the user's to trim (Roof the house works per layer); a chimney goes through no floor above (only through a
-roof drawn on the floor above, over a double-height room);
-Roof the house on an upper floor uses its own walls.
+are the user's to trim (Roof the house works per layer); a chimney passes through upper floors' slabs and rooms
+without cutting them; Roof the house on an upper floor uses its own walls.

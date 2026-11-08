@@ -359,3 +359,8 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/development-and-testing.md (probe used for b3a61f0)
 - updated: pages/playwright-flow-checks.md (Exterior wheel zoom goes through the house; summary)
 - updated: index.md (playwright-flow-checks summary)
+
+## [2026-11-08] update | A chimney rises through upper floors to the roof drawn above it
+- updated: pages/house-solids.md (chimney roof = own layer's, else highest on any floor above; ceiling helper removed; why)
+- updated: pages/storeys.md (chimney rule; how-to for a balcony and a flat band under a double-height space; open item)
+- updated: pages/fireplaces.md (chimney roof rule)
