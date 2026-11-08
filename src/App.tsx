@@ -6,6 +6,7 @@ import { loadBaseImage, openPlan, savePlan } from './state/actions'
 import { writeDraft } from './state/files'
 import { getStore, useEditor } from './state/store'
 import { ElevationsTab } from './ui/ElevationsTab'
+import { FoundationTab } from './ui/FoundationTab'
 import { MaterialsTab } from './ui/MaterialsTab'
 import { FloorTab } from './ui/FloorTab'
 import { RoofTab } from './ui/RoofTab'
@@ -23,6 +24,7 @@ export default function App() {
   return (
     <div className="app">
       <TopBar />
+      {tab === 'foundation' && <FoundationTab />}
       {tab === 'floor' && <FloorTab />}
       {tab === 'roof' && <RoofTab />}
       {tab === 'elevations' && <ElevationsTab />}

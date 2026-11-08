@@ -69,6 +69,11 @@ export const SegmentSchema = z.strictObject({
    * kept but unused while the segment is another kind.
    */
   finish: z.strictObject({ left: z.string().min(1).optional(), right: z.string().min(1).optional() }).optional(),
+  /**
+   * A ground-floor wall's footing set by hand, m: the width and depth of its strip footing, or of its ground beam
+   * on piles or under a raft (see foundations.ts); either absent: worked out from the wall. Kept while it is another kind.
+   */
+  footing: z.strictObject({ width: z.number().positive().max(3).optional(), depth: z.number().positive().max(5).optional() }).optional(),
 })
 
 export type SegmentKind = 'wall' | 'open' | 'outline'
@@ -328,6 +333,11 @@ export const SiteSchema = z.strictObject({
   utcOffset: z.number().min(-12).max(14),
 })
 
+/** How the house stands on the ground: strip footings under its walls, piles under ground beams, or a raft slab. */
+export const FOUNDATION_SYSTEMS = ['strip', 'piles', 'raft'] as const
+
+export const FoundationSchema = z.strictObject({ system: z.enum(FOUNDATION_SYSTEMS) })
+
 /** Buenos Aires, north straight up: plans from before sites start here. */
 export const DEFAULT_SITE = { north: 0, latitude: -34.6, longitude: -58.4, utcOffset: -3 } as const
 
@@ -336,6 +346,8 @@ export const PlanSchema = z.strictObject({
   schemaVersion: z.literal(SCHEMA_VERSION),
   name: z.string(),
   site: SiteSchema.default({ ...DEFAULT_SITE }),
+  /** Its foundation (the Foundation tab); absent: strip footings. */
+  foundation: FoundationSchema.optional(),
   image: BaseImageSchema.optional(),
   layers: z.array(LayerSchema).min(1),
 })
@@ -364,6 +376,8 @@ export type Crop = z.infer<typeof CropSchema>
 export type BaseImage = z.infer<typeof BaseImageSchema>
 export type Plan = z.infer<typeof PlanSchema>
 export type Site = z.infer<typeof SiteSchema>
+export type FoundationSystem = (typeof FOUNDATION_SYSTEMS)[number]
+export type Footing = NonNullable<Segment['footing']>
 
 /** Distinct, saturated colours that read on white paper and on the dark canvas alike. */
 export const LAYER_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f59e0b', '#14b8a6', '#ec4899']

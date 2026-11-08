@@ -7,6 +7,7 @@ import {
   segmentKind,
   type Area,
   type Colonnade,
+  type FoundationSystem,
   type Furniture,
   type Layer,
   type Opening,
@@ -328,6 +329,45 @@ export function updateWalls(plan: Plan, refs: readonly Ref[], patch: WallPatch):
     })
   }
   return next
+}
+
+/** What setFooting changes: a number sets it, null goes back to the one worked out from the wall (see foundations.ts). */
+export interface FootingPatch {
+  width?: number | null
+  depth?: number | null
+}
+
+/** Sets the footing width or depth of the walls among `refs`; the same plan when nothing changes. */
+export function setFooting(plan: Plan, refs: readonly Ref[], patch: FootingPatch): Plan {
+  let next = plan
+  for (const layerId of new Set(refs.filter((r) => r.kind === 'segment').map((r) => r.layer))) {
+    next = editLayer(next, layerId, (d) => {
+      let changed = false
+      for (const ref of refs) {
+        const s = ref.layer === layerId && ref.kind === 'segment' ? d.segments[ref.id] : undefined
+        if (!s || segmentKind(s) !== 'wall') continue
+        const f = { ...s.footing }
+        for (const key of ['width', 'depth'] as const) {
+          const value = patch[key]
+          if (value === null) delete f[key]
+          else if (value !== undefined && value > 0) f[key] = value
+        }
+        if (f.width === s.footing?.width && f.depth === s.footing?.depth) continue
+        const w = { ...s }
+        if (f.width === undefined && f.depth === undefined) delete w.footing
+        else w.footing = f
+        d.segments[ref.id] = w
+        changed = true
+      }
+      return changed
+    })
+  }
+  return next
+}
+
+/** Sets how the house stands on the ground; the same plan when it already does. */
+export function setFoundationSystem(plan: Plan, system: FoundationSystem): Plan {
+  return (plan.foundation?.system ?? 'strip') === system ? plan : { ...plan, foundation: { system } }
 }
 
 /** Puts a colonnade on the open edges among `refs`, or takes theirs away with null; the same plan when nothing changes. */

@@ -1,6 +1,7 @@
 import { boundsOf, type Vec } from '../model/geometry'
 import { findLayer, storeyOf, type Area, type Layer, type Plan } from '../model/plan'
 import { labelPoint, layerFaces, regionAt, regionLabel, type LayerFaces, type Region } from '../model/regions'
+import { foundationPlan, type FoundationPlan } from '../model/foundations'
 import { houseSolids, type Solid } from '../model/solids'
 import { materialsList, type TakeoffRow } from '../model/takeoff'
 import { INTERIOR_WALL, layerWalls, type LayerWalls } from '../model/walls'
@@ -161,4 +162,13 @@ export function getTakeoff(plan: Plan): TakeoffRow[] {
   let rows = takeoffCache.get(plan)
   if (!rows) takeoffCache.set(plan, (rows = materialsList(plan, getSolids(plan), { faces: getFaces, walls: getWalls })))
   return rows
+}
+
+const foundationCache = new WeakMap<Plan, FoundationPlan>()
+
+/** The foundation plan for the Foundation tab, from the visible layers. */
+export function getFoundation(plan: Plan): FoundationPlan {
+  let f = foundationCache.get(plan)
+  if (!f) foundationCache.set(plan, (f = foundationPlan(plan, getSolids(plan), { faces: getFaces, walls: getWalls })))
+  return f
 }

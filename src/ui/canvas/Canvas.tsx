@@ -3,7 +3,7 @@ import type { Vec } from '../../model/geometry'
 import { isStyleOf } from '../../model/openings'
 import { FURNITURE } from '../../model/furniture'
 import { findMaterial } from '../../model/materials'
-import { COLUMN_STYLES, type ColumnStyle } from '../../model/plan'
+import { COLUMN_STYLES, storeyOf, type ColumnStyle } from '../../model/plan'
 import {
   chooseTool,
   COLONNADE_DRAG_TYPE,
@@ -22,8 +22,9 @@ import {
 } from '../../state/actions'
 import { ColonnadeLayer } from './Columns'
 import { FinishLayer, FinishPatterns } from './Finishes'
+import { FoundationLayer } from './Foundation'
 import { FurnitureLayer } from './Furniture'
-import { storeyView } from '../../state/derived'
+import { getFoundation, storeyView } from '../../state/derived'
 import { getPrefs, setPrefs, setSun, usePrefs } from '../../state/prefs'
 import { getStore, useEditor, type ToolId, type Viewport } from '../../state/store'
 import { Overlay } from './Overlay'
@@ -37,15 +38,18 @@ import { formatMeters, frame, gridSteps, MAX_ZOOM, MIN_ZOOM, niceStep } from './
 
 const SHORTCUTS: Record<string, ToolId> = { v: 'select', l: 'line', a: 'area', d: 'door', w: 'window', m: 'measure', h: 'pan' }
 const ROOF_SHORTCUTS: Record<string, ToolId> = { v: 'roof-select', r: 'roof', m: 'measure', h: 'pan' }
+const FOUNDATION_SHORTCUTS: Record<string, ToolId> = { v: 'foundation-select', m: 'measure', h: 'pan' }
 
 const isTyping = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')
 
 /**
  * The plan, drawn to scale with its tools. On the Floor tab it is the floor plan; on the Roof tab (`mode` roof)
- * the floor plan is faded under the roofs, which are what the tools there work on.
+ * the floor plan is faded under the roofs, which are what the tools there work on; on the Foundation tab (`mode`
+ * foundation) the ground floor is faded under its foundation plan.
  */
-export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
+export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' | 'foundation' }) {
   const roofMode = mode === 'roof'
+  const floorMode = mode === 'floor'
   const store = getStore()
   const plan = useEditor((s) => s.plan)
   const selection = useEditor((s) => s.selection)
@@ -142,12 +146,12 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
       }
       if (event.ctrlKey || event.metaKey || event.altKey) return
       const key = event.key.toLowerCase()
-      const shortcuts = roofMode ? ROOF_SHORTCUTS : SHORTCUTS
-      const home = roofMode ? 'roof-select' : 'select'
+      const shortcuts = roofMode ? ROOF_SHORTCUTS : floorMode ? SHORTCUTS : FOUNDATION_SHORTCUTS
+      const home = roofMode ? 'roof-select' : floorMode ? 'select' : 'foundation-select'
       if (shortcuts[key]) chooseTool(shortcuts[key])
       else if (key === 'f') fitView()
       else if (key === 'g') setPrefs({ grid: !getPrefs().grid })
-      else if (key === 's' && !roofMode) setSun({ visible: !getPrefs().sun.visible })
+      else if (key === 's' && floorMode) setSun({ visible: !getPrefs().sun.visible })
       else if (key === 'escape' && store.getState().tool !== home) chooseTool(home)
     }
     window.addEventListener('keydown', onKey)
@@ -159,7 +163,7 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
       window.removeEventListener('keyup', onKey)
       window.removeEventListener('blur', onBlur)
     }
-  }, [store, tools, roofMode])
+  }, [store, tools, roofMode, floorMode])
 
   const toInfo = (event: PointerEvent): PointerInfo => {
     const rect = svgRef.current!.getBoundingClientRect()
@@ -259,9 +263,9 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
   }
 
   const overlay = tool.overlay()
-  const showCalibration = !roofMode && !!plan.image?.visible && (prefs.calibration || IMAGE_TOOLS.includes(toolId))
+  const showCalibration = floorMode && !!plan.image?.visible && (prefs.calibration || IMAGE_TOOLS.includes(toolId))
   // the welcome card shows on an empty plan until a drawing tool is picked; it lets clicks through to the canvas
-  const empty = !roofMode && !plan.image && plan.layers.every((l) => !Object.keys(l.segments).length) && (toolId === 'select' || toolId === 'pan')
+  const empty = floorMode && !plan.image && plan.layers.every((l) => !Object.keys(l.segments).length) && (toolId === 'select' || toolId === 'pan')
   const refIds = (kind: 'area' | 'opening' | 'roof' | 'furniture', layer: string) =>
     selection
       .filter((r) => r.kind === kind && r.layer === layer)
@@ -270,9 +274,11 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
   const hovered = (kind: 'area' | 'opening' | 'roof' | 'furniture', layer: string) => (overlay.hover?.kind === kind && overlay.hover.layer === layer ? overlay.hover.id : undefined)
   const cursorStyle = panning ? 'grabbing' : spaceHeld || toolId === 'pan' ? 'grab' : tool.cursor()
   const scaleBar = view ? niceStep(90 / view.zoom).step : 0
-  // the active layer's floor, over the floor below it, faded and out of reach; the floors above do not show
-  const floor = storeyView(plan, activeLayer)
-  const below = storeyView(plan, activeLayer, true).layers.filter((l) => l.visible && !floor.layers.includes(l))
+  // the active layer's floor, over the floor below it, faded and out of reach; the floors above do not show. The
+  // foundation plan is the ground floor's
+  const ground = mode === 'foundation' ? (plan.layers.find((l) => !storeyOf(l))?.id ?? activeLayer) : activeLayer
+  const floor = storeyView(plan, ground)
+  const below = mode === 'foundation' ? [] : storeyView(plan, ground, true).layers.filter((l) => l.visible && !floor.layers.includes(l))
 
   return (
     <div
@@ -285,7 +291,7 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
       {view && (
         <svg
           ref={svgRef}
-          className={roofMode ? 'canvas roof-mode' : 'canvas'}
+          className={floorMode ? 'canvas' : `canvas ${mode}-mode`}
           style={{ cursor: cursorStyle }}
           viewBox={`${view.x0} ${view.y0} ${size.w / view.zoom} ${size.h / view.zoom}`}
           onPointerDown={onPointerDown}
@@ -320,25 +326,26 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
               {roofMode && below.map((layer) => <RoofLayer key={layer.id} layer={layer} zoom={view.zoom} selected="" />)}
             </g>
           )}
-          {!roofMode &&
+          {floorMode &&
             floor.layers.map((layer) => layer.visible && <AreaFills key={layer.id} layer={layer} selected={refIds('area', layer.id)} hovered={hovered('area', layer.id)} materials={prefs.materials} />)}
-          {!roofMode && <SunShadows plan={plan} sun={prefs.sun} />}
+          {floorMode && <SunShadows plan={plan} sun={prefs.sun} />}
           {floor.layers.map(
             (layer) =>
               layer.visible && (
                 <LayerShapes
                   key={layer.id}
                   layer={layer}
-                  active={!roofMode && layer.id === activeLayer}
+                  active={floorMode && layer.id === activeLayer}
                   zoom={view.zoom}
-                  lengths={!roofMode && prefs.lengths}
+                  lengths={floorMode && prefs.lengths}
                   thick={prefs.thickWalls}
                 />
               ),
           )}
-          {!roofMode && prefs.materials && floor.layers.map((layer) => layer.visible && <FinishLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} />)}
+          {floorMode && prefs.materials && floor.layers.map((layer) => layer.visible && <FinishLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} />)}
           {floor.layers.map((layer) => layer.visible && <ColonnadeLayer key={layer.id} layer={layer} />)}
-          {floor.layers.map(
+          {mode !== 'foundation' &&
+            floor.layers.map(
             (layer) => layer.visible && <FurnitureLayer key={layer.id} layer={layer} selected={refIds('furniture', layer.id)} hovered={hovered('furniture', layer.id)} />,
           )}
           {floor.layers.map(
@@ -347,16 +354,23 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' }) {
                 <OpeningLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} selected={refIds('opening', layer.id)} hovered={hovered('opening', layer.id)} />
               ),
           )}
+          {mode === 'foundation' && (
+            <FoundationLayer
+              foundation={getFoundation(plan)}
+              selected={selection.filter((r) => r.kind === 'segment').map((r) => `${r.layer}:${r.id}`).join(' ')}
+              hovered={overlay.hover?.kind === 'segment' ? `${overlay.hover.layer}:${overlay.hover.id}` : undefined}
+            />
+          )}
           {roofMode ? (
             floor.layers.map((layer) => layer.visible && <RoofLayer key={layer.id} layer={layer} zoom={view.zoom} selected={refIds('roof', layer.id)} hovered={hovered('roof', layer.id)} />)
-          ) : (
+          ) : floorMode && (
             <>
               <AreaLabels plan={floor} selection={selection} zoom={view.zoom} lines={{ name: prefs.areaNames, size: prefs.areaSizes }} />
               <SunDial plan={plan} sun={prefs.sun} zoom={view.zoom} />
             </>
           )}
           {showCalibration && plan.image && <CalibrationMarks image={plan.image} zoom={view.zoom} />}
-          {!roofMode && <SelectionMarks plan={plan} refs={selection} hover={overlay.hover} zoom={view.zoom} />}
+          {floorMode && <SelectionMarks plan={plan} refs={selection} hover={overlay.hover} zoom={view.zoom} />}
           {!prompt || toolId === 'calibrate' ? <Overlay data={overlay} zoom={view.zoom} thick={prefs.thickWalls} /> : null}
         </svg>
       )}

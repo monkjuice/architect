@@ -1,3 +1,4 @@
+import { FOOTING, PAD, PILE, RAFT, RING_BEAM, TIE_COLUMN } from './foundations'
 import { furnitureInfo } from './furniture'
 import { findMaterial } from './materials'
 import { bought, rowCost, unitPrice } from './prices'
@@ -6,16 +7,14 @@ import {
   BAG,
   BRICKS,
   FLAT_ROOF,
-  FOOTING,
   GROW_BAR,
   HYDROFUGE,
   JOIST_SLAB,
   PER_DOWNPIPE,
   POOL_DIG,
   POOL_SHELL,
+  RAFT_DIG,
   REBAR,
-  RING_BEAM,
-  TIE_COLUMN,
   type Chapter,
   type Mix,
   type RowParams,
@@ -177,12 +176,56 @@ type Words = string | ((p: RowParams, n: (x: number, digits?: number) => string,
 /** For each key: what it is and how it was worked out, in English and in Spanish. */
 const TEXT: Record<string, Record<Lang, [item: Words, basis: Words]>> = {
   'excavation.footing': {
-    en: ['Excavation for strip footings', (_, n) => `The wall's thickness + ${n(FOOTING.extra)} m wide (at least ${n(FOOTING.min)} m), ${n(FOOTING.deep)} m deep under walls of 25 cm or more and ${n(FOOTING.shallow)} m under the rest (assumed)`],
-    es: ['Excavación para cimientos', (_, n) => `Ancho: espesor del muro + ${n(FOOTING.extra)} m (mínimo ${n(FOOTING.min)} m); profundidad ${n(FOOTING.deep)} m bajo muros de 25 cm o más y ${n(FOOTING.shallow)} m bajo el resto (supuesto)`],
+    en: ['Excavation for strip footings', (_, n) => `Each wall's footing, as set on the Foundation tab or the wall's thickness + ${n(FOOTING.extra)} m wide (at least ${n(FOOTING.min)} m), ${n(FOOTING.deep)} m deep under walls of 25 cm or more and ${n(FOOTING.shallow)} m under the rest`],
+    es: ['Excavación para cimientos', (_, n) => `El cimiento de cada muro, según la pestaña Fundaciones o de ancho espesor + ${n(FOOTING.extra)} m (mínimo ${n(FOOTING.min)} m) y ${n(FOOTING.deep)} m de profundidad bajo muros de 25 cm o más y ${n(FOOTING.shallow)} m bajo el resto`],
   },
   footing: {
-    en: ['Strip footing, lean concrete with brick rubble', 'The same trench, filled (assumed until the Foundation tab)'],
-    es: ['Cimiento corrido de hormigón pobre con cascote', 'La misma zanja, llena (supuesto hasta la pestaña Fundaciones)'],
+    en: ['Strip footing, lean concrete with brick rubble', 'The same trench, filled'],
+    es: ['Cimiento corrido de hormigón pobre con cascote', 'La misma zanja, llena'],
+  },
+  'excavation.beam': {
+    en: ['Excavation for ground beams', "Each beam's width + 0.10 m × its depth, along each wall"],
+    es: ['Excavación para vigas de fundación', 'Ancho de la viga + 0,10 m × su altura, a lo largo de cada muro'],
+  },
+  'beam.ground': {
+    en: ['Ground beams on piles', `Under every wall of the house, as set on the Foundation tab; H-21 with ${REBAR} kg/m³ of rebar`],
+    es: ['Vigas de fundación sobre pilotines', `Bajo cada muro de la casa, según la pestaña Fundaciones; H-21 con ${REBAR} kg/m³ de acero`],
+  },
+  'beam.raft': {
+    en: ["Raft's beams under the walls", `Its thickening under every wall, as set on the Foundation tab; H-21 with ${REBAR} kg/m³ of rebar`],
+    es: ['Vigas de la platea bajo los muros', `Engrosamiento bajo cada muro, según la pestaña Fundaciones; H-21 con ${REBAR} kg/m³ de acero`],
+  },
+  pile: {
+    en: [(_, n) => `Bored pile Ø ${n(PILE.diameter * 100, 0)} cm, ${n(PILE.depth, 1)} m deep`, (_, n) => `Under the house's outside walls, at their ends and at most ${n(PILE.spacing, 1)} m apart`],
+    es: [(_, n) => `Pilotín excavado Ø ${n(PILE.diameter * 100, 0)} cm, ${n(PILE.depth, 1)} m de profundidad`, (_, n) => `Bajo los muros exteriores de la casa, en sus extremos y cada ${n(PILE.spacing, 1)} m como máximo`],
+  },
+  'pile.concrete': {
+    en: ['Piles (concrete)', `Bored and filled; H-21 with ${REBAR} kg/m³ of rebar`],
+    es: ['Pilotines (hormigón)', `Excavados y llenados; H-21 con ${REBAR} kg/m³ de acero`],
+  },
+  pad: {
+    en: [(_, n) => `Pad footing ${n(PAD.side, 2)} × ${n(PAD.side, 2)} m`, 'Under each column of a gallery or colonnade'],
+    es: [(_, n) => `Base aislada ${n(PAD.side, 2)} × ${n(PAD.side, 2)} m`, 'Bajo cada columna de galería o columnata'],
+  },
+  'excavation.pad': {
+    en: ['Excavation for pad footings', (_, n) => `${n(PAD.side + 0.2, 2)} × ${n(PAD.side + 0.2, 2)} m, ${n(PAD.bottom, 2)} m deep, each`],
+    es: ['Excavación para bases', (_, n) => `${n(PAD.side + 0.2, 2)} × ${n(PAD.side + 0.2, 2)} m, ${n(PAD.bottom, 2)} m de profundidad, cada una`],
+  },
+  'pad.concrete': {
+    en: ['Pad footings (concrete)', (_, n) => `${n(PAD.depth * 100, 0)} cm thick; H-21 with ${REBAR} kg/m³ of rebar`],
+    es: ['Bases aisladas (hormigón)', (_, n) => `${n(PAD.depth * 100, 0)} cm de espesor; H-21 con ${REBAR} kg/m³ de acero`],
+  },
+  raft: {
+    en: ['Raft slab', "Under the house's covered areas, out to the walls' outside faces"],
+    es: ['Platea de fundación', 'Bajo las superficies cubiertas de la casa, hasta la cara exterior de los muros'],
+  },
+  'excavation.raft': {
+    en: ['Excavation under the raft', (_, n) => `Its area × ${n(RAFT_DIG, 2)} m (topsoil)`],
+    es: ['Excavación bajo la platea', (_, n) => `Su superficie × ${n(RAFT_DIG, 2)} m (suelo vegetal)`],
+  },
+  'raft.concrete': {
+    en: ['Raft slab (concrete)', (_, n) => `${n(RAFT.slab * 100, 0)} cm thick; H-21 with ${REBAR} kg/m³ of rebar`],
+    es: ['Platea (hormigón)', (_, n) => `${n(RAFT.slab * 100, 0)} cm de espesor; H-21 con ${REBAR} kg/m³ de acero`],
   },
   'beam.foundation': {
     en: ['Foundation ring beam', (_, n) => `The wall's thickness × ${n(RING_BEAM * 100, 0)} cm, on the footing of each load-bearing wall; H-21 with ${REBAR} kg/m³ of rebar`],
@@ -255,7 +298,7 @@ const TEXT: Record<string, Record<Lang, [item: Words, basis: Words]>> = {
   },
   'eps.wall': { en: ['EPS board 50 mm (wall cavity)', 'Envelope walls 25 cm or more, 5% for cuts'], es: ['Placa de EPS 50 mm (cámara del muro)', 'Muros exteriores de 25 cm o más, 5 % de recortes'] },
   'barrier.wall': { en: ['Polyethylene vapour barrier 200 µm', 'Wall cavity, 10% for laps'], es: ['Barrera de vapor de polietileno 200 µm', 'Cámara del muro, 10 % de solapes'] },
-  'barrier.floor': { en: ['Polyethylene under the sub-floor 200 µm', '10% for laps'], es: ['Film de polietileno 200 µm bajo el contrapiso', '10 % de solapes'] },
+  'barrier.floor': { en: ['Polyethylene under the ground floor 200 µm', 'Under its sub-floor or raft, 10% for laps'], es: ['Film de polietileno 200 µm bajo la planta baja', 'Bajo el contrapiso o la platea, 10 % de solapes'] },
   'glasswool.roof': { en: ['Glass wool 50 mm with aluminium foil (roof)', 'Its slopes, 5% for laps'], es: ['Lana de vidrio 50 mm con aluminio (techo)', 'Faldones, 5 % de solapes'] },
   'eps.roof': { en: ['EPS board 50 mm (flat roof)', '5% for cuts'], es: ['Placa de EPS 50 mm (techo plano)', '5 % de recortes'] },
   'plaster.unchosen': {

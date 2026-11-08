@@ -1,14 +1,16 @@
-import { dist, EPS, polygonArea, polylineLength } from './geometry'
-import { columnSpots, GLAZED_BASE, layerColonnades } from './colonnades'
+import { dist, polygonArea, polylineLength } from './geometry'
+import { GLAZED_BASE, layerColonnades } from './colonnades'
 import type { Face, Vec3 } from './faces'
-import { sideNormal, wallSide, type WallSide } from './finishes'
+import { sideNormal, type WallSide } from './finishes'
+import { foundationPlan, PAD, PILE, RAFT, RING_BEAM, tieColumns, TIE_COLUMN } from './foundations'
 import { findMaterial } from './materials'
 import { placeOpening } from './openings'
 import { segmentKind, storeyOf, type Layer, type Plan, type Roof } from './plan'
-import { layerFaces, pointInPolygon, regionAt, regionLabel, type Region } from './regions'
+import { layerFaces, pointInPolygon, regionAt } from './regions'
 import { eavesOf, growLights, pergolaRafters, roofPlanes, roofSummary, underside } from './roofs'
 import { DOOR_HEAD, GATE_HEIGHT, houseSolids, isCovered, windowSill, type Solid, type SolidsSource } from './solids'
-import { INTERIOR_WALL, layerWalls, wallHeight } from './walls'
+import { layerWalls, wallHeight } from './walls'
+import { wallUses } from './wallUse'
 
 /**
  * The materials list: what the house needs to be built, worked out from the visible layers and their 3-D solids,
@@ -131,11 +133,8 @@ export function wallBuildUp(kind: 'envelope' | 'partition' | 'boundary', thickne
 
 /** Plaster: the base coat and the finish coat, m³ of mix per m². */
 export const PLASTER = { base: 0.02, finish: 0.005 }
-/** A strip footing under a wall: its width beyond the wall's thickness (at least `min`) and its depth, m. */
-export const FOOTING = { extra: 0.15, min: 0.3, deep: 0.6, shallow: 0.4 }
-/** A ring beam's depth, and tie columns' side and the most they stand apart along a load-bearing wall, m. */
-export const RING_BEAM = 0.2
-export const TIE_COLUMN = { side: 0.2, spacing: 4 }
+/** How deep the ground is dug under a raft (topsoil and its beams' extra), m. */
+export const RAFT_DIG = 0.2
 /** A ground floor's lean concrete sub-floor, an outdoor paving's base and the screed over every built floor, m. */
 export const SUB_FLOOR = 0.12
 export const PAVING_BASE = 0.1
@@ -235,117 +234,113 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
     sides.set(key, area)
   }
 
+  // the walls: their masonry, finishes, damp-proofing, ring beams and lintels
+  const walls = wallUses(plan, source)
+  for (const { layer, segment: id, thickness: t, use, outdoor } of walls) {
+    const s = layer.segments[id]
+    const length = dist(layer.vertices[s.a], layer.vertices[s.b])
+    const where = layer.name
+    const area = sides.get(`${layer.id}:${id}`) ?? { left: 0, right: 0 }
+    const wall = (area.left + area.right) / 2
+    const { build, leaves, insulated } = wallBuildUp(use, t)
+    const outside: WallSide | null = use === 'envelope' ? (outdoor.left ? 'left' : 'right') : null
+    const brickFinish = (side: WallSide) => findMaterial(s.finish?.[side])?.pattern === 'brick'
+
+    // masonry: the wall's area at its mid-plane, its leaves' bricks and mortar
+    add('masonry', 'wall', 'm²', wall, where, { build, thickness: round(t) })
+    leaves.forEach((leaf, i) => {
+      // the outer leaf of an envelope wall (a boundary wall's only one) shows on the outside
+      const exposed = i === 0 && (outside ? brickFinish(outside) : use === 'boundary' && (brickFinish('left') || brickFinish('right')))
+      const brick = BRICKS[exposed && leaf === 'solid12' ? 'facing12' : exposed && leaf === 'solid24' ? 'facing24' : leaf]
+      add('masonry', brick.key, 'u', wall * brick.units, where)
+      add('masonry', 'mortar.masonry', 'm³', wall * brick.mortar, where)
+      mix('masonry', wall * brick.mortar)
+    })
+    if (insulated) {
+      add('insulation', 'eps.wall', 'm²', wall * (1 + WASTE.sheet), where)
+      add('insulation', 'barrier.wall', 'm²', wall * 1.1, where)
+    }
+
+    // each side's finish: plaster and paint, exposed brick, or a cladding on a base coat
+    for (const side of ['left', 'right'] as WallSide[]) {
+      const sideArea = area[side]
+      const facing: Side = outdoor[side] ? 'exterior' : 'interior'
+      const m = findMaterial(s.finish?.[side])
+      // the face of a solid brick leaf: an insulated wall's outside, a boundary wall's either side
+      const solidFace = (side === outside && leaves[0].startsWith('solid')) || use === 'boundary'
+      if (!m) {
+        plaster(sideArea, 'plaster.unchosen', where, { side: facing })
+        add('plaster', 'paint', 'm²', sideArea, where, { side: facing })
+      } else if (m.pattern === 'brick' && solidFace) {
+        add('cladding', 'brick.pointing', 'm²', sideArea, where, { material: m.id })
+        if (m.id === 'brick-white') add('plaster', 'paint', 'm²', sideArea, where, { side: facing })
+      } else if (m.group === 'Plaster and paint') {
+        plaster(sideArea, 'plaster.material', where, { material: m.id, side: facing })
+        if (m.id === 'plaster-white') add('plaster', 'paint', 'm²', sideArea, where, { side: facing })
+        if (m.id === 'plaster-sand') add('cladding', 'coating.textured', 'm²', sideArea, where)
+      } else {
+        plaster(sideArea, 'plaster.base', where, {}, 'base')
+        const waste = m.pattern === 'tiles' || m.pattern === 'planks' || m.pattern === 'brick' ? WASTE.tiles : WASTE.other
+        add('cladding', 'cladding', 'm²', sideArea * (1 + waste), where, { material: m.id, waste })
+      }
+    }
+
+    // a ground-floor wall's damp-proof course; a load-bearing wall's ring beam on top
+    if (!storeyOf(layer)) {
+      const dpc = length * (2 * t + 0.3)
+      add('insulation', 'dpc', 'm²', dpc, where)
+      mix('screed', dpc * 0.02)
+      hydrofuge += dpc * 0.02 * MIXES.screed.cement * HYDROFUGE
+    }
+    if (use !== 'partition') concrete('structure', 'beam.ring', length * t * RING_BEAM, where)
+    // a precast lintel over each door and window that does not reach the top of the wall
+    for (const o of Object.values(layer.openings)) {
+      if (o.segment !== id || (o.kind !== 'door' && o.kind !== 'window')) continue
+      if ((o.height ?? DOOR_HEAD) < wallHeight(s) - 1e-3) add('masonry', 'lintel', 'm', o.width + 0.4, where)
+    }
+  }
+  const layerName = (id: string) => plan.layers.find((l) => l.id === id)?.name ?? ''
+  for (const tie of tieColumns(walls)) {
+    add('structure', 'column.tie.count', 'u', 1, layerName(tie.layer))
+    concrete('structure', 'column.tie', TIE_COLUMN.side * TIE_COLUMN.side * tie.height, layerName(tie.layer))
+  }
+
+  // what the ground floor stands on (see foundations.ts)
+  const foundation = foundationPlan(plan, solids, source, walls)
+  for (const f of foundation.walls) {
+    const length = dist(f.a, f.b)
+    const where = layerName(f.layer)
+    if (f.kind === 'strip') {
+      add('foundations', 'excavation.footing', 'm³', length * f.width * f.depth, where)
+      add('foundations', 'footing', 'm³', length * f.width * f.depth, where)
+      mix('lean', length * f.width * f.depth)
+      if (f.ringBeam) concrete('foundations', 'beam.foundation', length * f.thickness * RING_BEAM, where)
+    } else {
+      add('foundations', 'excavation.beam', 'm³', length * (f.width + 0.1) * f.depth, where)
+      concrete('foundations', foundation.system === 'raft' ? 'beam.raft' : 'beam.ground', length * f.width * f.depth, where)
+    }
+  }
+  for (const pile of foundation.piles) {
+    add('foundations', 'pile', 'u', 1, layerName(pile.layer))
+    concrete('foundations', 'pile.concrete', Math.PI * (PILE.diameter / 2) ** 2 * PILE.depth, layerName(pile.layer))
+  }
+  for (const pad of foundation.pads) {
+    add('foundations', 'pad', 'u', 1, layerName(pad.layer))
+    add('foundations', 'excavation.pad', 'm³', (PAD.side + 0.2) ** 2 * PAD.bottom, layerName(pad.layer))
+    concrete('foundations', 'pad.concrete', PAD.side ** 2 * PAD.depth, layerName(pad.layer))
+  }
+  for (const raft of foundation.rafts) {
+    const a = polygonArea(raft.outline)
+    add('foundations', 'raft', 'm²', a, layerName(raft.layer))
+    add('foundations', 'excavation.raft', 'm³', a * RAFT_DIG, layerName(raft.layer))
+    concrete('foundations', 'raft.concrete', a * RAFT.slab, layerName(raft.layer))
+  }
+
   const visible = plan.layers.filter((l) => l.visible)
-  // what is built over a point: a roof on its floor or above, a floor above
-  const roofed = visible.flatMap((l) => Object.values(l.roofs).map((r) => ({ storey: storeyOf(l), eaves: eavesOf(r) })))
-  const floored = visible.flatMap((l) =>
-    Object.values(l.areas).flatMap((a) => {
-      const r = storeyOf(l) && !a.lot ? regionAt(source.faces(l).regions, a.at) : null
-      return r ? [{ storey: storeyOf(l), outer: r.outer }] : []
-    }),
-  )
   for (const layer of visible) {
     const faces = source.faces(layer)
-    const storey = storeyOf(layer)
-    const ground = storey === 0
-    // a wall's side is indoors on a room: walled off, not a lot, and named or built over. An enclosed space that is
-    // neither (land between boundary walls, marked as a lot on another layer) is outdoors
-    const room = (region: Region | null) => {
-      if (!region) return false
-      if (Object.values(layer.areas).some((a) => !a.lot && regionAt(faces.regions, a.at) === region)) return true
-      const p = regionLabel(region)
-      return roofed.some((r) => r.storey >= storey && pointInPolygon(p, r.eaves)) || floored.some((f) => f.storey > storey && pointInPolygon(p, f.outer))
-    }
+    const ground = storeyOf(layer) === 0
     const where = layer.name
-    const tieColumns = new Map<string, number>()
-
-    for (const [id, s] of Object.entries(layer.segments)) {
-      if (segmentKind(s) !== 'wall') continue
-      const [a, b] = [layer.vertices[s.a], layer.vertices[s.b]]
-      const length = dist(a, b)
-      if (length < EPS) continue
-      const t = faces.thickness.get(id) ?? INTERIOR_WALL
-      const [left, right] = (['left', 'right'] as WallSide[]).map((side) => wallSide(layer, faces.regions, t / 2, id, side))
-      const outdoor = { left: left.outdoor || !room(left.region), right: right.outdoor || !room(right.region) }
-      const kind = outdoor.left && outdoor.right ? 'boundary' : outdoor.left || outdoor.right ? 'envelope' : 'partition'
-      const area = sides.get(`${layer.id}:${id}`) ?? { left: 0, right: 0 }
-      const wall = (area.left + area.right) / 2
-      const { build, leaves, insulated } = wallBuildUp(kind, t)
-      const outside: WallSide | null = kind === 'envelope' ? (outdoor.left ? 'left' : 'right') : null
-      const brickFinish = (side: WallSide) => findMaterial(s.finish?.[side])?.pattern === 'brick'
-
-      // masonry: the wall's area at its mid-plane, its leaves' bricks and mortar
-      add('masonry', 'wall', 'm²', wall, where, { build, thickness: round(t) })
-      leaves.forEach((leaf, i) => {
-        // the outer leaf of an envelope wall (a boundary wall's only one) shows on the outside
-        const exposed = i === 0 && (outside ? brickFinish(outside) : kind === 'boundary' && (brickFinish('left') || brickFinish('right')))
-        const brick = BRICKS[exposed && leaf === 'solid12' ? 'facing12' : exposed && leaf === 'solid24' ? 'facing24' : leaf]
-        add('masonry', brick.key, 'u', wall * brick.units, where)
-        add('masonry', 'mortar.masonry', 'm³', wall * brick.mortar, where)
-        mix('masonry', wall * brick.mortar)
-      })
-      if (insulated) {
-        add('insulation', 'eps.wall', 'm²', wall * (1 + WASTE.sheet), where)
-        add('insulation', 'barrier.wall', 'm²', wall * 1.1, where)
-      }
-
-      // each side's finish: plaster and paint, exposed brick, or a cladding on a base coat
-      for (const side of ['left', 'right'] as WallSide[]) {
-        const sideArea = area[side]
-        const facing: Side = outdoor[side] ? 'exterior' : 'interior'
-        const m = findMaterial(s.finish?.[side])
-        // the face of a solid brick leaf: an insulated wall's outside, a boundary wall's either side
-        const solidFace = (side === outside && leaves[0].startsWith('solid')) || kind === 'boundary'
-        if (!m) {
-          plaster(sideArea, 'plaster.unchosen', where, { side: facing })
-          add('plaster', 'paint', 'm²', sideArea, where, { side: facing })
-        } else if (m.pattern === 'brick' && solidFace) {
-          add('cladding', 'brick.pointing', 'm²', sideArea, where, { material: m.id })
-          if (m.id === 'brick-white') add('plaster', 'paint', 'm²', sideArea, where, { side: facing })
-        } else if (m.group === 'Plaster and paint') {
-          plaster(sideArea, 'plaster.material', where, { material: m.id, side: facing })
-          if (m.id === 'plaster-white') add('plaster', 'paint', 'm²', sideArea, where, { side: facing })
-          if (m.id === 'plaster-sand') add('cladding', 'coating.textured', 'm²', sideArea, where)
-        } else {
-          plaster(sideArea, 'plaster.base', where, {}, 'base')
-          const waste = m.pattern === 'tiles' || m.pattern === 'planks' || m.pattern === 'brick' ? WASTE.tiles : WASTE.other
-          add('cladding', 'cladding', 'm²', sideArea * (1 + waste), where, { material: m.id, waste })
-        }
-      }
-
-      // what it stands on and what ties it: footings, damp-proofing and ring beams; tie columns along load-bearing walls
-      const bearing = kind !== 'partition'
-      if (ground) {
-        const width = Math.max(FOOTING.min, t + FOOTING.extra)
-        const deep = t >= 0.25 ? FOOTING.deep : FOOTING.shallow
-        add('foundations', 'excavation.footing', 'm³', length * width * deep, where)
-        add('foundations', 'footing', 'm³', length * width * deep, where)
-        mix('lean', length * width * deep)
-        if (bearing) concrete('foundations', 'beam.foundation', length * t * RING_BEAM, where)
-        const dpc = length * (2 * t + 0.3)
-        add('insulation', 'dpc', 'm²', dpc, where)
-        mix('screed', dpc * 0.02)
-        hydrofuge += dpc * 0.02 * MIXES.screed.cement * HYDROFUGE
-      }
-      if (bearing) {
-        concrete('structure', 'beam.ring', length * t * RING_BEAM, where)
-        const h = wallHeight(s)
-        for (const k of columnSpots(length, TIE_COLUMN.spacing)) {
-          const p = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }
-          const spot = `${p.x.toFixed(2)},${p.y.toFixed(2)}`
-          tieColumns.set(spot, Math.max(tieColumns.get(spot) ?? 0, h))
-        }
-      }
-      // a precast lintel over each door and window that does not reach the top of the wall
-      for (const o of Object.values(layer.openings)) {
-        if (o.segment !== id || (o.kind !== 'door' && o.kind !== 'window')) continue
-        if ((o.height ?? DOOR_HEAD) < wallHeight(s) - 1e-3) add('masonry', 'lintel', 'm', o.width + 0.4, where)
-      }
-    }
-    for (const h of tieColumns.values()) {
-      add('structure', 'column.tie.count', 'u', 1, where)
-      concrete('structure', 'column.tie', TIE_COLUMN.side * TIE_COLUMN.side * h, where)
-    }
 
     // floors: what each named area stands on and is finished in; rooms' skirting and ceilings
     for (const [areaId, area] of Object.entries(layer.areas)) {
@@ -368,9 +363,12 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
         if (m.id !== 'dirt') add('garden', 'garden.cover', 'm²', floor, area.name, { material: m.id })
         continue
       }
+      // on the ground: a sub-floor, or under a covered area on a raft, the raft itself
       if (ground) {
-        add('subfloors', covered ? 'subfloor' : 'paving.base', 'm²', floor, area.name)
-        mix('lean', floor * (covered ? SUB_FLOOR : PAVING_BASE))
+        if (!covered || foundation.system !== 'raft') {
+          add('subfloors', covered ? 'subfloor' : 'paving.base', 'm²', floor, area.name)
+          mix('lean', floor * (covered ? SUB_FLOOR : PAVING_BASE))
+        }
         if (covered) add('insulation', 'barrier.floor', 'm²', floor * 1.1, area.name)
       }
       add('subfloors', 'screed', 'm²', floor, area.name)

@@ -1,6 +1,7 @@
 import type { ToolId } from '../../../state/store'
 import { createAreaTool } from './area'
 import { createColonnadeTool } from './colonnade'
+import { createFoundationSelectTool } from './foundationSelect'
 import { createFurnitureTool } from './furniture'
 import { createMaterialTool } from './material'
 import { createCalibrateTool, createCropTool, createImageMoveTool, createLevelTool } from './image'
@@ -35,6 +36,7 @@ export function createTools(ctx: ToolContext): Record<ToolId, Tool> {
     north: createNorthTool(ctx),
     roof: createRoofTool(ctx),
     'roof-select': createRoofSelectTool(ctx),
+    'foundation-select': createFoundationSelectTool(ctx),
   }
 }
 
@@ -108,5 +110,10 @@ export const TOOL_INFO: Record<ToolId, { title: string; key?: string; hint: stri
     title: 'Select',
     key: 'V',
     hint: 'Click a roof (Shift: add) · drag it to move it · drag a corner of a selected roof to reshape it · Del: delete',
+  },
+  'foundation-select': {
+    title: 'Select',
+    key: 'V',
+    hint: "Click a wall's footing (Shift: add) to set its width and depth in the Foundation section · Esc: clear",
   },
 }

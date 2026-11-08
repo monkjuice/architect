@@ -810,6 +810,98 @@ button.icon {
   opacity: 0.35;
 }
 
+/* ---- foundation plan: the ground floor fades under its footings ------------------------------------------ */
+
+.foundation-main {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.foundation-main .notice {
+  left: 12px;
+}
+
+.canvas.foundation-mode :is(.layer, .openings, .columns) {
+  opacity: 0.35;
+}
+
+.foundation {
+  pointer-events: none;
+}
+
+/* strip footings in lean concrete's tan, reinforced beams, rafts, pads and tie columns in concrete grey */
+.footing > path:first-child {
+  fill: rgba(201, 180, 138, 0.28);
+  stroke: #c9b48a;
+  stroke-width: 1;
+}
+
+.footing.beam > path:first-child {
+  fill: rgba(143, 163, 184, 0.35);
+  stroke: #8fa3b8;
+}
+
+.footing .ring-beam {
+  fill: none;
+  stroke: #8fa3b8;
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.footing.custom > path:first-child {
+  stroke-width: 2;
+}
+
+.footing.hovered > path:first-child {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.footing.selected > path:first-child {
+  stroke: var(--selection);
+  stroke-width: 2.5;
+}
+
+.raft {
+  fill: rgba(143, 163, 184, 0.14);
+  stroke: #8fa3b8;
+  stroke-width: 1.5;
+  stroke-dasharray: 8 4;
+}
+
+.pad {
+  fill: rgba(143, 163, 184, 0.4);
+  stroke: #8fa3b8;
+  stroke-width: 1;
+}
+
+.pile {
+  fill: none;
+  stroke: #e2e4ea;
+  stroke-width: 1.5;
+}
+
+.tie-column {
+  fill: #8fa3b8;
+}
+
+.foundation-rows {
+  width: 100%;
+  margin: 6px 0;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.foundation-rows td {
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.foundation-rows .number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* the floor below the one shown, to draw over */
 .canvas .underlay {
   opacity: 0.3;

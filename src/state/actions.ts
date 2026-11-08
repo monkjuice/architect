@@ -51,18 +51,21 @@ export function chooseTool(tool: ToolId) {
 
 /** The tools of the Roof tab; the others belong to the floor plan. */
 export const ROOF_TOOLS: readonly ToolId[] = ['roof-select', 'roof']
+/** The Foundation tab's tools, besides Measure and Pan, which every plan has. */
+export const FOUNDATION_TOOLS: readonly ToolId[] = ['foundation-select']
 
 /**
- * Opens a tab. The floor plan and the roof plan have tools of their own and select their own things, so moving
- * between them picks the right tool and keeps only what that tab can select.
+ * Opens a tab. The floor plan, the roof plan and the foundation plan have tools of their own and select their own
+ * things, so moving between them picks the right tool and keeps only what that tab can select.
  */
 export function openTab(tab: Tab) {
   const store = getStore()
   const { tool, selection } = store.getState()
   const patch: Partial<EditorState> = { tab }
   if (tab === 'roof' && !ROOF_TOOLS.includes(tool)) patch.tool = 'roof-select'
-  if (tab === 'floor' && ROOF_TOOLS.includes(tool)) patch.tool = 'select'
-  if (tab === 'roof' || tab === 'floor') {
+  if (tab === 'floor' && (ROOF_TOOLS.includes(tool) || FOUNDATION_TOOLS.includes(tool))) patch.tool = 'select'
+  if (tab === 'foundation' && !FOUNDATION_TOOLS.includes(tool) && tool !== 'measure' && tool !== 'pan') patch.tool = 'foundation-select'
+  if (tab === 'roof' || tab === 'floor' || tab === 'foundation') {
     const keep = selection.filter((r) => (r.kind === 'roof') === (tab === 'roof'))
     if (keep.length !== selection.length) patch.selection = keep
   }

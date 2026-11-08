@@ -4,7 +4,7 @@ import { getStore, useEditor, type Tab } from '../state/store'
 
 /** The tabs in order; those not built yet show, disabled. */
 const TABS: { id: Tab; title: string; ready?: boolean }[] = [
-  { id: 'foundation', title: 'Foundation' },
+  { id: 'foundation', title: 'Foundation', ready: true },
   { id: 'floor', title: 'Floor', ready: true },
   { id: 'roof', title: 'Roof', ready: true },
   { id: 'elevations', title: 'Elevations', ready: true },

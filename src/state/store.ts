@@ -38,6 +38,7 @@ export type ToolId =
   | 'north'
   | 'roof'
   | 'roof-select'
+  | 'foundation-select'
 
 export interface Notice {
   kind: 'info' | 'error'

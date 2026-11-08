@@ -33,7 +33,8 @@ actions. Every tab works on the same plan, with one undo history and one file:
 | **Elevations** | The four facades, drawn from the floor plan and the roofs (see [Elevations](#elevations)). |
 | **Exterior** | The house in 3-D, built from the floor plan and the roofs (see [Exterior](#exterior)). |
 | **Materials** | What the house needs to be built, with quantities (see [Materials list](#materials-list)). |
-| Foundation, Interior, Plumbing, Electricity, Gas | Not built yet: shown, disabled. |
+| **Foundation** | The foundation plan, worked out from the ground floor's walls and columns (see [Foundation](#foundation)). |
+| Interior, Plumbing, Electricity, Gas | Not built yet: shown, disabled. |
 
 ## Workflow
 
@@ -307,6 +308,24 @@ click inside the area to select it instead. The rest are per browser.
 
 Every panel section folds away from its title, and stays folded the next time.
 
+## Foundation
+
+The **Foundation** tab is the foundation plan: the ground floor faded, and what it stands on, worked out from its
+walls, columns and rooms. *System* (in the bar) is how the house stands on the ground:
+
+| System | |
+|---|---|
+| **Strip footings** | A strip footing of lean concrete with brick rubble under every wall (its width the wall's thickness + 0.15 m, at least 0.30 m; 0.60 m deep under walls of 25 cm or more, 0.40 m under the rest), with a reinforced ring beam on it under the load-bearing walls (dashed). |
+| **Piles and ground beams** | A reinforced ground beam under every wall of the house (0.40 m deep under outside walls, 0.30 m under partitions), on bored piles Ø 25 cm, 3 m deep, along the outside walls at most 2.5 m apart: for soft or expansive soil. |
+| **Raft slab** | A reinforced slab 15 cm thick under the covered areas, out to the walls' outside faces, thickened into a beam under every wall: for weak soil. It replaces the sub-floor. |
+
+Whatever the system, boundary and garden walls (nothing indoors on either side) stand on strip footings, columns
+of galleries and colonnades on 0.80 m pad footings, and load-bearing walls have tie columns at their ends and at
+most 4 m apart. *Select* (V) picks a wall's footing (Shift adds); the Foundation section then sets its width and
+depth by hand (drawn with a heavier edge) or puts it back to the one worked out from the wall, and lists what the
+foundation takes, the same rows as the Materials tab's first chapter. These are usual sizes for ordinary soil, not
+a structural design: a soil study and an engineer's calculation set the real ones.
+
 ## Roof
 
 The **Roof** tab is the roof plan: the floor plan faded, and the roofs over it. A roof is an outline (what it
@@ -403,13 +422,14 @@ shown (in Spanish with semicolons and decimal commas, as a spreadsheet set to Ar
   over it (gable ends included), floors inside the walls, skirting along the rooms' walls, roof slopes, doors,
   windows and gates by size, glass by what holds it, columns, beams, railings, pools (lining, shell, dig), fixtures
   and plants.
+- **From the Foundation tab**: footings, ground beams, piles, pad footings or the raft, with each wall's size
+  set there or worked out from it (see [Foundation](#foundation)).
 - **Assumed** behind them, by what each wall separates and how thick it is: a wall between a room and the outside
   (an indoor space counts when it is named or has a roof or a floor over it) is an insulated double wall when 25 cm
   or more (12 cm solid brick, cavity, 5 cm EPS, vapour barrier, 8 cm hollow brick), else 18 or 12 cm hollow brick;
   a partition is 18, 12 or 8 cm hollow brick; a wall with nothing indoors on either side (a boundary or garden
-  wall) is solid brick, 24 or 12 cm, in facing brick when finished in brick. Walls stand on strip footings of
-  lean concrete with rubble and a damp-proof course; load-bearing ones have ring beams at the footing and on top and
-  tie columns at most 4 m apart. Slabs (upper floors, flat roofs) are joist and block slabs; ground floors are 12 cm
+  wall) is solid brick, 24 or 12 cm, in facing brick when finished in brick. Ground-floor walls have a damp-proof
+  course; load-bearing ones have a ring beam on top and tie columns at most 4 m apart. Slabs (upper floors, flat roofs) are joist and block slabs; ground floors are 12 cm
   of lean concrete on polyethylene, every built floor a 3 cm screed. Unfinished wall sides are counted as plastered
   and painted, unfinished floors and roof coverings as "not chosen".
 - **Basic materials**: cement (50 kg bags), hydrated lime (25 kg bags), sand, gravel and rubble from the usual
@@ -422,9 +442,9 @@ shown (in Spanish with semicolons and decimal commas, as a spreadsheet set to Ar
   of opening, glass included. Each chapter shows its subtotal and the list its total, also in dollars at the MEP
   rate of the day the prices were seen.
 
-The build-ups, rates and dosages are constants at the top of `src/model/takeoff.ts`, the words in
-`src/model/takeoffText.ts` and the prices in `src/model/prices.ts`. Foundations are assumed until the Foundation
-tab exists, and a structural design will change the concrete. Prices go stale quickly: update them with their date.
+The build-ups, rates and dosages are constants at the top of `src/model/takeoff.ts` (the foundation's in
+`src/model/foundations.ts`), the words in `src/model/takeoffText.ts` and the prices in `src/model/prices.ts`. A
+structural design will change the concrete. Prices go stale quickly: update them with their date.
 
 ## Tools and keys
 
@@ -496,7 +516,8 @@ changes.
   `colonnades.ts` (column styles and where columns stand), `furniture.ts` (the furniture catalogue, where pieces
   stand and snap, their plan symbols), `furniture3d.ts` (furniture in 3-D), `materials.ts` (the materials
   catalogue, which suit which surfaces, outdoors or in), `finishes.ts` (a wall's two sides, what each faces),
-  `faces.ts` (the flat faces solids are made of), `takeoff.ts` (the materials list and its build-ups), `takeoffText.ts` (its words in English and Spanish),
+  `faces.ts` (the flat faces solids are made of), `takeoff.ts` (the materials list and its build-ups), `foundations.ts` (the foundation plan), `wallUse.ts`
+  (what each wall separates), `takeoffText.ts` (its words in English and Spanish),
   `prices.ts` (local prices),
   `sun.ts` (sun position, sunrise and sunset, shadows), `roofs.ts` (roof slopes, faces, eaves and the house's
   outline), `solids.ts` (the house in 3-D as solids of flat faces), `elevations.ts` (the facades from the
