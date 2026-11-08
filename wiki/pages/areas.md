@@ -4,7 +4,7 @@ type: concept
 summary: "An area is a named point ({name, at} in layer.areas) whose outline is the region of its layer's lines enclosing the point, Revit-room style; a room shows its floor area inside the wall faces and a lot (lot: true) its area to the lot lines (areaSize); coveredArea totals indoor rooms with their walls, lots excluded; regions and placed areas are cached per object in src/state/derived.ts (planAreas per plan); one area per region, \"not enclosed\" when the lines open; Area tool and label dragging."
 tags: [model, areas, regions, state, ui, lots, pool, storeys]
 sources: []
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Areas
@@ -86,6 +86,9 @@ is grouped under floor headings (`.area-list-floor`).
 ## Known limits (2026-11-02)
 
 - An area is not re-anchored when walls move past its point.
+- One area per region is enforced only when naming or dragging a label. Deleting the lines between two named regions
+  merges them, leaving two areas on one region (seen 2026-11-08 with two joined balconies): its floor counts twice in
+  the Areas totals until one name is deleted.
 - There is a covered total but no semi-covered one (galleries, porches); each region reports its open boundary
   length and `indoor` flag.
 

@@ -370,3 +370,9 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/opening-styles.md (window top/sill defaults, `windowSill`, Selection panel Top and Sill fields and clamps)
 - updated: pages/doors-and-windows.md (Selection panel lists Height / Top and Sill)
 - updated: pages/house-solids.md (Openings rule: a window's own head and sill, sill 0 builds no wall under it)
+
+## [2026-11-08] update | Keep a space ringed by an upper floor's areas open
+- updated: pages/storeys.md (slab voids include the union's holes, shrunk to the walls' faces; why; balcony how-to notes)
+- updated: pages/house-solids.md (upperworks bullet)
+- updated: pages/roofs.md (unionOutlines' optional holes array)
+- updated: pages/areas.md (known limit: deleting lines can leave two areas on one region, counted twice)

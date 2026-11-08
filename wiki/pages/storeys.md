@@ -31,7 +31,10 @@ Added on 2026-11-07 at the user's request ("support for building 2nd floor or a 
 `houseSolids` raises an upper layer by its level like a plinth layer, then calls `upperworks` instead of
 `groundworks` ([House solids](house-solids.md)): a `slab` prism from level − 0.30 to level under the union of the
 named areas (not lots or pools), offset `EXTERIOR_WALL/2`, with holes for the holes of those regions that hold no
-named area (a stairwell inside a room); and kind `railing` (steel posts ≤ 1.5 m apart, a glass pane, a steel
+named area (a stairwell inside a room) and for the holes of the union itself (`ringed`: an unnamed space that several
+named areas ring, such as a double-height room enclosed by a balcony and bedrooms; `d39aaa9`, before which the slab
+closed over it), each hole shrunk by `EXTERIOR_WALL/2` so the slab reaches the walls' faces (a 0.15 m nosing past
+an open edge); and kind `railing` (steel posts ≤ 1.5 m apart, a glass pane, a steel
 handrail) along each open edge with a named region on exactly one side. On an upper floor an open edge gets a beam
 and columns under a roof only when one side is the outside (no region), so a stairwell's edges get none. The
 elevations mark slab tops as levels.
@@ -48,7 +51,9 @@ From the user's loft plan (2026-11-08; built in a copy, `house-plan-loft-roofs.j
 
 - A balcony is a named area on the upper floor's layer drawn over the floor below's roof area, bounded by the
   bedroom's wall and open edges (railings) placed on the centrelines of the walls below. It gets the upper floor's
-  slab, so the floor below needs no roof there.
+  slab, so the floor below needs no roof there (one left there is hidden inside the slab).
+- Deleting the lines between two balconies merges them into one region still named by both areas; see
+  [Areas](areas.md), Known limits.
 - A flat roof on the floor below beside it must not overlap the balcony's slab (which reaches 0.15 m past the
   balcony's edges): tops coplanar at the upper level flicker. Keep the flat roof's outline clear of the slab, or
   0.1 m lower.

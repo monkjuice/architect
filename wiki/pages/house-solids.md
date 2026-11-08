@@ -65,7 +65,8 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
   ceil(level/0.18) − 1 treads, lower further out): outside each door whose side (`wallSide`) faces no covered
   region, door width + 0.3 m wide from the wall face, and along each open edge with a covered region on one side
   only, from `EXTERIOR_WALL/2` out. Limit: two such open edges meeting at a corner leave a notch there. A layer on
-  a floor above (`storey`) gets `upperworks` instead: a slab under its named areas and railings (kind `railing`)
+  a floor above (`storey`) gets `upperworks` instead: a slab under its named areas, open over unnamed spaces they
+  hold or ring (union holes kept since `d39aaa9`), and railings (kind `railing`)
   along open edges with a floor on one side only; there only open edges to the outside get beams
   ([Floors](storeys.md)). Stairs get their rise from `stairRise`.
 - No automatic roof: roofs come only from `layer.roofs` ([Roofs are drawn outlines](roofs-drawn-outlines.md)).

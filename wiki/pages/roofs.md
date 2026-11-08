@@ -4,7 +4,7 @@ type: component
 summary: "Drawn roofs in layer.roofs (RoofSchema: outline, type flat/shed/gable/hip/pergola, pitch, height at the eaves sides, overhang, reference edge, parapet, covering and soffit materials; ids r<n>) and src/model/roofs.ts: each slope a plane f(p) = distance in from an eaves line, underside = height + tan(pitch)·min f, faces by clipping the eaves polygon with half-planes, the underside along a wall, new-roof defaults, the hip convexity warning, unionOutlines for Roof the house, galleryRoof (a 2° shed overhanging only its open sides, via offsetEdges), and a pergola's rafters (pergolaRafters)."
 tags: [model, roof, geometry, schema, finishes, gallery, skylights, pergola, carport]
 sources: []
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Roofs: model and geometry
@@ -64,7 +64,9 @@ recomputed. `planFile.ts` rounds outline points to 0.1 mm on save.
   overhang 0 and a 0.30 m parapet.
 - `roofSummary`: plan area, sloped surface, lowest eaves, top.
 - `unionOutlines`: puts rooms together by cancelling edges that a neighbour runs the other way (each ring first made
-  clockwise). It needs shared corners, as a layer's regions have, and drops holes (courtyards).
+  clockwise). It needs shared corners, as a layer's regions have. Loops left running the other way (holes, e.g. a
+  courtyard) are dropped unless the caller passes a `holes` array, which receives them normalized (`d39aaa9`; only
+  `upperworks` does, for slab voids).
 - `galleryRoof(ring, rooms, top)` (`b5b8220`, reworked in `96a2afa`; for *Roof the house*): a shed at
   `GALLERY_PITCH` (2°) over the gallery's centreline ring (`actions.ts` passes the raw region ring). An edge is
   "along the rooms" when its midpoint is within `EXTERIOR_WALL` of a room ring. Through `offsetEdges`, those edges
