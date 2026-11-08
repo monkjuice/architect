@@ -4,7 +4,7 @@ type: component
 summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds, optional wall thickness and height, wall-side finishes and open-edge colonnades, named areas (rooms, or lots of land) with optional floor finishes, styled doors/windows/gates/fireplaces hosted by segments, drawn roofs and free-standing furniture with kitchen sinks kept in counters, embedded base image), with parsing, migrations and serialization in planFile.ts."
 tags: [model, file-format, schema, site, walls, roof, colonnades, fireplace, furniture, finishes, lots, levels]
 sources: []
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Plan model and file format
@@ -52,7 +52,8 @@ updated: 2026-11-07
   `width`, `hinge` (for a sliding gate: the end it slides towards) and `swing` (for a fireplace: the side it stands
   on) ([Doors, windows and gates](doors-and-windows.md), [Door, window and gate styles](opening-styles.md),
   [hosted by a segment](openings-hosted-by-segment.md)). A fireplace cuts no gap ([Fireplaces](fireplaces.md)). A
-  door may carry its own `height` (positive, at most 6 m; absent = `DOOR_HEAD` 2.10 m), set through `OpeningPatch`.
+  door may carry its own `height` (positive, at most 6 m; absent = `DOOR_HEAD` 2.10 m), set through `OpeningPatch`;
+  a window too, plus `sill` (0–5 m; absent = the style's usual sill).
 - `roofs` (id → `RoofSchema`: `outline`, `type`, `pitch`, `height`, `overhang`, `edge`, `parapet`, and optional
   `finish` and `soffit` material ids and `skylights: {count, width}`): outlines drawn on the Roof tab, independent of the lines, so they do not
   follow moved walls ([Roofs: model and geometry](roofs.md)).
@@ -121,4 +122,5 @@ Later that day layer `furniture` (`.default({})`) came, also at version 1, and t
 and area `floor`, and after them the optional area `lot` (`z.literal(true)`), all still at version 1. On
 2026-11-05 the optional roof `finish` and `soffit` came, also at version 1, and on 2026-11-06 the optional layer
 `level`, roof `skylights` and a fifth roof type, `pergola` (`59bcfa6`). On 2026-11-07 a third column style,
-`timber` (`acdb212`), also at version 1, then layer `storey`, `level` up to 20 and the `stair` furniture kind.
+`timber` (`acdb212`), also at version 1, then layer `storey`, `level` up to 20 and the `stair` furniture kind. On
+2026-11-08 the optional window `height` and `sill` (`bc10958`), still at version 1.

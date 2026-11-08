@@ -364,3 +364,9 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/house-solids.md (chimney roof = own layer's, else highest on any floor above; ceiling helper removed; why)
 - updated: pages/storeys.md (chimney rule; how-to for a balcony and a flat band under a double-height space; open item)
 - updated: pages/fireplaces.md (chimney roof rule)
+
+## [2026-11-08] update | A window's own top and sill
+- updated: pages/plan-model.md (WindowSchema `height` and `sill`; format history, still version 1)
+- updated: pages/opening-styles.md (window top/sill defaults, `windowSill`, Selection panel Top and Sill fields and clamps)
+- updated: pages/doors-and-windows.md (Selection panel lists Height / Top and Sill)
+- updated: pages/house-solids.md (Openings rule: a window's own head and sill, sill 0 builds no wall under it)

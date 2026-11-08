@@ -4,7 +4,7 @@ type: component
 summary: "Openings hosted by a segment (src/model/openings.ts): layout, wall gaps (fireplaces cut none), placement targets with middle and 5 cm snapping, edits that keep them on their walls, the Door/Window/Gate/Fireplace tools, the library's Doors, Windows, Gates and Fireplaces groups, dragging, drawing and the Selection panel. Styles and fireplaces have their own pages."
 tags: [model, openings, doors, windows, gates, fireplace, ui]
 sources: []
-updated: 2026-11-04
+updated: 2026-11-08
 ---
 
 # Doors, windows and gates
@@ -87,7 +87,8 @@ shares all of this but stands against a wall instead of opening it ([Fireplaces]
   - the width, the wall length, and the free wall on each side, named left/right (wall running across) or top/bottom
     (wall running down);
   - *Flip side* and *Flip hinge*, only when `hasSide` / `hasHinge` apply (*Flip direction* for a sliding gate);
-  - for a sliding gate, its parking room, as a warning when it is short.
+  - for a sliding gate, its parking room, as a warning when it is short;
+  - a door's Height, or a window's Top and Sill ([styles](opening-styles.md)).
 
   A change that would overlap another opening is refused with a notice. The selection summary counts doors, windows,
   gates and fireplaces.

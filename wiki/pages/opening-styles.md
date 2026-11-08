@@ -4,7 +4,7 @@ type: component
 summary: "Door styles (single, double, sliding), window styles (fixed, sliding, double-hung, awning, casement), gate styles (single, double, sliding) and fireplace styles (masonry, parrilla): the style field and its defaults, the STYLES table with usual widths, hasSide/hasHinge/slides/cutsWall, sliding-gate direction and parkingRoom, and openingParts, the one source of symbol geometry for both the plan and the library icons (the fireplace's icon excepted)."
 tags: [model, openings, doors, windows, gates, fireplace, ui]
 sources: []
-updated: 2026-11-06
+updated: 2026-11-08
 ---
 
 # Door, window and gate styles
@@ -25,6 +25,10 @@ Placement, edits and the tools are in [Doors, windows and gates](doors-and-windo
 - Every door style may have its own `height` (`c50a041`, asked for sliding doors): the Selection panel's Height
   field, labelled with and capped at the host wall's height. The 3-D head is `height ?? DOOR_HEAD`, capped at the wall
   ([House solids](house-solids.md)).
+- Every window style may have its own top (`height`, absent = `DOOR_HEAD` 2.10 m) and `sill` (absent = `WINDOW_SILL`
+  0.90 m, awnings `HIGH_SILL` 1.50 m; `windowSill(o)` in `solids.ts`) (`bc10958`, asked for taller fixed windows).
+  The Selection panel shows "Top (wall X m)" where doors show Height, clamped to the wall and to at least sill + 0.3,
+  and "Sill (0: to the floor)" after the gap fields, clamped to at most top − 0.3.
 - For a **sliding gate**, `hinge` is the end it slides towards, not a hinge. Reusing the field means `X`,
   *Flip direction* and `reverseOpening` (mirroring onto a reversed segment) handle it with no extra code.
 
