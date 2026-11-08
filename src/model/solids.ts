@@ -610,10 +610,11 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
     s.top = Math.max(...s.faces.flatMap((f) => f.pts.map((p) => p.z)))
   }
 
-  // walls rise to the roof over them: one that faces outside to its layer's roof over its middle (a gable end's
-  // triangle, a shed's high side), else along the stretches with no floor built over them to a roof drawn on a floor
-  // above (a double-height room's); one between rooms whose roofs differ, along such stretches, to the higher of them
-  // (a step in the roofline, beside a double-height room). Where a floor is built over a wall, it closes the space
+  // walls rise to the roof over them, stretch by stretch (a wall can run under two roofs): one that faces outside to
+  // its layer's roof (a gable end's triangle, a shed's high side), else, where no floor is built over it, to a roof drawn
+  // on a floor above (a double-height room's); one between rooms whose roofs differ, where no floor is built over it,
+  // to the higher of them (a step in the roofline, beside a double-height room). A floor built over a wall closes the
+  // space itself
   for (const id of roofs.length || high.length ? wallIds : []) {
     const s = layer.segments[id]
     const [a, b] = [layer.vertices[s.a], layer.vertices[s.b]]
@@ -632,23 +633,16 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
       out.push(solid('infill', profileFaces(p, dir, half, shape), finish(id), ref('segment', id)))
     }
     const exterior = faces.exterior.has(id)
-    const own = exterior ? over(lerp(a, b, 0.5)) : undefined
-    if (own) {
-      fill(own, 0, 1)
-      continue
+    const clear = (p: Vec) => !overhead.floored(add(p, n)) && !overhead.floored(sub(p, n))
+    const roofAt = (p: Vec): Roof | undefined => {
+      if (exterior) return over(p) ?? (clear(p) ? highest(high, p) : undefined)
+      if (!clear(p)) return undefined
+      const [left, right] = [add(p, n), sub(p, n)].map((q) => over(q) ?? highest(high, q))
+      if (left === right) return undefined
+      const at = (r: Roof | undefined) => (r ? underside(r, roofPlanes(r), p) : -Infinity)
+      return at(left) >= at(right) ? left : right
     }
-    for (const [t0, t1] of clearRuns(a, b, length, n, overhead.floored)) {
-      const m = lerp(a, b, (t0 + t1) / 2)
-      let roof: Roof | undefined
-      if (exterior) roof = highest(high, m)
-      else {
-        const [left, right] = [add(m, n), sub(m, n)].map((p) => over(p) ?? highest(high, p))
-        if (left === right) continue
-        const at = (r: Roof | undefined) => (r ? underside(r, roofPlanes(r), m) : -Infinity)
-        roof = at(left) >= at(right) ? left : right
-      }
-      if (roof) fill(roof, t0, t1)
-    }
+    for (const { roof, t0, t1 } of runsAlong(a, b, length, roofAt)) fill(roof, t0, t1)
   }
 
   // colonnades: their columns under a beam that follows the roof over them, or level at the walls' height
@@ -761,18 +755,18 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
 }
 
 /**
- * The stretches of a wall from `a` to `b` (as fractions of its `length`) with no floor built over either side, its
- * sides being `n` from its line, found in steps of 10 cm.
+ * The stretches of a wall from `a` to `b` (as fractions of its `length`) under the same roof, by `roofAt` in steps of
+ * 10 cm along it; those under none are left out.
  */
-function clearRuns(a: Vec, b: Vec, length: number, n: Vec, floored: (p: Vec) => boolean): [number, number][] {
+function runsAlong(a: Vec, b: Vec, length: number, roofAt: (p: Vec) => Roof | undefined): { roof: Roof; t0: number; t1: number }[] {
   const steps = Math.max(1, Math.ceil(length / 0.1))
-  const runs: [number, number][] = []
+  const runs: { roof: Roof; t0: number; t1: number }[] = []
   for (let i = 0; i < steps; i++) {
-    const p = lerp(a, b, (i + 0.5) / steps)
-    if (floored(add(p, n)) || floored(sub(p, n))) continue
+    const roof = roofAt(lerp(a, b, (i + 0.5) / steps))
+    if (!roof) continue
     const last = runs[runs.length - 1]
-    if (last && Math.abs(last[1] - i / steps) < 1e-9) last[1] = (i + 1) / steps
-    else runs.push([i / steps, (i + 1) / steps])
+    if (last && last.roof === roof && Math.abs(last.t1 - i / steps) < 1e-9) last.t1 = (i + 1) / steps
+    else runs.push({ roof, t0: i / steps, t1: (i + 1) / steps })
   }
   return runs
 }
