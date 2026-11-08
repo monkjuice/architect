@@ -4,7 +4,7 @@ type: component
 summary: "Every layer is on a floor (LayerSchema.storey 1–3, absent = ground; src/model/storeys.ts): an upper floor stands on a 0.30 m slab under its named areas (unnamed spaces such as a stairwell stay open), open edges with a floor on one side only get a glass railing, outlines stay plain; storeyView in derived.ts limits the canvas and every pick to the active layer's floor, with the floor below drawn faded and snapped to; + Floor and the Floor switcher in the toolbar; a straight stair (furniture kind stair) climbs to the floor above; Areas by floor with FOS (ground) and FOT (all floors)."
 tags: [model, 3d, canvas, levels, storeys, stairs, railing, loft, areas]
 sources: []
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Floors: upper storeys, lofts and stairs
@@ -38,7 +38,8 @@ elevations mark slab tops as levels.
 
 Double-height rooms (`9f30985`): draw the roof over one on the floor above. A lower layer's walls (exterior, or
 interior at a step between roofs) and chimneys rise to a higher floor's roof where the layer has no roof of its own
-and no named area of that floor is over the wall's sides ([House solids](house-solids.md), `infill`).
+and no named area of that floor is over the wall's sides; since `b3a61f0` walls decide this per 10 cm stretch, so a
+wall partly under the floor above rises only along its clear part ([House solids](house-solids.md), `infill`).
 
 The rule "open edge = railing, outline = plain" was chosen so the user controls it by line kind: an outline is
 where a stair arrives, or a loft's edge against a wall or roof of the floor below.

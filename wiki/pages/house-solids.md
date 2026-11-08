@@ -4,7 +4,7 @@ type: component
 summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, pools sunk to their depth with water under the rim, the roofs drawn on the Roof tab with parapets, walls filled up to a roof's underside (gable ends, steps in the roofline, double-height rooms roofed from the floor above), beams under roofs along open edges on columns, colonnades (Roman, metal or timber columns under a beam), masonry fireplaces and parrillas with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
 tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool, levels, steps, skylights, grain, pergola, carport, storeys, double-height]
 sources: []
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # House solids: the plan in 3-D
@@ -101,18 +101,27 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
 - Debugging lesson: a white patch where a gallery roof meets the house was twice misjudged from screenshots, once
   as a gable infill seen between the roofs; it was the end wall poking through, as above. A node probe over `houseSolids` listing
   non-roof top faces above the gallery roof's underside found it quickly. Probe before trusting a screenshot.
-- `infill`: a wall under a roof that rises above its top is filled up to the underside profile (`undersideAlong`):
-  gable ends, a shed's high side. Since `9f30985` the roof comes from `ceiling(p, clear)`: the layer's own roof over
-  `p`, else the highest roof drawn on a higher floor (`Overhead.roofs`, visible layers, pergolas excluded, heights
-  shifted into this layer's local z), but only when no point of `clear` lies in a named non-lot, non-pool region of
-  a higher floor (`Overhead.floored`). Exterior walls test the midpoint, clear = the two points just past each face;
-  an interior wall takes `ceiling` on each side and, when the two differ, fills to the one with the higher underside
-  at its midpoint (a step in the roofline). So a double-height room roofed from the floor above gets walls up to that
-  roof. The floored check and own roofs coming first exist because a roof over a double-height room drawn on the ground
-  layer would fill the ground exterior walls under the 1st floor up through it, coplanar with the 1st floor's walls.
-  The overhead roofs feed only infills and chimneys; trimming ("walls stop at roofs"), beams and colonnades still use
-  the layer's own roofs. The Exterior's *Up to* filters by `ref.layer`, so these infills stay when the floor above
-  is hidden.
+- `infill`: walls are filled up to the underside profile of the roof over them (`undersideAlong`): gable ends, a
+  shed's high side, steps in the roofline, double-height rooms. Since `b3a61f0` it goes stretch by stretch:
+  `runsAlong(a, b, length, roofAt)` samples the wall every 10 cm, groups consecutive samples under the same roof into
+  runs, and `fill(roof, t0, t1)` builds one infill per run. `roofAt(p)`: an exterior wall takes its layer's own roof
+  (`over(p)`), else, if neither side point (p ± left normal × (half thickness + 0.1 m)) is in a named non-lot,
+  non-pool region of a higher floor (`Overhead.floored`), the highest roof drawn on a higher floor (`highest(high, p)`;
+  `Overhead.roofs`: visible layers, pergolas excluded, heights shifted into this layer's local z). An interior wall
+  fills only where neither side is floored and its two sides' roofs (own, else overhead) differ, up to the one with
+  the higher underside. The loop is skipped when the layer has neither kind of roof.
+- Why per stretch (`ecff9a7`, `b3a61f0`, replacing `9f30985`'s choice per wall by its midpoint), from the user's loft
+  plan: a kitchen reaching 1.5 m past the 1st floor had its side wall's midpoint under a 1F bedroom, so it stayed low
+  and left a hole beside the double-height living room; a ground wall between a room under the 1F and the
+  double-height room rose along its whole length, through the slab and alongside the 1F's own wall (near-coplanar
+  faces); and the 1F back wall, one segment behind both the tall living-room shed and the bedroom's low shed, rose to
+  the tall roof all along and stood above the bedroom roof (a white block in screenshots). So an exterior wall now fills
+  only where its roof is over it (the same for a wall wholly under one roof). The floored check, and own roofs
+  coming first, keep the ground walls under the 1st floor from filling up through it, coplanar with the 1F's walls.
+  Trimming ("walls stop at roofs" above, whose rejected per-point choices concern the trim) stays one roof per wall.
+  Overhead roofs feed only infills and chimneys (`ceiling(p)`, now used by chimneys only); beams and colonnades use
+  the layer's own roofs. The Exterior's *Up to* filters by `ref.layer`, so these infills stay when the floor above is
+  hidden.
 - Openings ([Doors, windows and gates](doors-and-windows.md)): wall over doors and windows from `DOOR_HEAD` 2.10 m,
   or a door's own `height`, capped at the wall's height; the lintel is built only with more than 1 mm of wall above
   the head, so a door as tall as its wall gets none (no zero-height lintel). A door in a 2.70 m wall set to 3.5 m

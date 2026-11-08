@@ -352,3 +352,10 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/roofs-drawn-outlines.md (consequence: interior steps, double-height walls)
 - updated: pages/development-and-testing.md (rolldown-bundled node probe; summary)
 - updated: index.md (house-solids and development-and-testing summaries)
+
+## [2026-11-08] update | Walls rise to the roof over each 10 cm stretch of them
+- updated: pages/house-solids.md (infill per stretch via runsAlong/roofAt replacing the midpoint choice, why, ceiling now chimney-only)
+- updated: pages/storeys.md (double-height walls decided per stretch)
+- updated: pages/development-and-testing.md (probe used for b3a61f0)
+- updated: pages/playwright-flow-checks.md (Exterior wheel zoom goes through the house; summary)
+- updated: index.md (playwright-flow-checks summary)

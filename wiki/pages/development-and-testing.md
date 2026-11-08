@@ -241,7 +241,8 @@ restarted after the last edits (stale HMR copies: [Playwright flow-check pitfall
 plan JSON and calls model functions (`houseSolids`, say), bundle it with
 `npx rolldown probe.ts --platform node --format esm -o probe.mjs` (rolldown comes with Vite 8) and run
 `node probe.mjs`. Import the model by absolute path (`'C:/projects/architect/src/model/solids.ts'`); relative imports
-from the scratchpad did not resolve. Used for the double-height infills (`9f30985`, [House solids](house-solids.md)).
+from the scratchpad did not resolve. Used for the double-height infills (`9f30985`, and their per-stretch rework
+`b3a61f0` on synthetic plans, [House solids](house-solids.md)).
 
 Pitfalls when writing such a script: [Playwright flow-check pitfalls](playwright-flow-checks.md) and
 [Bash hook blocks `*.key` patterns and path colons](bash-hook-key-paths.md).
