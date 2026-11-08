@@ -1,7 +1,7 @@
 ---
 title: Playwright flow-check pitfalls
 type: gotcha
-summary: "Python Playwright against the SVG canvas: SVG elements have no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft may show or hide its photo (shown, F frames the whole survey and area labels take clicks) and keeps changing, folded sections render nothing, panel sections must be found by data-box not position or text (Library boxes nest), a role name \"Wall\" also matches the \"Walls\" toggle and \"Materials\" both the tab and the Library group (scope to nav.tabs), WebGL needs SwiftShader flags and reads back blank (measure screenshots), keyboard shortcuts are ignored while a checkbox has focus, React leaves an empty style=\"\" (check e.style.fill), a long-running dev server serves stale HMR module copies, a stopped background vite can keep its port, layer names are inputs, tool buttons' text has a newline before the key, flows on the user's live plan need a pinned fixture, bash heredocs mangle escapes in inline Python, and the Exterior's wheel zoom goes through the house (four 250-unit wheel events from the aerial preset frame it)."
+summary: "Python Playwright against the SVG canvas: SVG elements have no innerText, python -I ignores PYTHONIOENCODING, clicks land on whole CSS pixels (assert stored values), library icons share the .opening class, library button names include their counts, an opening's swing side depends on the wall's drawing direction, a passing click may only have missed an overlay, the start plan's autosave overwrites an injected draft, the user's draft may show or hide its photo (shown, F frames the whole survey and area labels take clicks) and keeps changing, folded sections render nothing, panel sections must be found by data-box not position or text (Library boxes nest), a role name \"Wall\" also matches the \"Walls\" toggle and \"Materials\" both the tab and the Library group (scope to nav.tabs), WebGL needs SwiftShader flags and reads back blank (measure screenshots), keyboard shortcuts are ignored while a checkbox has focus, React leaves an empty style=\"\" (check e.style.fill), a long-running dev server serves stale HMR module copies, a stopped background vite can keep its port, layer names are inputs, tool buttons' text has a newline before the key, flows on the user's live plan need a pinned fixture, bash heredocs mangle escapes in inline Python, the Exterior's wheel zoom goes through the house (four 250-unit wheel events from the aerial preset frame it), and segmented controls' buttons have role radio."
 tags: [gotcha, testing, playwright, python, webgl, vite, react, exterior]
 sources: []
 updated: 2026-11-08
@@ -121,3 +121,8 @@ Found on 2026-11-08, with the Materials tab ([Materials list](materials-list.md)
 - **Printing "≈" (or other non-ASCII) crashes on the Windows console** with a cp1252 `UnicodeEncodeError`; in
   `e6f545c` it struck after the screenshots were saved. Print ASCII, or `sys.stdout.reconfigure(encoding="utf-8")`
   first (see `python -I` above).
+
+Found on 2026-11-08, with the Foundation tab ([Foundation tab](foundation-tab.md)):
+
+- **A segmented control's buttons have role `radio`, not `button`** (e.g. the System choice, Roof's *New roofs*):
+  use `get_by_role('radio', name=…)`.

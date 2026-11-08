@@ -1,7 +1,7 @@
 ---
 title: Overview
 type: overview
-summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman, metal or timber colonnades or glazed greenhouse sides, ground-level outlines, named areas (rooms, or lots of land with the share covered) with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs; wall-side and floor finishes from a materials catalogue) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (the Floor plan, a Roof plan of drawn flat, shed, gable, hip, pergola and glass roofs, four auto-drawn Elevations, a basic 3-D Exterior and a Materials list of what it takes to build); architecture, stack, build/run/test, where to start and open items."
+summary: "architect at a glance: a local browser app for sketching a house (walls at their thickness and height, open edges with optional Roman, metal or timber colonnades or glazed greenhouse sides, ground-level outlines, named areas (rooms, or lots of land with the share covered) with floor and covered totals, doors, windows, gates and fireplaces with chimneys, and furniture: counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs; wall-side and floor finishes from a materials catalogue) over a calibrated photo of a land survey, with the sun and wall shadows by season and time, in tabs over one plan (a Foundation plan worked out from the walls, the Floor plan, a Roof plan of drawn flat, shed, gable, hip, pergola and glass roofs, four auto-drawn Elevations, a basic 3-D Exterior and a Materials list of what it takes to build); architecture, stack, build/run/test, where to start and open items."
 tags: [overview]
 sources: []
 updated: 2026-11-08
@@ -35,8 +35,11 @@ drawing; Roof is a roof plan where roof outlines are drawn over the faded floor 
 pergola or glass (with optional grow lights) ([Roof tab](pages/roof-tab.md)); Elevations draws the four facades from the 3-D model, view only
 ([Elevations tab](pages/elevations.md)); Exterior shows the house in 3-D under the plan's sun
 ([Exterior tab](pages/exterior-tab.md)); Materials lists the quantities the house needs to be built, down to bricks,
-concrete and cement bags, in English or Spanish, priced in ARS, with a CSV ([Materials list](pages/materials-list.md)). The other tabs (Foundation,
-Interior, Plumbing, Electricity, Gas) show but are not built; a Catalogue tab is planned.
+concrete and cement bags, in English or Spanish, priced in ARS, with a CSV ([Materials list](pages/materials-list.md)); Foundation
+shows the footings, piles or raft the ground floor stands on, worked out from its walls and columns, each wall's
+footing settable by hand ([Foundation tab](pages/foundation-tab.md)). The other tabs (Interior, Plumbing,
+Electricity, Gas) show but are not built; the services come next
+([Services: decisions](pages/services-decisions.md)) and a Catalogue tab is planned.
 
 The user owns two lots of the survey, 8a and 10a; the tests use lot 8a
 ([Development and testing](pages/development-and-testing.md)).
@@ -57,7 +60,8 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   independent of the plan's geometry for reuse, [Sun and shadows](pages/sun.md)), roof geometry (`roofs.ts`,
   [Roofs: model and geometry](pages/roofs.md)), the house as 3-D solids made of faces with explicit normals
   (`solids.ts`, with the face builders in `faces.ts`, [House solids](pages/house-solids.md)), the elevations projected from them (`elevations.ts`,
-  [Elevations tab](pages/elevations.md)) and the quantity takeoff measured from them and the plan (`takeoff.ts`, with its texts in `takeoffText.ts` and
+  [Elevations tab](pages/elevations.md)), what each wall separates (`wallUse.ts`), the foundation plan
+  (`foundations.ts`, [Foundation tab](pages/foundation-tab.md)) and the quantity takeoff measured from them and the plan (`takeoff.ts`, with its texts in `takeoffText.ts` and
   prices in `prices.ts`, [Materials list](pages/materials-list.md), [Local prices](pages/local-prices.md)).
 - `src/state/`: the `EditorStore` with undo and gestures, user-level actions, derived data cached per object
   (`derived.ts`, [Areas](pages/areas.md)), files and the autosaved draft, and prefs
@@ -68,7 +72,8 @@ Dependencies point one way, `src/ui` → `src/state` → `src/model`, and `src/u
   tools row, then in `panels/` the Library panel in the left column and the View, Base plan, Layers, Selection,
   Areas and Sun panels on the right, around the SVG canvas and its tool controllers,
   [Canvas and tools](pages/canvas-and-tools.md)), `RoofTab.tsx` (the same canvas in roof mode, roof tools and the
-  Roofs panel), `ElevationsTab.tsx`, `exterior/ExteriorTab.tsx` and `MaterialsTab.tsx`. Every panel section folds from its title
+  Roofs panel), `FoundationTab.tsx` (the same canvas in foundation mode and the Foundation panel),
+  `ElevationsTab.tsx`, `exterior/ExteriorTab.tsx` and `MaterialsTab.tsx`. Every panel section folds from its title
   and stays folded per browser ([Code conventions](pages/code-conventions.md)). The Library has three groups, in the user's order:
   Drawing (Wall, Outline, Open edge); Materials (Walls and Floors boxes, by family); Objects, with boxes for Doors
   (single, double, sliding), Windows (fixed, sliding, double hung, awning, casement), Gates (single, double, sliding)
@@ -145,10 +150,14 @@ Other candidates:
   swatches (the checkered tile excepted, drawn as squares in plan and 3-D)
   ([Materials and finishes](pages/materials-and-finishes.md)). The Materials tab (2026-11-08) is a takeoff whose
   dosages are constants and whose wall build-ups follow only a wall's kind and thickness; its prices (gathered
-  2026-11-08, 29 of 110 estimated, some sources inconsistent) go stale with inflation and need refreshing
+  2026-11-08, 31 of 156 estimated, some sources inconsistent) go stale with inflation and need refreshing
   ([Local prices](pages/local-prices.md)); a Catalogue tab is still to come
   ([Materials list](pages/materials-list.md)).
-- The other tabs (Foundation, Interior, Plumbing, Electricity, Gas) exist only as disabled buttons.
+- Foundation (2026-11-08): usual sizes, not a structural design; no footings in the 3-D Exterior
+  ([Foundation tab](pages/foundation-tab.md)).
+- Next: the Electricity, Plumbing and Gas tabs, whose machine room, supply, heating comparison and suggested points
+  the user has decided, and whose 46 prices are already in `PRICES`
+  ([Services: decisions](pages/services-decisions.md)). Interior exists only as a disabled button.
 - Plan shadows: each wall casts by its own height, but from its centreline, with no roofs and door gaps ignored
   ([Sun and shadows](pages/sun.md)); the Exterior's 3-D shadows include roofs and openings.
 

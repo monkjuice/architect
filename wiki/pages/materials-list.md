@@ -2,7 +2,7 @@
 title: Materials list (quantity takeoff)
 type: component
 summary: "The Materials tab: a quantity takeoff of what the house needs to be built, down to bricks, concrete, insulation, mortar, cement and lime bags, in English or Spanish and priced in ARS; src/model/takeoff.ts (materialsList → language-free TakeoffRow {chapter id, key, params, quantity, unit, where} in Argentine cómputo métrico chapters; assumptions as exported constants), takeoffText.ts (texts per key and language, number formats, takeoffCsv), prices.ts (see Local prices), getTakeoff in derived.ts, and src/ui/MaterialsTab.tsx (Language select, Layers checkboxes, Save CSV, a table by chapter with subtotals and a total in ARS and ≈ US$)."
-tags: [model, ui, materials, takeoff, tabs, csv, walls, i18n, spanish, prices]
+tags: [model, ui, materials, takeoff, tabs, csv, walls, i18n, spanish, prices, foundation]
 sources: []
 updated: 2026-11-08
 ---
@@ -20,8 +20,14 @@ construction depth (bricks, concrete, insulation, mortar from the build-ups), no
   `chapter` (an id, `foundations` … `basic`), `key` (what it is: `wall`, `cement`, `door`…), `params` (`RowParams`:
   material, `waste` fraction, side, wall `build`, thickness, style, kind, w, h, outdoor, mix), `quantity`, `unit`
   (m²/m³/m/u/kg/bags), `where`. Rows sum by chapter|key|unit|JSON(params), ordered by `CHAPTERS`.
-- Every assumption is an exported constant (`MIXES`, `BAG`, `REBAR`, `BRICKS`, `FOOTING`, `RING_BEAM`, `JOIST_SLAB`,
-  `FLAT_ROOF`, `POOL_*`, `WASTE`, `HYDROFUGE`…); the texts quote them, so change figures there only.
+- Every assumption is an exported constant (`MIXES`, `BAG`, `REBAR`, `BRICKS`, `JOIST_SLAB`, `FLAT_ROOF`, `POOL_*`,
+  `WASTE`, `HYDROFUGE`, `RAFT_DIG`…); the texts quote them, so change figures there only. Foundation sizes
+  (`FOOTING`, `RING_BEAM`, `TIE_COLUMN` and the rest) live in `foundations.ts` since `aaa70c1`.
+- **The foundations chapter comes from `foundationPlan`** ([Foundation tab](foundation-tab.md)): footings or beams,
+  excavation, piles, pads and raft slabs for the plan's system, with hand-set footing sizes, so the list matches
+  the Foundation tab. Tie columns come from `tieColumns`. Under a raft the ground floor's covered areas get no
+  sub-floor (the polyethylene stays). With the strip system the user's plan gave the same footings as before
+  (92.41 m³), plus pads under columns.
 - `wallBuildUp(kind, thickness)` → `{build, leaves, insulated}`: an envelope ≥ 0.25 m is the insulated `double` wall
   advised on 2026-11-02 (12 cm solid brick, cavity, 5 cm EPS, vapour barrier, 8 cm hollow brick); thinner envelopes
   and partitions are hollow brick; boundary walls solid 24 or 12 cm.
@@ -49,7 +55,8 @@ inconsistencies and how to refresh them are on [Local prices](local-prices.md).
 ## Gotchas
 
 - **Wall kind is not `wallSide().outdoor` alone.** A side is indoors only on a walled-off room that is not a lot and
-  is named or built over; both sides outdoor = boundary, one = envelope, none = partition. With `outdoor` alone the
+  is named or built over; both sides outdoor = boundary, one = envelope, none = partition (`wallUses` in
+  `src/model/wallUse.ts` since `aaa70c1`, shared with the foundation plan). With `outdoor` alone the
   user's boundary walls came out insulated: the land they enclose is an unnamed region, which
   [regions](regions.md) count as indoor.
 - The wall item names the drawn thickness apart ("24 cm brick wall (drawn 30 cm)"), or it read as two build-ups.

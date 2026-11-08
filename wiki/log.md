@@ -414,3 +414,16 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: overview.md (prices no longer empty; stale-with-inflation open item; link)
 - updated: pages/playwright-flow-checks.md (printing "≈" crashes on the cp1252 console)
 - updated: index.md (new page; materials-list summary)
+
+## [2026-11-08] update | Foundation tab; services decisions and installation prices
+- created: pages/foundation-tab.md (foundations.ts systems and rules, wallUse.ts, setFooting/setFoundationSystem, FoundationTab, Foundation.tsx, foundationSelect, FoundationPanel, checks, limits)
+- created: pages/services-decisions.md (Foundation first; machine room, gas and three-phase power, well and biodigestor, heating to compare, suggested points; 46 prices in PRICES since e94bb35)
+- updated: pages/tabs-over-one-plan.md (Foundation built; openTab and the foundation tool set; Canvas mounted by Foundation)
+- updated: overview.md (Foundation tab, wallUse.ts and foundations.ts, FoundationTab.tsx, open items: foundation limits, services next, 156/31 prices)
+- updated: pages/materials-list.md (foundations chapter from foundationPlan; constants and wall classification moved)
+- updated: pages/canvas-and-tools.md (foundation mode, floorMode-only drawing, foundationSelect)
+- updated: pages/plan-model.md (plan foundation, segment footing, format history)
+- updated: pages/editor-store.md (foundation-select tool, openTab, getFoundation)
+- updated: pages/local-prices.md (156 prices, 31 estimates; 46 installation and heating keys from e94bb35, unused by the takeoff yet)
+- updated: pages/playwright-flow-checks.md (segmented control buttons have role radio)
+- updated: index.md (two new pages; overview, plan-model, editor-store, canvas, tabs, local-prices and Playwright summaries)

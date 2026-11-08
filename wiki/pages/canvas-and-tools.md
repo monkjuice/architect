@@ -1,10 +1,10 @@
 ---
 title: Canvas and tools
 type: component
-summary: "The SVG canvas of the Floor and Roof tabs in src/ui/canvas/ (mode floor or roof): Canvas.tsx routes pointer and key events to plain tool controllers in tools/ that return OverlayData and takes library drops (openings, colonnades, furniture and materials); Scene.tsx draws the plan (walls filled at their thickness unless Thick walls is off, area fills in their floor finish (checkered ones as SVG patterns) unless View > Materials is off, area labels with the lines the View section shows), Columns.tsx the colonnades, Finishes.tsx the wall finishes, Furniture.tsx the furniture symbols, Sun.tsx the sun dial and wall shadows, Roofs.tsx the roof plan, and Overlay.tsx the tool feedback, at constant screen size; the select tool's hit order."
-tags: [ui, canvas, svg, tools, sun, walls, tabs, roof, colonnades, furniture, finishes, storeys]
+summary: "The SVG canvas of the Floor, Roof and Foundation tabs in src/ui/canvas/ (mode floor, roof or foundation): Canvas.tsx routes pointer and key events to plain tool controllers in tools/ that return OverlayData and takes library drops (openings, colonnades, furniture and materials); Scene.tsx draws the plan (walls filled at their thickness unless Thick walls is off, area fills in their floor finish (checkered ones as SVG patterns) unless View > Materials is off, area labels with the lines the View section shows), Columns.tsx the colonnades, Finishes.tsx the wall finishes, Furniture.tsx the furniture symbols, Sun.tsx the sun dial and wall shadows, Roofs.tsx the roof plan, Foundation.tsx the foundation plan, and Overlay.tsx the tool feedback, at constant screen size; the select tool's hit order."
+tags: [ui, canvas, svg, tools, sun, walls, tabs, roof, colonnades, furniture, finishes, storeys, foundation]
 sources: []
-updated: 2026-11-07
+updated: 2026-11-08
 ---
 
 # Canvas and tools
@@ -28,8 +28,12 @@ the view lacks the other floors' layers.
   ([Welcome card swallowed canvas clicks](welcome-card-swallowed-clicks.md)). It is mounted by `src/ui/FloorTab.tsx`
   and, with `mode="roof"`, by `RoofTab.tsx`: there it has its own shortcuts (`ROOF_SHORTCUTS`: `v r m h`), fades the
   floor plan (`.canvas.roof-mode`, furniture included), leaves out area fills and labels, sun, calibration and selection marks, and
-  draws `RoofLayer` from `Roofs.tsx` ([Roof tab](roof-tab.md)). It unmounts on other tabs, so its single-key
-  shortcuts are inert there ([Tabs over one plan](tabs-over-one-plan.md)).
+  draws `RoofLayer` from `Roofs.tsx` ([Roof tab](roof-tab.md)). With `mode="foundation"` (`aaa70c1`, mounted by
+  `FoundationTab.tsx`; shortcuts `FOUNDATION_SHORTCUTS` `v m h`, class `.canvas.foundation-mode`) it shows the
+  first ground-floor layer's view with no floor below, faded, without furniture, under `FoundationLayer` from
+  `Foundation.tsx` ([Foundation tab](foundation-tab.md)). Floor-only drawing (area fills, sun, finishes, labels,
+  selection marks, calibration, welcome card) tests `floorMode`, so a new mode gets none of it by default. It
+  unmounts on other tabs, so its single-key shortcuts are inert there ([Tabs over one plan](tabs-over-one-plan.md)).
 - `Scene.tsx`: the static drawing.
   - `BaseImageView`: the image under `imageTransform`, cropped by a clipPath, and shaded outside the crop while the
     crop tool is active.
@@ -75,7 +79,8 @@ the view lacks the other floors' layers.
   floor under the cursor with `materialPick`), `measure.ts`, `image.ts`
   (move, level, crop, calibrate) and `north.ts` (North: two clicks along the survey's north arrow set
   `plan.site.north`; no key, not an image tool, so it works with a locked or missing image), and the Roof tab's
-  `roof.ts` (draw an outline) and `roofSelect.ts` (pick, move, reshape) ([Roof tab](roof-tab.md)).
+  `roof.ts` (draw an outline) and `roofSelect.ts` (pick, move, reshape) ([Roof tab](roof-tab.md)), and the
+  Foundation tab's `foundationSelect.ts` (pick footings) ([Foundation tab](foundation-tab.md)).
   - `index.ts` builds the tools (`createTools`) and holds `TOOL_INFO` (titles, keys, hints).
   - `types.ts` holds the interfaces and the screen-pixel tolerances (`SNAP_PX` 10, vertex hit 8, segment hit 6,
     drag 3, `WALL_REACH_PX` 14 for picking a wall for an opening).

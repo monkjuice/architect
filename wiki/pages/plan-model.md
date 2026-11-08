@@ -1,8 +1,8 @@
 ---
 title: Plan model and file format
 type: component
-summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, per-layer vertex/segment graphs with segment kinds, optional wall thickness and height, wall-side finishes and open-edge colonnades, named areas (rooms, or lots of land) with optional floor finishes, styled doors/windows/gates/fireplaces hosted by segments, drawn roofs and free-standing furniture with kitchen sinks kept in counters, embedded base image), with parsing, migrations and serialization in planFile.ts."
-tags: [model, file-format, schema, site, walls, roof, colonnades, fireplace, furniture, finishes, lots, levels]
+summary: "The saved plan: a zod schema in src/model/plan.ts (format \"architect/plan\", schemaVersion 1, meters with +y down, the site's north and location for the sun, an optional foundation system, per-layer vertex/segment graphs with segment kinds, optional wall thickness, height and footing, wall-side finishes and open-edge colonnades, named areas (rooms, or lots of land) with optional floor finishes, styled doors/windows/gates/fireplaces hosted by segments, drawn roofs and free-standing furniture with kitchen sinks kept in counters, embedded base image), with parsing, migrations and serialization in planFile.ts."
+tags: [model, file-format, schema, site, walls, roof, colonnades, fireplace, furniture, finishes, lots, levels, foundation]
 sources: []
 updated: 2026-11-08
 ---
@@ -38,6 +38,9 @@ updated: 2026-11-08
 - A segment may also carry a positive `thickness` and `height` in meters, used only while it is a wall. Vertices
   are wall centrelines. Absent thickness is automatic (0.30 m facing outside, 0.15 m inside), absent height
   2.70 m; the automatic value is never stored ([Walls](walls.md)).
+- Optional top-level `foundation: {system}` (`FOUNDATION_SYSTEMS`: `strip`, `piles`, `raft`; absent = strip) and
+  segment `footing: {width?, depth?}`, a ground-floor wall's footing sized by hand (absent = worked out)
+  ([Foundation tab](foundation-tab.md)).
 - A segment may carry `colonnade: {style, spacing}` (`COLUMN_STYLES`: `roman`, `metal`, and since `acdb212`
   `timber`), used only while it is an
   open edge ([Colonnades](colonnades.md)).
@@ -124,4 +127,5 @@ and area `floor`, and after them the optional area `lot` (`z.literal(true)`), al
 `level`, roof `skylights` and a fifth roof type, `pergola` (`59bcfa6`). On 2026-11-07 a third column style,
 `timber` (`acdb212`), also at version 1, then layer `storey`, `level` up to 20 and the `stair` furniture kind. On
 2026-11-08 the optional window `height` and `sill` (`bc10958`), then a fourth column style `glazed`, a sixth roof
-type `glass` and the optional roof `lights` (`8b511e3`), still at version 1.
+type `glass` and the optional roof `lights` (`8b511e3`), and then the optional plan `foundation` and segment
+`footing` (`aaa70c1`), still at version 1.
