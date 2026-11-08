@@ -1,10 +1,10 @@
 ---
 title: Development and testing
 type: guide
-summary: "npm scripts, the GitHub repository, the 194 Vitest tests (model files plus src/state/derived.test.ts and src/render/textures.test.ts; and their spurious \"no tests\" run beside the dev server), iteration mode (no new tests until the user asks, cheap visual checks), agent edits to the user's plan file lost unless they reopen it before saving, and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 29-check furniture flow, the exterior, roof and colonnade ones with software WebGL; flows on the user's plan now need a pinned copy of it with the photo hidden and the lots marked, the furniture flow included), plus reading live derived values from the dev server."
-tags: [guide, testing, vitest, playwright, webgl, git, user-plan]
+summary: "npm scripts, the GitHub repository, the 194 Vitest tests (model files plus src/state/derived.test.ts and src/render/textures.test.ts; and their spurious \"no tests\" run beside the dev server), iteration mode (no new tests until the user asks, cheap visual checks), agent edits to the user's plan file lost unless they reopen it before saving, and the sample lot 8a in testPlan.ts, and the browser flow checks (Python Playwright scripts kept outside the repo: a 20-check base flow, a 23-check areas flow, a 23-check doors/windows flow, a 15-check door/window styles flow, a 12-check gates flow, and a 17-check sun flow, a 7-check outline flow, a 21-check walls flow, a 28-check exterior (tabs) flow, a 26-check roof and elevations flow, a 19-check colonnade and fireplace flow and a 29-check furniture flow, the exterior, roof and colonnade ones with software WebGL; flows on the user's plan now need a pinned copy of it with the photo hidden and the lots marked, the furniture flow included), plus reading live derived values from the dev server and running model code on a plan file through a rolldown-bundled node probe."
+tags: [guide, testing, vitest, playwright, webgl, git, user-plan, probe]
 sources: []
-updated: 2026-11-06
+updated: 2026-11-07
 ---
 
 # Development and testing
@@ -236,6 +236,12 @@ canvas" click is now computed just outside all vertices.
 `await import('/src/state/derived.ts')` and `await import('/src/state/store.ts')` return the app's own module
 instances, so thicknesses, floors or `coveredArea` can be read on the real plan, as long as the dev server was
 restarted after the last edits (stale HMR copies: [Playwright flow-check pitfalls](playwright-flow-checks.md)).
+
+**Running model code on a plan file without the dev server:** write a probe script in the scratchpad that reads the
+plan JSON and calls model functions (`houseSolids`, say), bundle it with
+`npx rolldown probe.ts --platform node --format esm -o probe.mjs` (rolldown comes with Vite 8) and run
+`node probe.mjs`. Import the model by absolute path (`'C:/projects/architect/src/model/solids.ts'`); relative imports
+from the scratchpad did not resolve. Used for the double-height infills (`9f30985`, [House solids](house-solids.md)).
 
 Pitfalls when writing such a script: [Playwright flow-check pitfalls](playwright-flow-checks.md) and
 [Bash hook blocks `*.key` patterns and path colons](bash-hook-key-paths.md).

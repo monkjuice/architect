@@ -36,6 +36,10 @@ handrail) along each open edge with a named region on exactly one side. On an up
 and columns under a roof only when one side is the outside (no region), so a stairwell's edges get none. The
 elevations mark slab tops as levels.
 
+Double-height rooms (`9f30985`): draw the roof over one on the floor above. A lower layer's walls (exterior, or
+interior at a step between roofs) and chimneys rise to a higher floor's roof where the layer has no roof of its own
+and no named area of that floor is over the wall's sides ([House solids](house-solids.md), `infill`).
+
 The rule "open edge = railing, outline = plain" was chosen so the user controls it by line kind: an outline is
 where a stair arrives, or a loft's edge against a wall or roof of the floor below.
 
@@ -62,5 +66,6 @@ by floor; `coveredArea(plan, storey?)` gives the ground floor's share for FOS an
 ## Open
 
 No L or U stairs, no handrail on a stair's open side, no automatic stairwell; ground roofs under an upper floor
-are the user's to trim (Roof the house works per layer); a chimney does not go through the floors above;
+are the user's to trim (Roof the house works per layer); a chimney goes through no floor above (only through a
+roof drawn on the floor above, over a double-height room);
 Roof the house on an upper floor uses its own walls.

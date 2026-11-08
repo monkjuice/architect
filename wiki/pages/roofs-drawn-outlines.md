@@ -4,7 +4,7 @@ type: decision
 summary: "Roofs are outlines drawn on a roof plan (flat, shed, gable, hip), not one roof per area, so a roof can span rooms and overhang walls; each slope is a plane given as the distance in from an eaves line and the underside is the lowest of them; the automatic flat roof was removed; a straight skeleton for hips on any outline was rejected for now."
 tags: [decision, roof, model, geometry]
 sources: []
-updated: 2026-11-02
+updated: 2026-11-07
 ---
 
 # Roofs are drawn outlines; slopes are planes
@@ -38,3 +38,5 @@ multiple-choice question, the user chose drawn roof outlines, all four types, an
 - Plans from before roofs open unroofed in 3-D until roofs are drawn.
 - Shed and gable work on any outline, from its extremes across the reference edge.
 - Exterior walls under a pitched roof are filled up to its underside (gable ends), and beams follow the underside.
+  Since `9f30985` interior walls fill at a step between two roofs, and a double-height room's walls rise to a roof
+  drawn on the floor above ([House solids](house-solids.md), [Floors](storeys.md)).

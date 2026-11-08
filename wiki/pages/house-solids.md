@@ -1,8 +1,8 @@
 ---
 title: "House solids: the plan in 3-D"
 type: component
-summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, pools sunk to their depth with water under the rim, the roofs drawn on the Roof tab with parapets, exterior walls filled up to a roof's underside (gable ends), beams under roofs along open edges on columns, colonnades (Roman, metal or timber columns under a beam), masonry fireplaces and parrillas with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
-tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool, levels, steps, skylights, grain, pergola, carport]
+summary: "src/model/solids.ts: houseSolids(plan) turns the visible layers into solids made of flat faces with explicit outward normals (kind, faces, bottom, top, palette material, ref; round facets marked smooth; face types and builders in faces.ts): walls at their own height, lintels, sills, frames, glass and leaves of openings, floors of named areas, pools sunk to their depth with water under the rim, the roofs drawn on the Roof tab with parapets, walls filled up to a roof's underside (gable ends, steps in the roofline, double-height rooms roofed from the floor above), beams under roofs along open edges on columns, colonnades (Roman, metal or timber columns under a beam), masonry fireplaces and parrillas with chimneys through the roof, and furniture (furniture3d.ts); wall faces tagged per side with their finishes (reveals split at the centreline) and floors with theirs; cached per plan by getSolids."
+tags: [model, 3d, exterior, elevations, walls, roof, colonnades, fireplace, furniture, finishes, lots, gallery, pool, levels, steps, skylights, grain, pergola, carport, storeys, double-height]
 sources: []
 updated: 2026-11-07
 ---
@@ -101,8 +101,18 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
 - Debugging lesson: a white patch where a gallery roof meets the house was twice misjudged from screenshots, once
   as a gable infill seen between the roofs; it was the end wall poking through, as above. A node probe over `houseSolids` listing
   non-roof top faces above the gallery roof's underside found it quickly. Probe before trusting a screenshot.
-- `infill`: an exterior wall whose midpoint is under a roof that rises above the wall's top is filled up to the
-  underside profile (`undersideAlong`): gable ends, a shed's high side. Walls between rooms are not filled.
+- `infill`: a wall under a roof that rises above its top is filled up to the underside profile (`undersideAlong`):
+  gable ends, a shed's high side. Since `9f30985` the roof comes from `ceiling(p, clear)`: the layer's own roof over
+  `p`, else the highest roof drawn on a higher floor (`Overhead.roofs`, visible layers, pergolas excluded, heights
+  shifted into this layer's local z), but only when no point of `clear` lies in a named non-lot, non-pool region of
+  a higher floor (`Overhead.floored`). Exterior walls test the midpoint, clear = the two points just past each face;
+  an interior wall takes `ceiling` on each side and, when the two differ, fills to the one with the higher underside
+  at its midpoint (a step in the roofline). So a double-height room roofed from the floor above gets walls up to that
+  roof. The floored check and own roofs coming first exist because a roof over a double-height room drawn on the ground
+  layer would fill the ground exterior walls under the 1st floor up through it, coplanar with the 1st floor's walls.
+  The overhead roofs feed only infills and chimneys; trimming ("walls stop at roofs"), beams and colonnades still use
+  the layer's own roofs. The Exterior's *Up to* filters by `ref.layer`, so these infills stay when the floor above
+  is hidden.
 - Openings ([Doors, windows and gates](doors-and-windows.md)): wall over doors and windows from `DOOR_HEAD` 2.10 m,
   or a door's own `height`, capped at the wall's height; the lintel is built only with more than 1 mm of wall above
   the head, so a door as tall as its wall gets none (no zero-height lintel). A door in a 2.70 m wall set to 3.5 m
@@ -131,7 +141,8 @@ per material key (palette name or `"finish:<id>"`), so a wall finished on one si
 - Fireplaces ([Fireplaces](fireplaces.md)) are built after the roofs, because the chimney's height needs the roof
   over its flue: brick and stone up to the `MANTEL` (1.10 m), or a parrilla's counter, grill and hood up to 2.3 m,
   then the chimney to `CHIMNEY_ABOVE` (1 m) over that roof (thickness and a flat roof's parapet included), or 1 m
-  over its wall, under a stone cap. Their walls are not cut.
+  over its wall, under a stone cap. The roof is `ceiling(flue centre)` (see `infill`), so a chimney in a
+  double-height room goes through a roof drawn on the floor above. Their walls are not cut.
 - Furniture last: `furnitureParts(f, placeFurniture(layer, f))` from `src/model/furniture3d.ts`, one `furniture`
   solid per part, ref to the piece; a kitchen sink without its counter is skipped
   ([Furniture and fixtures](furniture.md)).

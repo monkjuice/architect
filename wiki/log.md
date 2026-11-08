@@ -345,3 +345,10 @@ Append-only history of this wiki, newest entry at the bottom. Every entry starts
 - updated: pages/editor-store.md (topStorey pref, summary)
 - updated: pages/plan-model.md (Up to among per-browser prefs)
 - updated: index.md (exterior-tab and editor-store summaries)
+
+## [2026-11-07] update | Walls rise to a higher roof beside them or on the floor above
+- updated: pages/house-solids.md (infill via ceiling/Overhead: interior steps, roofs of higher floors unless floored, why; chimney through a roof on the floor above; summary)
+- updated: pages/storeys.md (double-height rooms; chimney open item)
+- updated: pages/roofs-drawn-outlines.md (consequence: interior steps, double-height walls)
+- updated: pages/development-and-testing.md (rolldown-bundled node probe; summary)
+- updated: index.md (house-solids and development-and-testing summaries)
