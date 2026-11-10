@@ -51,7 +51,7 @@ export interface HouseModel {
 
 /**
  * A finish's material: its catalogue colour, roughness and metalness, see-through when it is (water); brick, wood,
- * lawn and checkered tile get their texture and relief (textures.ts; faces are mapped in metres, see addFace).
+ * lawn, checkered tile and ceramic mosaics get their texture and relief (textures.ts; faces are mapped in metres, see addFace).
  */
 function finishMaterial(id: string): THREE.MeshStandardMaterialParameters {
   const m = findMaterial(id)!

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { COLUMNS } from '../../model/colonnades'
 import { FURNITURE, furnitureKey, infoOf, type FurnitureInfo } from '../../model/furniture'
 import { dist } from '../../model/geometry'
-import { materialGroups, type Material, type Pattern } from '../../model/materials'
+import { materialGroups, mosaicColor, type Material, type Pattern } from '../../model/materials'
 import { STYLES, styleKey, type StyleInfo } from '../../model/openings'
 import { COLUMN_STYLES, segmentKind, type ColumnStyle, type FurnitureKind, type OpeningKind, type SegmentKind } from '../../model/plan'
 import { chooseTool, COLONNADE_DRAG_TYPE, FURNITURE_DRAG_TYPE, MATERIAL_DRAG_TYPE, OPENING_DRAG_TYPE } from '../../state/actions'
@@ -303,13 +303,19 @@ function MaterialIcon({ material }: { material: Material }) {
     grain: 'M4 8C10 7 18 9 28 8M4 12C12 13 20 11 28 12M4 16C9 15 19 17 28 16',
     dirt: 'M7 9h.1M12 15h.1M18 8h.1M23 14h.1M9 18h.1M26 10h.1M15 11h3M20 17h4',
   }
-  const { checker } = material
+  const { checker, mosaic } = material
   // a checkerboard of 4 px squares, six by four
   const squares = Array.from({ length: 12 }, (_, i) => `M${4 + 4 * ((i % 3) * 2 + (Math.floor(i / 3) % 2))} ${4 + 4 * Math.floor(i / 3)}h4v4h-4Z`).join('')
   return (
     <g className="material-icon">
-      <rect x="4" y="4" width="24" height="16" rx="2" fill={checker ? checker.colors[1] : material.color} />
+      <rect x="4" y="4" width="24" height="16" rx="2" fill={checker ? checker.colors[1] : mosaic ? mosaic.colors[0] : material.color} />
       {checker && <path className="checker" d={squares} fill={checker.colors[0]} />}
+      {mosaic &&
+        Array.from({ length: 24 }, (_, i) => {
+          const [row, col] = [Math.floor(i / 6), i % 6]
+          return <rect className="mosaic" key={i} x={4 + col * 4} y={4 + row * 4} width="4" height="4" fill={mosaicColor(mosaic, row, col)} />
+        })}
+      {mosaic && <rect x="4" y="4" width="24" height="16" rx="2" fill="none" />}
       {material.pattern && <path d={lines[material.pattern]} />}
     </g>
   )

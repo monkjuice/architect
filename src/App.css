@@ -372,6 +372,10 @@ kbd {
   stroke: none;
 }
 
+.library-icon .material-icon rect.mosaic {
+  stroke: none;
+}
+
 .box {
   background: var(--surface);
   border: 1px solid var(--border);

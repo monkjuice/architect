@@ -11,6 +11,12 @@ export type Surface = 'wall' | 'floor' | 'ceiling' | 'roof' | 'door' | 'frame'
 /** A pattern drawn on it in 3-D, repeated at its real size. */
 export type Pattern = 'brick' | 'planks' | 'tiles' | 'stone' | 'grass' | 'gravel' | 'seams' | 'dirt' | 'grain'
 
+/** A repeating four-by-four field of small square ceramic tiles. */
+export interface Mosaic {
+  colors: readonly [string, ...string[]]
+  tile: number
+}
+
 export interface Material {
   id: string
   title: string
@@ -31,6 +37,8 @@ export interface Material {
   water?: boolean
   /** Laid as a checkerboard of squares `tile` m a side in two colours; `color` is their mix, for where they do not show. */
   checker?: { colors: readonly [string, string]; tile: number }
+  /** Small ceramic squares laid in a repeating multi-colour field. */
+  mosaic?: Mosaic
 }
 
 const m = (
@@ -41,7 +49,7 @@ const m = (
   where: 'both' | 'outdoor' | 'indoor',
   color: string,
   roughness: number,
-  extra: Partial<Pick<Material, 'metalness' | 'pattern' | 'clear' | 'checker' | 'tile' | 'water'>> = {},
+  extra: Partial<Pick<Material, 'metalness' | 'pattern' | 'clear' | 'checker' | 'mosaic' | 'tile' | 'water'>> = {},
 ): Material => ({ id, title, group, surfaces, outdoor: where !== 'indoor', indoor: where !== 'outdoor', color, roughness, metalness: 0, ...extra })
 
 /** The catalogue, in the order pickers list it, a group at a time. */
@@ -67,6 +75,9 @@ export const MATERIALS: readonly Material[] = [
   m('tile-dark', 'Dark porcelain tile', 'Ceramic', ['floor', 'wall'], 'both', '#4a4845', 0.35, { pattern: 'tiles', tile: 0.6 }),
   m('tile-terracotta', 'Terracotta tile', 'Ceramic', ['floor'], 'both', '#b5643f', 0.85, { pattern: 'tiles', tile: 0.3 }),
   m('tile-checkered', 'Checkered tile', 'Ceramic', ['floor'], 'both', '#848280', 0.3, { checker: { colors: ['#161616', '#f2f0eb'], tile: 0.3 } }),
+  m('mosaic-ocean', 'Ocean blue ceramic mosaic', 'Ceramic', ['floor'], 'both', '#729ca2', 0.35, { mosaic: { colors: ['#d6e7e3', '#8db7b4', '#4f8993', '#245b6a'], tile: 0.05 } }),
+  m('mosaic-sage', 'Sage green ceramic mosaic', 'Ceramic', ['floor'], 'both', '#8d9b7d', 0.38, { mosaic: { colors: ['#e5e0c9', '#aab394', '#788b6a', '#536b58'], tile: 0.05 } }),
+  m('mosaic-terracotta', 'Warm terracotta ceramic mosaic', 'Ceramic', ['floor'], 'both', '#b47e62', 0.48, { mosaic: { colors: ['#ead6b7', '#cf9b6f', '#aa624d', '#7f4140'], tile: 0.05 } }),
   m('aluminium-black', 'Black aluminium', 'Metal', ['frame', 'door'], 'both', '#1d1e20', 0.4, { metalness: 0.6 }),
   m('aluminium-white', 'White aluminium', 'Metal', ['frame', 'door'], 'both', '#e8e8e6', 0.4, { metalness: 0.3 }),
   m('aluminium-natural', 'Anodised aluminium', 'Metal', ['frame', 'door'], 'both', '#b9bbbe', 0.3, { metalness: 0.9 }),
@@ -87,6 +98,15 @@ export const MATERIALS: readonly Material[] = [
 ]
 
 const BY_ID = new Map(MATERIALS.map((x) => [x.id, x]))
+
+const MOSAIC_MOTIF = [0, 1, 2, 0, 3, 0, 1, 2, 2, 3, 0, 1, 1, 2, 3, 0] as const
+
+/** The colour at one tile of a mosaic's repeating four-by-four motif. */
+export function mosaicColor(mosaic: Mosaic, row: number, col: number): string {
+  const r = ((row % 4) + 4) % 4
+  const c = ((col % 4) + 4) % 4
+  return mosaic.colors[MOSAIC_MOTIF[r * 4 + c] % mosaic.colors.length]
+}
 
 export const findMaterial = (id: string | undefined): Material | undefined => (id ? BY_ID.get(id) : undefined)
 

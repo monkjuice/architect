@@ -256,7 +256,7 @@ the plan with the usual symbols (a basin and its drain, a bed's pillows and turn
 
 Each side of a wall and the floor of each named area can be finished in a material from the library's *Materials*
 group: plaster and paint, brick and stone, concrete, wood, ceramic tile (among them a black and white checkered
-tile, 0.30 m squares), large stone slabs (0.60 m squares, for steps and outdoor paths), metal sheet, and for the
+tile and 5 cm ocean blue, sage green and warm terracotta mosaics), large stone slabs (0.60 m squares, for steps and outdoor paths), metal sheet, and for the
 ground gravel, lawn, a garden bed's mulch, a dirt road, pool water and a **stone pool** (its lining of 0.20 m green stones seen through the
 water). An outdoor area can be a **pool**: give it a *Pool depth* in the Selection panel and in 3-D it sinks into the
 ground that deep, lined in its floor material (white tile when that is just water) under water 0.1 m below its rim,
@@ -278,7 +278,7 @@ In the Exterior, brick, wood and lawn are drawn at their real size with a textur
 (0.24 × 0.055 m with 1 cm recessed joints, each brick a slightly different tone), boards 0.156 m wide with
 staggered ends, grain and seams, and a lawn of grass blades and patches; tiles and stone slabs as square tiles of
 their size (stone each a different tone, porcelain even), the stone pool's lining under rippling water, stone
-cladding as stacked stone in courses, and the checkered tile in its squares. The open ground around the site is
+cladding as stacked stone in courses, the checkered tile in its squares, and ceramic mosaics as small multi-colour tiles with recessed grout. The open ground around the site is
 the same lawn, and fireplaces and chimneys are exposed brick unless finished otherwise. Plaster, concrete, metal
 and gravel are still flat colours.
 

@@ -1,16 +1,28 @@
 import { memo } from 'react'
 import { add, dist, lerp, mul, type Vec } from '../../model/geometry'
 import { sideNormal, type WallSide } from '../../model/finishes'
-import { findMaterial, MATERIALS } from '../../model/materials'
+import { findMaterial, MATERIALS, mosaicColor } from '../../model/materials'
 import { openingSpans } from '../../model/openings'
 import { segmentKind, type Layer } from '../../model/plan'
 import { getThickness } from '../../state/derived'
 
-/** A pattern (`finish-<id>`, in plan units: m) for each checkered material, for floors laid in it. */
+/** A pattern (`finish-<id>`, in plan units: m) for each checkered or mosaic material laid on a floor. */
 export function FinishPatterns() {
   return (
     <defs>
-      {MATERIALS.map(({ id, checker }) => {
+      {MATERIALS.map(({ id, checker, mosaic }) => {
+        if (mosaic) {
+          const [n, t, grout] = [4, mosaic.tile, mosaic.tile * 0.08]
+          return (
+            <pattern key={id} id={`finish-${id}`} patternUnits="userSpaceOnUse" width={n * t} height={n * t}>
+              <rect width={n * t} height={n * t} fill="#c8c4bb" />
+              {Array.from({ length: n * n }, (_, i) => {
+                const [row, col] = [Math.floor(i / n), i % n]
+                return <rect key={i} x={col * t + grout / 2} y={row * t + grout / 2} width={t - grout} height={t - grout} fill={mosaicColor(mosaic, row, col)} />
+              })}
+            </pattern>
+          )
+        }
         if (!checker) return null
         const t = checker.tile
         return (

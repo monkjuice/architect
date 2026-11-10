@@ -1,14 +1,14 @@
 import * as THREE from 'three'
-import type { Material } from '../model/materials'
+import { mosaicColor, type Material } from '../model/materials'
 
 /**
- * Finishes in 3-D beyond a flat colour: brick courses, wood boards, a lawn and checkered tile, painted on canvases
+ * Finishes in 3-D beyond a flat colour: brick courses, wood boards, a lawn, checkered tile and ceramic mosaics, painted on canvases
  * at their real size as a colour map and a relief (normal) map. Faces are mapped in metres (see house.ts), so one
  * repeat of a canvas covers its width and height over its pixels per metre. Each is painted once per material and
  * kept for the session: the house is rebuilt on every change, its textures are not.
  */
 
-export type TextureKind = 'brick' | 'planks' | 'grass' | 'seams' | 'tiles' | 'stone' | 'dirt' | 'grain' | 'checker'
+export type TextureKind = 'brick' | 'planks' | 'grass' | 'seams' | 'tiles' | 'stone' | 'dirt' | 'grain' | 'checker' | 'mosaic'
 
 /** What a finish's texture shows, and its canvas: one repeat, in px, at `px` pixels per metre. */
 export interface TextureRecipe {
@@ -35,6 +35,10 @@ const LAWN = { px: 128, size: 1024 }
 
 export function textureRecipe(material: Material): TextureRecipe | null {
   if (material.checker) return { kind: 'checker', width: 64, height: 64, px: 32 / material.checker.tile, depth: 0 }
+  if (material.mosaic) {
+    const cell = Math.max(8, Math.round(material.mosaic.tile * TILES.px))
+    return { kind: 'mosaic', width: cell * 4, height: cell * 4, px: cell / material.mosaic.tile, depth: 0.002 }
+  }
   switch (material.pattern) {
     case 'brick':
       return { kind: 'brick', width: BRICK.module * BRICK.perCourse, height: BRICK.course * BRICK.courses, px: BRICK.px, depth: 0.01 }
@@ -555,6 +559,29 @@ function paintChecker(r: TextureRecipe, material: Material): Painted {
   return { map: el }
 }
 
+/** Small ceramic squares in the catalogue palette, separated by recessed grout. */
+function paintMosaic(r: TextureRecipe, material: Material, rand: () => number): Painted {
+  const mosaic = material.mosaic!
+  const [color, height] = [canvas(r.width, r.height), canvas(r.width, r.height)]
+  const [n, cell, joint] = [4, r.width / 4, Math.max(1, Math.round(r.width / 64))]
+  color.g.fillStyle = '#c8c4bb'
+  color.g.fillRect(0, 0, r.width, r.height)
+  height.g.fillStyle = gray(70)
+  height.g.fillRect(0, 0, r.width, r.height)
+  for (let row = 0; row < n; row++) {
+    for (let col = 0; col < n; col++) {
+      const [x, y, s] = [col * cell + joint / 2, row * cell + joint / 2, cell - joint]
+      const tile = scaled(rgb(mosaicColor(mosaic, row, col)), 0.97 + rand() * 0.06)
+      color.g.fillStyle = css(tile)
+      color.g.fillRect(x, y, s, s)
+      height.g.fillStyle = gray(225)
+      height.g.fillRect(x, y, s, s)
+    }
+  }
+  grain(color.g, rand, 0.025)
+  return { map: color.el, height: height.el }
+}
+
 /**
  * A normal map from heights, `depth` m from black to white at `px` pixels per metre. Its green runs up the
  * texture, the canvas's y down (canvases are flipped as they are uploaded), and it wraps round the edges as the
@@ -617,7 +644,9 @@ export function finishTextures(material: Material): FinishTextures | null {
                     ? paintDirt(r, material, rand)
                     : r.kind === 'grain'
                       ? paintGrain(r, material, rand)
-                      : paintChecker(r, material)
+                      : r.kind === 'mosaic'
+                        ? paintMosaic(r, material, rand)
+                        : paintChecker(r, material)
     const texture = (el: HTMLCanvasElement, colour: boolean) => {
       const t = new THREE.CanvasTexture(el)
       t.wrapS = t.wrapT = THREE.RepeatWrapping

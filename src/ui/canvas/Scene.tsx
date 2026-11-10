@@ -211,8 +211,8 @@ export const AreaFills = memo(function AreaFills({ layer, selected, hovered, mat
             className={[ids.has(a.id) ? 'area-fill selected' : a.id === hovered ? 'area-fill hovered' : 'area-fill', floor && 'finished'].filter(Boolean).join(' ')}
             fillRule="evenodd"
             d={regionPath(a.region)}
-            // a checkered floor in its squares (FinishPatterns), any other in its colour
-            style={floor ? { fill: floor.checker ? `url(#finish-${floor.id})` : floor.color } : undefined}
+            // patterned floor colours come from FinishPatterns; every other material uses its catalogue colour
+            style={floor ? { fill: floor.checker || floor.mosaic ? `url(#finish-${floor.id})` : floor.color } : undefined}
           />
         )
       })}

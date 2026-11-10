@@ -374,7 +374,7 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
       add('subfloors', 'screed', 'm²', floor, area.name)
       mix('screed', floor * SCREED)
       if (m) {
-        const waste = m.pattern === 'tiles' || m.checker ? WASTE.tiles : WASTE.other
+        const waste = m.pattern === 'tiles' || m.checker || m.mosaic ? WASTE.tiles : WASTE.other
         add('floors', 'floor', 'm²', floor * (1 + waste), area.name, { material: m.id, waste })
       } else add('floors', 'floor.unchosen', 'm²', floor, area.name, { outdoor: !covered })
       if (r.indoor) {
