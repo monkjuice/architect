@@ -1,8 +1,8 @@
 ---
 title: Furniture and fixtures
 type: component
-summary: "Free-standing pieces in layer.furniture (ids f<n>): a straight stair to the floor above, counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips, teak outdoor sofa and armchair), square, round, coffee, teak coffee and oak trestle tables, chairs, trees (shade, slender), potted plants (olive, shrub), in-ground plants (bush, agapanthus, lavender, a climber up a wall); src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
-tags: [model, furniture, ui, canvas, 3d, trees, oak, teak, plants, garden, stairs]
+summary: "Free-standing pieces in layer.furniture (ids f<n>): a straight stair to the floor above, counters and kitchen islands (a counter style), sinks (outdoor, kitchen, bathroom), appliances (fridge, dishwasher, oven, clothes washer, dryer), bathtubs (alcove, clawfoot, drop in, corner) and showers with a movable shower head, toilets, bidets, beds (single to king), sofas (armchair to an L-shaped sectional that flips, teak outdoor sofa and armchair), square, round, coffee, teak coffee and oak trestle tables, chairs, trees (shade, slender), potted plants (olive, shrub), in-ground plants (bush, agapanthus, lavender, a climber up a wall); src/model/furniture.ts (FURNITURE catalogue, placements, furnitureTarget snapping to wall faces, counters, tables and sofas, the kitchen sink laid out from its counter, shower rim positions incl. a corner tub's curve, sofa outlines, plan symbols), furniture3d.ts (blocks in 3-D), the Furniture tool, select-tool drags, R to turn, the library boxes and FurnitureDetails."
+tags: [model, furniture, appliances, ui, canvas, 3d, trees, oak, teak, plants, garden, stairs]
 sources: []
 updated: 2026-11-07
 ---
@@ -16,6 +16,9 @@ The same day (`3014137`) the user asked for a toilet and a bidet, then a simple 
 then (`0acdce9`) a kitchen island, (`3657510`) sofas and (`4cf872f`) a coffee table (asked for as a "mouse table",
 the Argentine *mesa ratona*).
 
+On 2026-11-10 (`41036f7`) the Objects library gained kitchen and laundry appliances: a fridge, dishwasher, oven,
+clothes washer and dryer.
+
 ## Model
 
 - `layer.furniture` (id → `FurnitureSchema`, a union on `kind` with sinks a nested union on `style`) in
@@ -27,6 +30,10 @@ the Argentine *mesa ratona*).
 - `src/model/furniture.ts`:
   - `FURNITURE`: the catalogue in library order (title, new size, height, `snap`: `wall`, `counter`, `table`,
     `sofa`, `none`); `furnitureInfo`/`infoOf`; `furnitureKey` (`"bed:queen"`, `"counter"`).
+  - **Appliances** use one `appliance` kind with styles `fridge`, `dishwasher`, `oven`, `washer` and `dryer`.
+    Their sizes and heights come from `FURNITURE`; all snap to a wall face, have distinct plan symbols and simple
+    3-D forms, and enter the Materials list as fixtures (with English and Spanish titles). `furniture3d.ts` reads
+    an appliance's height through `infoOf(f).height`, so the catalogue remains the source of truth.
   - `placement(at, angle, width, depth)` is a piece's frame (`u` across the front, `v` back to front), with
     `local`/`toLocal`/`corners`. **Always get a piece's position from `placeFurniture(layer, f)`**: it lays a kitchen
     sink out from its counter (offset clamped inside it, 3 cm forward) and returns null when the counter is gone.
@@ -94,7 +101,7 @@ the Argentine *mesa ratona*).
   click calls `placeFurnitureAt`, which refuses a target with a problem by a notice.
 - **Library**: `FURNITURE_GROUPS` in `LibraryPanel.tsx` lists the `kinds` of each box. The boxes are nested in the
   Objects group (after Drawing and Materials) with the opening and colonnade boxes, and each box's id comes from the
-  first kind: `library-stair` (*Stairs*, first), `library-counter`, `library-sink`, `library-bathtub`, `library-shower`, `library-toilet` (Toilet and
+  first kind: `library-stair` (*Stairs*, first), `library-counter`, `library-sink`, `library-appliance`, `library-bathtub`, `library-shower`, `library-toilet` (Toilet and
   Bidet), `library-bed`, `library-sofa`, `library-table`, `library-chair`, with counts and sizes; `FurnitureIcon` scales the symbol into the 32×24 icon. Dragging carries
   `FURNITURE_DRAG_TYPE` (`"kind:style"`) to `dropFurniture`.
 - **Select tool**: a selected tub's or shower's shower mark is grabbed before any other hit; a lone piece is re-targeted by

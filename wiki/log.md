@@ -1,5 +1,9 @@
 # architect wiki — log
 
+## [2026-11-10] update | Add kitchen and laundry appliances
+
+- Updated [Furniture and fixtures](pages/furniture.md) with the appliance styles, catalogue-owned dimensions and heights, wall placement, plan/3-D forms and takeoff behavior.
+
 Append-only history of this wiki, newest entry at the bottom. Every entry starts with `## [YYYY-MM-DD] op | Title`
 (ops: `init`, `seed`, `ingest`, `query`, `lint`, `update`); see [SCHEMA.md](SCHEMA.md).
 
