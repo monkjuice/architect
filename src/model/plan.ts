@@ -24,7 +24,7 @@ import { z } from 'zod'
  *
  * Walls are finished on each side and areas on their floors with materials (see materials.ts and finishes.ts).
  *
- * Furniture and fixtures (counters, sinks, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs) stand where they are put, turned to
+ * Furniture and fixtures (counters, sinks, appliances, bathtubs, showers, toilets, bidets, beds, sofas, tables, chairs) stand where they are put, turned to
  * an angle; a kitchen sink sits in a counter and goes where its counter goes (see furniture.ts).
  *
  * Roofs are outlines drawn over a layer's plan (the Roof tab), each with a type and slope (see roofs.ts). They do
@@ -152,6 +152,7 @@ export const FireplaceSchema = z.strictObject({
 export const OpeningSchema = z.discriminatedUnion('kind', [DoorSchema, WindowSchema, GateSchema, FireplaceSchema])
 
 export const SINK_STYLES = ['outdoor', 'kitchen', 'bathroom'] as const
+export const APPLIANCE_STYLES = ['fridge', 'dishwasher', 'oven', 'washer', 'dryer'] as const
 export const BATHTUB_STYLES = ['alcove', 'clawfoot', 'drop-in', 'corner'] as const
 export const BED_STYLES = ['single', 'double', 'queen', 'king'] as const
 export const SOFA_STYLES = ['armchair', 'loveseat', 'three-seater', 'sectional', 'teak-sofa', 'teak-armchair'] as const
@@ -183,6 +184,9 @@ export const KitchenSinkSchema = z.strictObject({
 export const StandingSinkSchema = z.strictObject({ kind: z.literal('sink'), style: z.enum(['outdoor', 'bathroom']), ...Standing })
 
 export const SinkSchema = z.discriminatedUnion('style', [KitchenSinkSchema, StandingSinkSchema])
+
+/** A kitchen or laundry appliance standing with its back against a wall. */
+export const ApplianceSchema = z.strictObject({ kind: z.literal('appliance'), style: z.enum(APPLIANCE_STYLES), ...Standing })
 
 export const BathtubSchema = z.strictObject({
   kind: z.literal('bathtub'),
@@ -230,6 +234,7 @@ export const TreeSchema = z.strictObject({ kind: z.literal('tree'), style: z.enu
 export const FurnitureSchema = z.discriminatedUnion('kind', [
   CounterSchema,
   SinkSchema,
+  ApplianceSchema,
   BathtubSchema,
   ShowerSchema,
   ToiletSchema,

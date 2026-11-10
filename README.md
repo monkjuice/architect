@@ -62,7 +62,8 @@ The **library** (left panel) holds what can be drawn or placed, in three groups 
   by family, with how many wall sides or floors have each.
 - **Objects**: door, window, gate and fireplace styles with how many there are and the width the next one gets,
   colonnades with how many open edges have one and the most their columns stand apart, and furniture (counters,
-  sinks, bathtubs, showers, toilets and bidets, beds, sofas, tables, chairs) with how many there are and their size.
+  sinks, kitchen and laundry appliances, bathtubs, showers, toilets and bidets, beds, sofas, tables, chairs) with
+  how many there are and their size.
 
 ### Walls, open edges, outlines and areas
 
@@ -226,6 +227,7 @@ Furniture and fixtures go where you click (pick one in the library, or drag it o
 | **Counter** | 2.40 × 0.60 m, 0.90 m high: cabinets, a toe kick and a stone worktop | backs up to a wall |
 | **Kitchen island** | 2.00 × 1.00 m, 0.90 m high: cabinets all round under a worktop that overhangs the front 0.25 m for stools | stands where it is put |
 | **Sinks** | *Outdoor* 0.70 × 0.50 m, a stone basin on a pedestal; *Bathroom* 0.60 × 0.45 m, a vanity with its basin; *Kitchen* 0.80 × 0.45 m | outdoor and bathroom back up to a wall; a kitchen sink only goes in a counter |
+| **Appliances** | *Fridge* 0.90 × 0.70 m; *Dishwasher* and *Oven* 0.60 × 0.60 m; *Clothes washer* and *Dryer* 0.60 × 0.65 m | back up to a wall; each has its own plan symbol and 3-D form |
 | **Bathtubs** | *Alcove* 1.70 × 0.75 m; *Clawfoot* 1.65 × 0.78 m, on feet; *Drop in* 1.85 × 0.95 m, in a deck; *Corner* 1.40 m along each wall, a quarter round with a curved front | back up to a wall |
 | **Shower** | 0.90 × 0.90 m tray behind a glass screen, its head at the back | backs up to a wall |
 | **Toilets** | *Toilet* 0.40 × 0.70 m, its cistern to the wall; *Bidet* 0.38 × 0.55 m | back up to a wall |
@@ -494,7 +496,7 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   outline in meters, `edge` the outline side a shed slopes down to or a gable's ridge runs along; a glass roof's
   `lights: true` hangs grow lights under it), and
   `furniture` (id → `{kind, style, at, angle, width, depth}`: `kind` is `counter` (style `island` for a kitchen island, none against a wall), `sink` (`outdoor`, `kitchen`,
-  `bathroom`), `bathtub` (`alcove`, `clawfoot`, `drop-in`, `corner`, with `shower`, the shower head's place
+  `bathroom`), `appliance` (`fridge`, `dishwasher`, `oven`, `washer`, `dryer`), `bathtub` (`alcove`, `clawfoot`, `drop-in`, `corner`, with `shower`, the shower head's place
   round the rim from 0 to 4), `shower` (with `shower` too), `toilet`, `bidet`, `bed` (`single`, `double`, `queen`, `king`), `sofa`
   (`armchair`, `loveseat`, `three-seater`, `sectional`, with `mirror` for a sectional's return on its left), `table` (`square`, `circle`, `coffee`), `chair` or `stair`; `at` is its
   centre and `angle` its turn in degrees, clockwise; a kitchen sink has `counter` and `offset` (its centre's

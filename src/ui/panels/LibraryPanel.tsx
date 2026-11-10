@@ -24,6 +24,7 @@ const FURNITURE_GROUPS: { kinds: FurnitureKind[]; title: string }[] = [
   { kinds: ['stair'], title: 'Stairs' },
   { kinds: ['counter'], title: 'Counters' },
   { kinds: ['sink'], title: 'Sinks' },
+  { kinds: ['appliance'], title: 'Appliances' },
   { kinds: ['bathtub'], title: 'Bathtubs' },
   { kinds: ['shower'], title: 'Showers' },
   { kinds: ['toilet', 'bidet'], title: 'Toilets' },

@@ -1,13 +1,14 @@
 import { frustumFaces, prismFaces, profileFaces, ring, smoothSides, type Face, type Vec3 } from './faces'
 import type { Vec } from './geometry'
-import { ellipse, ISLAND_OVERHANG, local, potSize, potted, quarterDisc, rounded, showerPoint, SOFA, sofaCushions, sofaOutline, stairTreads, trestleBoards, trestleFrames, type Placement } from './furniture'
+import { ellipse, infoOf, ISLAND_OVERHANG, local, potSize, potted, quarterDisc, rounded, showerPoint, SOFA, sofaCushions, sofaOutline, stairTreads, trestleBoards, trestleFrames, type Placement } from './furniture'
 import type { Furniture } from './plan'
 import type { SolidMaterial } from './solids'
 
 /**
  * Furniture in 3-D, as simple blocks of the right size and height: a counter's cabinets, toe kick and worktop;
- * basins sunk into their tops with a tap; bathtubs and showers with a shower riser at the shower head; toilets and
- * bidets; beds with frame, headboard, mattress, pillows and cover; tables and chairs; a stair's flight.
+ * basins sunk into their tops with a tap; kitchen and laundry appliances; bathtubs and showers with a shower riser
+ * at the shower head; toilets and bidets; beds with frame, headboard, mattress, pillows and cover; tables and
+ * chairs; a stair's flight.
  */
 
 export interface FurniturePart {
@@ -54,6 +55,14 @@ export function furnitureParts(f: Furniture, pl: Placement, rise = 3): Furniture
     post(0, -hd + 0.05, 0.018, top, top + 0.24, 'metal')
     put(box(-0.012, -hd + 0.05, 0.012, -hd + 0.2), top + 0.2, top + 0.24, 'metal')
   }
+  /** A round door or control on an appliance's front, in the vertical plane just beyond its body. */
+  const frontDisc = (x: number, z: number, r: number, material: SolidMaterial, forward = 0) => {
+    const profile: [number, number][] = Array.from({ length: 24 }, (_, i) => {
+      const a = (i * 2 * Math.PI) / 24
+      return [r + r * Math.cos(a), z + r * Math.sin(a)]
+    })
+    parts.push({ faces: profileFaces(local(pl, x - r, hd + 0.01 + forward), pl.u, 0.008, profile), material })
+  }
 
   switch (f.kind) {
     case 'counter':
@@ -91,6 +100,38 @@ export function furnitureParts(f: Furniture, pl: Placement, rise = 3): Furniture
         tap(0.85)
       }
       break
+    case 'appliance': {
+      const height = infoOf(f).height
+      put(box(-hw, -hd, hw, hd), 0, height, 'ceramic')
+      if (f.style === 'fridge') {
+        // two full-height doors, a freezer break and long handles
+        put(box(-0.006, hd - 0.012, 0.006, hd + 0.012), 0.08, height - 0.05, 'soot')
+        put(box(-hw + 0.02, hd - 0.012, hw - 0.02, hd + 0.012), 0.58, 0.59, 'soot')
+        for (const x of [-0.055, 0.055]) put(box(x - 0.01, hd, x + 0.01, hd + 0.025), 0.82, 1.5, 'metal')
+      } else if (f.style === 'dishwasher') {
+        // a plain drop-down front, top controls and a bar handle
+        put(box(-hw + 0.01, hd - 0.01, hw - 0.01, hd + 0.012), 0.06, height - 0.04, 'interior')
+        put(box(-hw + 0.02, hd, hw - 0.02, hd + 0.02), height - 0.13, height - 0.04, 'metal')
+        put(box(-hw * 0.65, hd + 0.018, hw * 0.65, hd + 0.035), height - 0.19, height - 0.16, 'metal')
+      } else if (f.style === 'oven') {
+        // an oven window and handle under a four-burner cooktop
+        put(box(-hw + 0.04, hd, hw - 0.04, hd + 0.02), 0.16, 0.66, 'soot')
+        put(box(-hw * 0.7, hd + 0.018, hw * 0.7, hd + 0.035), 0.7, 0.74, 'metal')
+        put(box(-hw, -hd, hw, hd), height - 0.02, height, 'soot')
+        for (const x of [-hw * 0.48, hw * 0.48]) {
+          for (const y of [-hd * 0.48, hd * 0.48]) post(x, y, Math.min(0.08, hw * 0.28), height - 0.008, height, 'metal')
+        }
+      } else {
+        // front-loading laundry machines: a round glazed door below the controls
+        const r = Math.min(0.22, hw * 0.76)
+        frontDisc(0, 0.4, r, 'metal')
+        frontDisc(0, 0.4, r * 0.78, f.style === 'washer' ? 'glass' : 'soot', 0.012)
+        put(box(-hw + 0.02, hd, hw - 0.02, hd + 0.018), height - 0.14, height - 0.04, 'interior')
+        frontDisc(hw - 0.1, height - 0.09, 0.026, 'metal', 0.02)
+        if (f.style === 'washer') frontDisc(-hw + 0.1, height - 0.09, 0.018, 'metal', 0.02)
+      }
+      break
+    }
     case 'bathtub': {
       let rim = 0.55
       if (f.style === 'corner') {

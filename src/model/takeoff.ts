@@ -412,7 +412,7 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
       if (f.kind === 'counter') add('fixtures', 'counter', 'm', f.width, where, style ? { style } : {})
       else if (f.kind === 'stair') add('fixtures', 'stair', 'u', 1, where, { w: round(f.width), h: round(f.depth) })
       else if (f.kind === 'tree' || f.kind === 'plant') add('garden', 'plant', 'u', 1, where, { kind: f.kind, style })
-      else if (['sink', 'bathtub', 'shower', 'toilet', 'bidet'].includes(f.kind)) add('fixtures', 'fixture', 'u', 1, where, style ? { kind: f.kind, style } : { kind: f.kind })
+      else if (['sink', 'appliance', 'bathtub', 'shower', 'toilet', 'bidet'].includes(f.kind)) add('fixtures', 'fixture', 'u', 1, where, style ? { kind: f.kind, style } : { kind: f.kind })
     }
 
     // glazed edges, colonnades and plain open-edge beams and columns, measured on the solids

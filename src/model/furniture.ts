@@ -2,7 +2,7 @@ import { add, clamp, closestOnSegment, dist, dot, mul, sub, type Box, type Vec }
 import { isEditable, segmentKind, type Furniture, type FurnitureKind, type Layer, type Plan } from './plan'
 
 /**
- * Furniture and fixtures: counters, sinks, bathtubs, showers, toilets, bidets, beds, tables, chairs and stairs. Each stands
+ * Furniture and fixtures: counters, sinks, appliances, bathtubs, showers, toilets, bidets, beds, tables, chairs and stairs. Each stands
  * at a point turned to an angle, its back up the sheet at 0, and is `width` across its front and `depth` from back
  * to front. Things that stand against a wall (all but tables, chairs and islands) snap with their back to the nearest
  * wall face when they are put down; a kitchen sink only goes in a counter and is kept there, relative to it;
@@ -29,6 +29,11 @@ export const FURNITURE: readonly FurnitureInfo[] = [
   { kind: 'sink', style: 'outdoor', title: 'Outdoor sink', width: 0.7, depth: 0.5, height: 0.85, snap: 'wall' },
   { kind: 'sink', style: 'kitchen', title: 'Kitchen sink', width: 0.8, depth: 0.45, height: 0.9, snap: 'counter' },
   { kind: 'sink', style: 'bathroom', title: 'Bathroom sink', width: 0.6, depth: 0.45, height: 0.85, snap: 'wall' },
+  { kind: 'appliance', style: 'fridge', title: 'Fridge', width: 0.9, depth: 0.7, height: 1.8, snap: 'wall' },
+  { kind: 'appliance', style: 'dishwasher', title: 'Dishwasher', width: 0.6, depth: 0.6, height: 0.85, snap: 'wall' },
+  { kind: 'appliance', style: 'oven', title: 'Oven', width: 0.6, depth: 0.6, height: 0.9, snap: 'wall' },
+  { kind: 'appliance', style: 'washer', title: 'Clothes washer', width: 0.6, depth: 0.65, height: 0.85, snap: 'wall' },
+  { kind: 'appliance', style: 'dryer', title: 'Dryer', width: 0.6, depth: 0.65, height: 0.85, snap: 'wall' },
   { kind: 'bathtub', style: 'alcove', title: 'Alcove', width: 1.7, depth: 0.75, height: 0.55, snap: 'wall' },
   { kind: 'bathtub', style: 'clawfoot', title: 'Clawfoot', width: 1.65, depth: 0.78, height: 0.62, snap: 'wall' },
   { kind: 'bathtub', style: 'drop-in', title: 'Drop in', width: 1.85, depth: 0.95, height: 0.55, snap: 'wall' },
@@ -461,6 +466,42 @@ export function furnitureSymbol(f: Furniture, pl: Placement): SymbolPart[] {
       const parts: SymbolPart[] = [outline, { pts: rounded(pl, -hw + 0.06, -hd + 0.08, hw - 0.06, hd - 0.05, 0.05), closed: true, role: 'detail' }, drain(0, 0.02)]
       if (f.style === 'kitchen') parts.push({ c: local(pl, 0, -hd + 0.04), r: 0.02, role: 'soft' })
       return parts
+    }
+    case 'appliance': {
+      const front = hd - Math.min(0.07, pl.depth * 0.12)
+      const frontLine: SymbolPart = { pts: [local(pl, -hw, front), local(pl, hw, front)], closed: false, role: 'detail' }
+      if (f.style === 'fridge') {
+        return [
+          outline,
+          frontLine,
+          { pts: [local(pl, 0, -hd), local(pl, 0, hd)], closed: false, role: 'soft' },
+          { pts: [local(pl, -0.05, front - 0.04), local(pl, -0.05, hd - 0.01)], closed: false, role: 'heavy' },
+          { pts: [local(pl, 0.05, front - 0.04), local(pl, 0.05, hd - 0.01)], closed: false, role: 'heavy' },
+        ]
+      }
+      if (f.style === 'dishwasher') {
+        return [outline, frontLine, { pts: [local(pl, -hw * 0.65, front - 0.05), local(pl, hw * 0.65, front - 0.05)], closed: false, role: 'soft' }]
+      }
+      if (f.style === 'oven') {
+        const r = Math.min(0.08, pl.width * 0.13, pl.depth * 0.13)
+        return [
+          outline,
+          frontLine,
+          ...[-1, 1].flatMap((x) => [-1, 1].map((y): SymbolPart => ({ c: local(pl, x * hw * 0.48, y * hd * 0.48), r, role: 'detail' }))),
+        ]
+      }
+      const r = Math.min(hw, hd) * 0.62
+      const drum = { pts: ellipse(pl, -r, -r, r, r, 32), closed: true, role: 'detail' } as SymbolPart
+      if (f.style === 'washer') return [outline, frontLine, drum, { c: local(pl, 0, 0), r: r * 0.62, role: 'soft' }]
+      return [
+        outline,
+        frontLine,
+        drum,
+        ...[0, 1, 2].map((i): SymbolPart => {
+          const a = (i * 2 * Math.PI) / 3
+          return { pts: [local(pl, Math.cos(a) * r * 0.2, Math.sin(a) * r * 0.2), local(pl, Math.cos(a) * r * 0.7, Math.sin(a) * r * 0.7)], closed: false, role: 'soft' }
+        }),
+      ]
     }
     case 'bathtub': {
       const shower = showerPoint(pl, f.shower, f.style === 'corner')

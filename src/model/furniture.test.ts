@@ -78,6 +78,35 @@ describe('furniture', () => {
     expect(free).toMatchObject({ at: { x: 3, y: 0.8 }, angle: 45 })
   })
 
+  it('places, draws, builds and keeps the kitchen and laundry appliances', () => {
+    const styles = ['fridge', 'dishwasher', 'oven', 'washer', 'dryer'] as const
+    let plan = room()
+    styles.forEach((style, i) => {
+      plan = put(plan, 'appliance', style, { x: 0.7 + i * 1.1, y: 0.6 })
+    })
+    const appliances = Object.values(plan.layers[0].furniture) as Extract<Furniture, { kind: 'appliance' }>[]
+    expect(appliances.map((f) => f.style)).toEqual(styles)
+    appliances.forEach((f) => {
+      expect(f.angle).toBeCloseTo(0, 6)
+      expect(f.at.y).toBeCloseTo(0.15 + f.depth / 2, 6)
+    })
+
+    const symbols = appliances.map((f) => JSON.stringify(furnitureSymbol(f, placeFurniture(plan.layers[0], f)!)))
+    expect(new Set(symbols).size).toBe(styles.length)
+
+    const solids = houseSolids(plan).filter((s) => s.kind === 'furniture')
+    appliances.forEach((f, i) => {
+      const own = solids.filter((s) => s.ref.id === `f${i + 1}`)
+      expect(own.length).toBeGreaterThan(1)
+      expect(Math.max(...own.map((s) => s.top))).toBeCloseTo(furnitureInfo('appliance', f.style).height, 6)
+    })
+    expect(solids.some((s) => s.ref.id === 'f3' && s.material === 'soot')).toBe(true)
+    expect(solids.some((s) => s.ref.id === 'f4' && s.material === 'glass')).toBe(true)
+
+    const parsed = parsePlan(JSON.parse(serializePlan(plan)))
+    expect(parsed.ok && Object.values(parsed.plan.layers[0].furniture).map((f) => ('style' in f ? f.style : undefined))).toEqual(styles)
+  })
+
   it('only puts a kitchen sink in a counter, and keeps it there as the counter moves or goes', () => {
     const none = furnitureTarget(room(), { x: 3, y: 0.5 }, opts('sink', 'kitchen'))!
     expect(none.problem).toMatch(/counter/)
