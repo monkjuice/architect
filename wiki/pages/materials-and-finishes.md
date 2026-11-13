@@ -9,6 +9,14 @@ updated: 2026-11-08
 
 # Materials and finishes
 
+## Ceramic mosaics (2026-11-10)
+
+Floor materials may carry `Material.mosaic` (`colors`, a non-empty tuple, and `tile`, in metres). The three built-in
+5 cm square mosaics are `mosaic-ocean`, `mosaic-sage` and `mosaic-terracotta`, each with four colours.
+`mosaicColor()` is the shared deterministic 4×4 motif: the library swatch, SVG floor pattern and generated 3-D
+texture must use it rather than choosing colours independently. Mosaic floors use the normal tile waste allowance
+in the materials takeoff and have Spanish titles.
+
 Added on 2026-11-04 (`839dce5`). It replaces the "no materials in the plan" part of
 [Exterior kept basic](exterior-kept-basic.md) and answers the user's fourth-session points: a table of what each
 material can go on, and materials shown in groups.

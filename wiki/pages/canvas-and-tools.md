@@ -9,6 +9,12 @@ updated: 2026-11-08
 
 # Canvas and tools
 
+## Mosaic floor patterns
+
+`FinishPatterns` in `Finishes.tsx` emits grout-backed SVG mosaic patterns at the material's real tile size, and
+`Scene` uses those definitions for mosaic floor fills. It calls the model's shared `mosaicColor()` motif, keeping
+the plan aligned with the library swatch and the 3-D texture instead of maintaining a second colour layout.
+
 Since 2026-11-07 the canvas shows only the active layer's floor, over the floor below (faded, not pickable), and
 tools find things through `storeyView` ([Floors](storeys.md)); their edits still start from the store's plan, as
 the view lacks the other floors' layers.

@@ -1,5 +1,11 @@
 # architect wiki — log
 
+## [2026-11-10] update | Add shared ceramic mosaic rendering
+
+- Updated [Materials and finishes](pages/materials-and-finishes.md) with the mosaic data model, built-in palettes, shared motif and takeoff behavior.
+- Updated [Canvas and tools](pages/canvas-and-tools.md) with real-scale SVG mosaic floor patterns.
+- Updated [Exterior tab](pages/exterior-tab.md) with the matching real-scale colour and normal texture recipe.
+
 ## [2026-11-10] update | Add kitchen and laundry appliances
 
 - Updated [Furniture and fixtures](pages/furniture.md) with the appliance styles, catalogue-owned dimensions and heights, wall placement, plan/3-D forms and takeoff behavior.

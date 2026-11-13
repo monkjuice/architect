@@ -9,6 +9,12 @@ updated: 2026-11-07
 
 # Exterior tab (3-D view)
 
+## Mosaic floor textures
+
+`textures.ts` has a real-scale `mosaic` texture recipe. It uses the material's tile size and shared
+`mosaicColor()` motif for its colour map, plus a normal map with recessed grout; `house.ts` selects that recipe
+for mosaic finishes. Keep this path in step with the SVG `FinishPatterns` implementation.
+
 Added in the eighth session (2026-11-02). It shows the [House solids](house-solids.md), rebuilt on every plan
 change, and edits nothing ([Tabs over one plan](tabs-over-one-plan.md)); the [Elevations tab](elevations.md) draws
 the same solids in 2-D. It is kept basic on purpose ([Exterior kept basic](exterior-kept-basic.md)), apart from
