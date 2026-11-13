@@ -102,7 +102,8 @@ export function furnitureParts(f: Furniture, pl: Placement, rise = 3): Furniture
       break
     case 'appliance': {
       const height = infoOf(f).height
-      put(box(-hw, -hd, hw, hd), 0, height, 'ceramic')
+      // The oven's cooktop caps its cabinet; keeping their exposed top faces apart avoids z-fighting in 3-D.
+      put(box(-hw, -hd, hw, hd), 0, f.style === 'oven' ? height - 0.02 : height, 'ceramic')
       if (f.style === 'fridge') {
         // two full-height doors, a freezer break and long handles
         put(box(-0.006, hd - 0.012, 0.006, hd + 0.012), 0.08, height - 0.05, 'soot')
@@ -117,9 +118,9 @@ export function furnitureParts(f: Furniture, pl: Placement, rise = 3): Furniture
         // an oven window and handle under a four-burner cooktop
         put(box(-hw + 0.04, hd, hw - 0.04, hd + 0.02), 0.16, 0.66, 'soot')
         put(box(-hw * 0.7, hd + 0.018, hw * 0.7, hd + 0.035), 0.7, 0.74, 'metal')
-        put(box(-hw, -hd, hw, hd), height - 0.02, height, 'soot')
+        put(box(-hw, -hd, hw, hd), height - 0.02, height - 0.006, 'soot')
         for (const x of [-hw * 0.48, hw * 0.48]) {
-          for (const y of [-hd * 0.48, hd * 0.48]) post(x, y, Math.min(0.08, hw * 0.28), height - 0.008, height, 'metal')
+          for (const y of [-hd * 0.48, hd * 0.48]) post(x, y, Math.min(0.08, hw * 0.28), height - 0.006, height, 'metal')
         }
       } else {
         // front-loading laundry machines: a round glazed door below the controls
