@@ -34,7 +34,8 @@ actions. Every tab works on the same plan, with one undo history and one file:
 | **Exterior** | The house in 3-D, built from the floor plan and the roofs (see [Exterior](#exterior)). |
 | **Materials** | What the house needs to be built, with quantities (see [Materials list](#materials-list)). |
 | **Foundation** | The foundation plan, worked out from the ground floor's walls and columns (see [Foundation](#foundation)). |
-| Interior, Plumbing, Electricity, Gas | Not built yet: shown, disabled. |
+| **Electricity** | Each layer's electrical plan: boards, switches, light outlets and sockets, with the circuits, cables and their runs worked out from them (see [Electricity](#electricity)). |
+| Interior, Plumbing, Gas | Not built yet: shown, disabled. |
 
 ## Workflow
 
@@ -328,6 +329,103 @@ depth by hand (drawn with a heavier edge) or puts it back to the one worked out 
 foundation takes, the same rows as the Materials tab's first chapter. These are usual sizes for ordinary soil, not
 a structural design: a soil study and an engineer's calculation set the real ones.
 
+## Electricity
+
+The **Electricity** tab is the electrical plan of one layer at a time (*Plan of*, in the bar; *All layers* shows
+every layer of that floor together), over its floor faded, in the usual notation. Its tools put down:
+
+| Tool | Fixed to | |
+|---|---|---|
+| **Board** (`B`) | a wall | An electrical board, *Biphasic* or *Triphasic* (two or three phases with the neutral). Once placed it asks its name and what feeds it. Fed from the **meter** it is a main board and feeds whole layers (those no board feeds yet ticked; each layer feeds from one main board, so ticking one another board feeds moves it). Fed from **another board** it is a sub-board and feeds **areas** of its parent's layers (a kitchen, a workshop): the points in those areas are on it, the rest stay on the parent. A sub-board is either *in its parent's enclosure* (its own rows in the parent's box, drawn with it, with no feeder run) or a box of its own, on its own wall, fed by a feeder circuit from its parent. A board cannot be fed from itself or from one of its own sub-boards. |
+| **Switch** (`S`) | a wall | A light switch. |
+| **Light** (`L`) | the ceiling, a wall or the floor | A light outlet: inside a room on the ceiling, on a wall's face as a wall light, or on the floor: in a room (a step light) or outdoors (a garden uplight, a bollard, a lamp post; its *Post* in the Electricity section, 0 for one flush in the ground). |
+| **Socket** (`O`) | a wall or the floor | A socket, *General* or *Special* (an oven, an AC, a pump: a circuit of its own), on a wall's face or in the floor, in a room or outdoors. |
+
+A wall mount goes on the face of the nearest wall of the floor, facing out of it, and never in a doorway. A floor
+light or socket outside every room, or on an open terrace or a lot, is **outdoors**: it is fed underground (see
+*Runs*). A ceiling light or a floor light or socket snaps as it is placed or dragged (`Alt`: not), on each axis on its own, shown by a
+dashed guide: to the middle between two walls (a light in the middle of a corridor, along its centre line), or in
+line with others of its kind (ceiling lights in a row). Like furniture, points stand where they are put: they do not follow walls that move
+(drag them again).
+
+**Circuits are chosen when a point is placed.** The bar's *Circuit* field holds the circuit new points go on; with
+one picked, a new switch, light or socket goes on it (if it may: lighting takes switches and lights, general
+sockets take sockets, and the circuit's board must feed the spot). With *New circuit…* picked, placing a
+point asks for the new circuit's name (offering one such as *Kitchen lighting*), appends it to the board feeding the
+spot and picks it, so the next points follow it. A special socket always asks for a circuit of its own. Clicking a
+point with *Select* picks its circuit. Switches and lights are not paired: what a switch switches is up to the
+electrician, a lighting circuit just holds both.
+
+**A point is fed by its circuit's board.** Which board *may* feed a spot: a main board anywhere on the layers it
+feeds, a sub-board in the areas it feeds, and any board wherever its own sub-boards may (the main board may keep a
+kitchen circuit even once a kitchen sub-board exists). Which board feeds it *by default*, for a new circuit or a
+point on none: the sub-board whose area it is in, else its layer's main board. So a circuit is not tied to where its
+points are, only bounded by it:
+
+- **Moving a circuit to another board**: its *Move to…* field, in the Circuits list, moves it with all its points to
+  the end of that board's list (a circuit grouped automatically asks a name and is kept there). Boards that do not
+  feed all its points are listed but greyed out: tick their area or layer on that board first.
+- **When a board starts feeding more** (a new board, or a layer or area ticked on one), the circuits on other boards
+  whose points are all in what it now feeds by default are offered to move to it, ticked; untick any to leave it.
+- A point's *Circuit* field (or several points' together) lists the circuits of every board that may feed them,
+  other boards' named with their board.
+- Unticking a layer or area on a board takes its circuits' points there off it: they go back to the board feeding
+  their spot by default, grouped automatically, until it is ticked again.
+
+From the boards and points the tab works out, after the rules for dwellings of AEA 90364-7-771 (220 V, copper in
+conduit):
+
+- **Circuits**, per board: the ones made by hand, in the order they were added, then points on none (older plans)
+  grouped automatically by nearness (lighting IUG and general sockets TUG at most 15 points, one per special
+  socket TUE), shared over the board's phases by load; a sub-board of its own gets a feeder circuit on its parent,
+  sized to its main breaker, and one in its parent's enclosure just adds its rows there.
+- **Runs**: each circuit is a tree from the board, box to box, along the walls' centrelines (lighting and a
+  sub-board's feeder in the ceiling, solid; sockets in the floor, dashed), a ceiling or floor box reaching its
+  walls straight. Buildings apart are joined by buried runs (dotted), and outdoor points are reached underground
+  from the foot of the nearest wall and from one another (garden lights in a row); a layer, or a sub-board, on
+  another floor gets a riser at the board.
+- **Conduit and cable by where they run**: in walls and ceilings, corrugated PVC conduit (IRAM 62386) with
+  single-core cables (IRAM NM 247-3); in the floor screed, reinforced corrugated PVC; underground, a three-core
+  subterranean cable (IRAM 2178: single-core cables are not made for wet ground) in a rigid PVC pipe 0.7 m deep,
+  down the wall from a ceiling run. Conduit is sized for line, neutral and earth at 35 % fill, the pipe for the
+  cable at 53 %.
+- **Sizes**: each circuit's breaker, line and earth sections (the least that carries the breaker and keeps the
+  voltage drop to its farthest box within 3 %), conduit and length; each board's main breaker, RCD, feeder and
+  enclosure. What each board's installation takes is in the Materials tab's *Electrical installation* chapter
+  (see [Materials list](#materials-list)), priced at local prices.
+
+Each circuit shows where its length goes (along walls, ceilings and floors; up and down to its boxes; buried;
+risers), and so does a selected point's own cable; *How lengths and sizes are worked out*, under the circuits, says
+how and what is left out. In short:
+
+- **Along**: wall centrelines on the plan (a few cm off per corner against a conduit inside the wall), from the
+  wall behind one box to the next; walls are straight, so there are no curves to follow.
+- **Up and down**: each run climbs or drops at both ends from its box's height (a switch 1.10 m, a socket 0.30 m,
+  a board 1.50 m, or as set) to its plane: the ceiling at the height of the wall nearest the box (so a taller wall
+  gives a taller ceiling), or the floor. A sloping ceiling under a pitched roof is taken flat at the wall's height.
+- **Buried**: 0.7 m down and up at each end, and a ceiling run's way down the wall into the ground.
+- **Section and drop**: 220 V phase to neutral, ΔU = 2·L·I·ρ/S summed along the tree (each run carrying what is
+  beyond it), ρ = 0.0225 Ω·mm²/m (copper at its working temperature), every point's load at once (a light 100 VA,
+  a socket 200 VA, a special socket 2200 VA, or its *Power*); ampacities after AEA's table for conduit in a wall,
+  rounded down.
+- **Not counted**: the slack in boxes and offcuts (the Materials tab adds 10 %), the meter-to-board feeder, the
+  switched conductor between a switch and its lights (switches are not paired with lights), derating for
+  circuits sharing a conduit or hot places, short-circuit and earth-fault checks. Wall thickness only enters as
+  the short tie from a box on the wall's face to its centreline.
+
+The Electricity section lists the boards as a tree (sub-boards under their parent). Each board shows what feeds
+it and what it feeds (layers, or areas grouped by layer, with *+ Sub-board in it* for one in its enclosure), and
+its circuits, numbered, with their names editable in place: *+ Circuit* (lighting, general sockets or special, and
+which of its layers) asks a name and appends it, picked; an automatic one can be *Kept* as a circuit of its own;
+*Move to…* sends one to another board; × deletes one, sending its points back to being grouped automatically.
+
+*Select* (`V`) picks a board or point (Shift adds, or drag a box) to set it in the Electricity section (a board's
+name, supply, what feeds it and what it feeds; a point's height, power and circuit), and drags it along its wall or
+to another. Click a cable run to pick the point it feeds, then drag a stretch of it sideways or one of its bends to
+run it another way; *Route along the walls* goes back to the worked-out way. The boards, switches, lights and
+sockets also stand in the Exterior tab and the elevations, at their heights. These are usual sizes, not a signed
+design: a registered electrician sets the real one.
+
 ## Roof
 
 The **Roof** tab is the roof plan: the floor plan faded, and the roofs over it. A roof is an outline (what it
@@ -398,7 +496,10 @@ across tabs):
   double-height room roofed from the 1st floor), and so does a fireplace's chimney;
 - open edges under a roof as beams following its underside, on columns where no wall holds them, and colonnades
   with their columns;
-- fireplaces, with their chimneys through the roof.
+- fireplaces, with their chimneys through the roof;
+- the Electricity tab's boards, switches, light outlets and sockets, on their walls, ceilings and floors at their
+  heights: white plates and boxes with a grey rocker, socket face or breaker window, light fixtures glowing, floor
+  sockets as metal lids, floor lights flush in the ground or on their post (look in with *Roof* off or *Up to*, and zoom towards a wall).
 
 Its toolbar has the camera (*Aerial*, *Top* as the plan, and the four facades by the plan's north), *Roof* to hide
 the roofs and look into the rooms, *Up to* (with upper floors) to hide the floors over the one picked and look into
@@ -415,7 +516,7 @@ The **Materials** tab lists what the house needs to be built, worked out from th
 checkboxes leave out the street or a neighbour's lot), in the chapters of an Argentine *cómputo métrico*:
 earthworks and foundations, concrete structure, masonry, damp-proofing and insulation, plaster and paint, sub-floors
 and screeds, floors and skirting, wall finishes, ceilings, roofing, doors and windows, glazing, metalwork and timber,
-pools, fixtures, garden, and the basic materials. Each row has its quantity and unit, its unit price and cost,
+electrical installation, pools, fixtures, garden, and the basic materials. Each row has its quantity and unit, its unit price and cost,
 where it is used and how it was worked out. *Language* shows it in English or Spanish (Argentine building terms,
 numbers as 1.234,5); the choice is kept per browser. *Save CSV* downloads it for a spreadsheet, in the language
 shown (in Spanish with semicolons and decimal commas, as a spreadsheet set to Argentina reads it).
@@ -426,6 +527,11 @@ shown (in Spanish with semicolons and decimal commas, as a spreadsheet set to Ar
   and plants.
 - **From the Foundation tab**: footings, ground beams, piles, pad footings or the raft, with each wall's size
   set there or worked out from it (see [Foundation](#foundation)).
+- **From the Electricity tab**: each board's circuits' cable (by section; line, neutral and earth of the same
+  section share one row; the three-core subterranean cable apart), conduit by kind (walls and ceilings, floor,
+  buried pipe; only light corrugated 3/4" has a local price), boxes, switches, sockets and breakers, and its main breaker, RCD and
+  enclosure (a sub-board in its parent's enclosure adds its breakers there, with no box of its own); one earth rod per board fed straight from the meter (a sub-board's comes with its feeder) (see
+  [Electricity](#electricity)).
 - **Assumed** behind them, by what each wall separates and how thick it is: a wall between a room and the outside
   (an indoor space counts when it is named or has a roof or a floor over it) is an insulated double wall when 25 cm
   or more (12 cm solid brick, cavity, 5 cm EPS, vapour barrier, 8 cm hollow brick), else 18 or 12 cm hollow brick;
@@ -465,7 +571,8 @@ structural design will change the concrete. Prices go stale quickly: update them
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo (`Ctrl+Shift+Z` also redoes). |
 | `Ctrl+S` / `Ctrl+Shift+S` / `Ctrl+O` | Save / save as / open. |
 
-These keys work on the Floor tab; on the Roof tab `V`, `R`, `M` and `H` pick its tools. The Selection panel shows a line's length (edit it to resize the line: the end with fewer other lines on it
+These keys work on the Floor tab; on the Roof tab `V`, `R`, `M` and `H` pick its tools, and on the Electricity
+tab `V`, `B`, `S`, `L`, `O`, `M` and `H`. The Selection panel shows a line's length (edit it to resize the line: the end with fewer other lines on it
 moves), its angle and type (wall, open edge or outline), a wall's thickness and height and the material of each
 side, for several lines their total length and, when they form one closed outline, its area, and for an area its
 name, floor area, floor material and boundary. A click on a thick wall's face picks it, not only on its centreline.
@@ -500,9 +607,16 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   round the rim from 0 to 4), `shower` (with `shower` too), `toilet`, `bidet`, `bed` (`single`, `double`, `queen`, `king`), `sofa`
   (`armchair`, `loveseat`, `three-seater`, `sectional`, with `mirror` for a sectional's return on its left), `table` (`square`, `circle`, `coffee`), `chair` or `stair`; `at` is its
   centre and `angle` its turn in degrees, clockwise; a kitchen sink has `counter` and `offset` (its centre's
-  distance from the counter's left end) instead of `at` and `angle`). Material ids are those of the catalogue in
+  distance from the counter's left end) instead of `at` and `angle`), and `electrical` (id → a board, switch, light
+  or socket: `kind`, `mount` (`wall`, `ceiling` for a light, `floor` for a light or a socket), `at`, `angle` and an optional
+  `height` (a floor item's box is in the floor, whatever it says), an optional `route` (the plan points the cable feeding it passes through), a point's optional `circuit`
+  (a circuit id; new ones are unique in the plan, so it names one circuit on whichever board holds it), a light's or socket's optional `power` in W, a floor light's optional `post` (m; absent or 0: flush in the ground) and a socket's `use` (`general`, `special`); a
+  board's `name`, `supply` (`biphasic`, `triphasic`), `layers` (a main board's), `areas` (`{layer, area}`, a
+  sub-board's), `circuits` (id → `{type, name, layer}`, `type` `lighting`, `sockets` or `special`, in the order
+  they were added), `parent` (`{layer, board}`, a sub-board's) and `integrated: true` for a sub-board in its
+  parent's enclosure). Material ids are those of the catalogue in
   `src/model/materials.ts`; one it does not know is kept but drawn plain. Files saved before areas, openings,
-  styles, wall thicknesses, roofs, furniture or materials existed open unchanged (older openings read as single doors and fixed windows, older walls as automatic).
+  styles, wall thicknesses, roofs, furniture, materials or the electrical plan existed open unchanged (older openings read as single doors and fixed windows, older walls as automatic).
 
 In Chrome and Edge *Save* writes back to the file you opened; elsewhere it downloads. The latest state is also
 autosaved in the browser (IndexedDB), so a reload never loses work. Loading validates the file and reports the
@@ -519,7 +633,8 @@ changes.
   stand and snap, their plan symbols), `furniture3d.ts` (furniture in 3-D), `materials.ts` (the materials
   catalogue, which suit which surfaces, outdoors or in), `finishes.ts` (a wall's two sides, what each faces),
   `faces.ts` (the flat faces solids are made of), `takeoff.ts` (the materials list and its build-ups), `foundations.ts` (the foundation plan), `wallUse.ts`
-  (what each wall separates), `takeoffText.ts` (its words in English and Spanish),
+  (what each wall separates), `electrical.ts` (boards and points, where they go), `wiring.ts` (circuits, cable
+  runs and sizes), `takeoffText.ts` (its words in English and Spanish),
   `prices.ts` (local prices),
   `sun.ts` (sun position, sunrise and sunset, shadows), `roofs.ts` (roof slopes, faces, eaves and the house's
   outline), `solids.ts` (the house in 3-D as solids of flat faces), `elevations.ts` (the facades from the
@@ -532,7 +647,8 @@ changes.
   events and returns overlay data the canvas draws.
 - `src/ui/panels/`: the Library (left) and View, Base plan, Layers, Selection, Areas and Sun (right).
   `src/ui/TopBar.tsx` is the tab row; `FloorTab.tsx`, `RoofTab.tsx` (with `canvas/Roofs.tsx` and
-  `panels/RoofPanel.tsx`) and `ElevationsTab.tsx` lay out those tabs.
+  `panels/RoofPanel.tsx`), `ElectricityTab.tsx` (with `canvas/Electrical.tsx` and `panels/ElectricityPanel.tsx`)
+  and `ElevationsTab.tsx` lay out those tabs.
 - `src/ui/exterior/ExteriorTab.tsx` and `src/render/`: the Exterior tab and its three.js engine (lights from the
   sun, shadows, camera presets), house meshes and `textures.ts` (brick, wood, lawn and checkered textures and
   their relief, painted on canvases once a session), adapted from the Forge H1 planner's render tab and loaded on

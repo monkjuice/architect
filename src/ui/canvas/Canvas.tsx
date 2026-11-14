@@ -3,7 +3,8 @@ import type { Vec } from '../../model/geometry'
 import { isStyleOf } from '../../model/openings'
 import { FURNITURE } from '../../model/furniture'
 import { findMaterial } from '../../model/materials'
-import { COLUMN_STYLES, storeyOf, type ColumnStyle } from '../../model/plan'
+import { COLUMN_STYLES, findLayer, storeyOf, type ColumnStyle } from '../../model/plan'
+import { pointKey } from '../../model/wiring'
 import {
   chooseTool,
   COLONNADE_DRAG_TYPE,
@@ -21,10 +22,11 @@ import {
   planBounds,
 } from '../../state/actions'
 import { ColonnadeLayer } from './Columns'
+import { ElectricalLayer, WiringLayer } from './Electrical'
 import { FinishLayer, FinishPatterns } from './Finishes'
 import { FoundationLayer } from './Foundation'
 import { FurnitureLayer } from './Furniture'
-import { getFoundation, storeyView } from '../../state/derived'
+import { getFoundation, getWiring, storeyView } from '../../state/derived'
 import { getPrefs, setPrefs, setSun, usePrefs } from '../../state/prefs'
 import { getStore, useEditor, type ToolId, type Viewport } from '../../state/store'
 import { Overlay } from './Overlay'
@@ -39,15 +41,27 @@ import { formatMeters, frame, gridSteps, MAX_ZOOM, MIN_ZOOM, niceStep } from './
 const SHORTCUTS: Record<string, ToolId> = { v: 'select', l: 'line', a: 'area', d: 'door', w: 'window', m: 'measure', h: 'pan' }
 const ROOF_SHORTCUTS: Record<string, ToolId> = { v: 'roof-select', r: 'roof', m: 'measure', h: 'pan' }
 const FOUNDATION_SHORTCUTS: Record<string, ToolId> = { v: 'foundation-select', m: 'measure', h: 'pan' }
+const ELECTRIC_SHORTCUTS: Record<string, ToolId> = { v: 'electric-select', b: 'board', s: 'switch', l: 'light', o: 'socket', m: 'measure', h: 'pan' }
+
+type Mode = 'floor' | 'roof' | 'foundation' | 'electricity'
+
+/** Each mode's single-key tools, and the tool Esc goes back to. */
+const MODE_KEYS: Record<Mode, { shortcuts: Record<string, ToolId>; home: ToolId }> = {
+  floor: { shortcuts: SHORTCUTS, home: 'select' },
+  roof: { shortcuts: ROOF_SHORTCUTS, home: 'roof-select' },
+  foundation: { shortcuts: FOUNDATION_SHORTCUTS, home: 'foundation-select' },
+  electricity: { shortcuts: ELECTRIC_SHORTCUTS, home: 'electric-select' },
+}
 
 const isTyping = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')
 
 /**
  * The plan, drawn to scale with its tools. On the Floor tab it is the floor plan; on the Roof tab (`mode` roof)
  * the floor plan is faded under the roofs, which are what the tools there work on; on the Foundation tab (`mode`
- * foundation) the ground floor is faded under its foundation plan.
+ * foundation) the ground floor is faded under its foundation plan; on the Electricity tab (`mode` electricity) the
+ * active floor is faded under its boards, points and cable runs.
  */
-export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' | 'foundation' }) {
+export function Canvas({ mode = 'floor' }: { mode?: Mode }) {
   const roofMode = mode === 'roof'
   const floorMode = mode === 'floor'
   const store = getStore()
@@ -146,8 +160,7 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' | 'foundati
       }
       if (event.ctrlKey || event.metaKey || event.altKey) return
       const key = event.key.toLowerCase()
-      const shortcuts = roofMode ? ROOF_SHORTCUTS : floorMode ? SHORTCUTS : FOUNDATION_SHORTCUTS
-      const home = roofMode ? 'roof-select' : floorMode ? 'select' : 'foundation-select'
+      const { shortcuts, home } = MODE_KEYS[mode]
       if (shortcuts[key]) chooseTool(shortcuts[key])
       else if (key === 'f') fitView()
       else if (key === 'g') setPrefs({ grid: !getPrefs().grid })
@@ -163,7 +176,7 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' | 'foundati
       window.removeEventListener('keyup', onKey)
       window.removeEventListener('blur', onBlur)
     }
-  }, [store, tools, roofMode, floorMode])
+  }, [store, tools, mode, floorMode])
 
   const toInfo = (event: PointerEvent): PointerInfo => {
     const rect = svgRef.current!.getBoundingClientRect()
@@ -266,19 +279,34 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' | 'foundati
   const showCalibration = floorMode && !!plan.image?.visible && (prefs.calibration || IMAGE_TOOLS.includes(toolId))
   // the welcome card shows on an empty plan until a drawing tool is picked; it lets clicks through to the canvas
   const empty = floorMode && !plan.image && plan.layers.every((l) => !Object.keys(l.segments).length) && (toolId === 'select' || toolId === 'pan')
-  const refIds = (kind: 'area' | 'opening' | 'roof' | 'furniture', layer: string) =>
+  const refIds = (kind: 'area' | 'opening' | 'roof' | 'furniture' | 'electrical', layer: string) =>
     selection
       .filter((r) => r.kind === kind && r.layer === layer)
       .map((r) => r.id)
       .join(' ')
-  const hovered = (kind: 'area' | 'opening' | 'roof' | 'furniture', layer: string) => (overlay.hover?.kind === kind && overlay.hover.layer === layer ? overlay.hover.id : undefined)
+  const hovered = (kind: 'area' | 'opening' | 'roof' | 'furniture' | 'electrical', layer: string) =>
+    overlay.hover?.kind === kind && overlay.hover.layer === layer ? overlay.hover.id : undefined
   const cursorStyle = panning ? 'grabbing' : spaceHeld || toolId === 'pan' ? 'grab' : tool.cursor()
   const scaleBar = view ? niceStep(90 / view.zoom).step : 0
   // the active layer's floor, over the floor below it, faded and out of reach; the floors above do not show. The
   // foundation plan is the ground floor's
   const ground = mode === 'foundation' ? (plan.layers.find((l) => !storeyOf(l))?.id ?? activeLayer) : activeLayer
   const floor = storeyView(plan, ground)
-  const below = mode === 'foundation' ? [] : storeyView(plan, ground, true).layers.filter((l) => l.visible && !floor.layers.includes(l))
+  const below = mode === 'foundation' || mode === 'electricity' ? [] : storeyView(plan, ground, true).layers.filter((l) => l.visible && !floor.layers.includes(l))
+  // the electrical plan: the circuits of what is selected stand out (all of a selected board's)
+  const wiring = mode === 'electricity' ? getWiring(plan) : null
+  const electricRefs = selection.filter((r) => r.kind === 'electrical')
+  const focus = wiring
+    ? [
+        ...new Set(
+          electricRefs.flatMap((r) => {
+            const board = wiring.boards.find((b) => pointKey(b.ref) === pointKey(r))
+            const circuits = board ? board.circuits : [wiring.circuitOf.get(pointKey(r))].filter((c) => !!c)
+            return circuits.map((c) => `${pointKey(c.board)}:${c.name}`)
+          }),
+        ),
+      ].join(' ')
+    : ''
 
   return (
     <div
@@ -353,6 +381,37 @@ export function Canvas({ mode = 'floor' }: { mode?: 'floor' | 'roof' | 'foundati
               layer.visible && (
                 <OpeningLayer key={layer.id} layer={layer} zoom={view.zoom} thick={prefs.thickWalls} selected={refIds('opening', layer.id)} hovered={hovered('opening', layer.id)} />
               ),
+          )}
+          {wiring && (
+            <>
+              {/* room names under their middles, where ceiling lights go */}
+              <g transform={`translate(0 ${22 / view.zoom})`}>
+                <AreaLabels plan={floor} selection={[]} zoom={view.zoom} lines={{ name: prefs.areaNames, size: false }} />
+              </g>
+              <WiringLayer
+                wiring={wiring}
+                storey={storeyOf(findLayer(plan, activeLayer))}
+                layer={prefs.wiringAll ? null : activeLayer}
+                focus={focus}
+                selected={electricRefs.map(pointKey).join(' ')}
+                hovered={overlay.hover?.kind === 'electrical' ? pointKey(overlay.hover) : undefined}
+                zoom={view.zoom}
+              />
+              {floor.layers.map(
+                (layer) =>
+                  layer.visible && (
+                    <ElectricalLayer
+                      key={layer.id}
+                      layer={layer}
+                      zoom={view.zoom}
+                      selected={refIds('electrical', layer.id)}
+                      hovered={hovered('electrical', layer.id)}
+                      dim={!prefs.wiringAll && layer.id !== activeLayer}
+                      unfed={wiring.unfed.has(layer.id)}
+                    />
+                  ),
+              )}
+            </>
           )}
           {mode === 'foundation' && (
             <FoundationLayer

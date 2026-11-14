@@ -209,8 +209,18 @@ export function priceKey(row: TakeoffRow): string | null {
   if (key === 'fireplace') return `fireplace:${p.style}`
   if (key === 'counter') return p.style ? `counter:${p.style}` : 'counter'
   if (key === 'fixture' || key === 'plant') return p.style ? `${p.kind}:${p.style}` : p.kind!
+  // cable is priced only at the three sections sold that way (1.5, 2.5, 4 mm²), never buried (a different product)
+  if (key === 'elec.cable') return p.elecRole === 'buried' ? null : (CABLE_PRICE_SECTIONS[p.elecSection!] ?? null)
+  // the local conduit price is of light corrugated PVC 3/4", what runs in walls and ceilings
+  if (key === 'elec.conduit') return p.elecWay !== 'floor' && p.elecWay !== 'buried' && p.elecConduit === '3/4"' ? 'elec.conduit' : null
+  if (key === 'elec.breaker') return p.elecAmps! <= 32 ? 'elec.breaker' : null
+  // the local main breaker and RCD prices are of two-pole devices, and the enclosure of a 24-module one
+  if (key === 'elec.mainbreaker' || key === 'elec.rcd') return p.elecPoles === 2 ? key : null
+  if (key === 'elec.board') return p.elecModules === 24 ? key : null
   return SAME[key] ?? key
 }
+
+const CABLE_PRICE_SECTIONS: Record<number, string> = { 1.5: 'elec.cable15', 2.5: 'elec.cable25', 4: 'elec.cable4' }
 
 /** What one unit of a row costs (one door of its size), and the price it comes from; null when it has none. */
 export function unitPrice(row: TakeoffRow): { ars: number; price: Price } | null {

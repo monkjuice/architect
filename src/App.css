@@ -906,6 +906,302 @@ button.icon {
   white-space: nowrap;
 }
 
+/* ---- electrical plan: the floor fades under its boards, points and cable runs ----------------------------- */
+
+.electricity-main {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.electricity-main .notice {
+  left: 12px;
+  right: 372px;
+}
+
+.canvas.electricity-mode :is(.layer, .openings, .columns, .furnishings) {
+  opacity: 0.35;
+}
+
+.canvas.electricity-mode .area-labels {
+  opacity: 0.6;
+}
+
+.electrical,
+.wiring {
+  pointer-events: none;
+}
+
+/* another layer's plan, and points no board feeds */
+.electrical.dim {
+  opacity: 0.35;
+}
+
+.electrical.locked {
+  opacity: 0.6;
+}
+
+.electric {
+  --electric: #38bdf8;
+}
+
+.electrical.unfed .electric {
+  --electric: var(--warning);
+}
+
+.electric :is(.electric-outline, .electric-line) {
+  fill: none;
+  stroke: var(--electric);
+  stroke-width: 1.5;
+}
+
+.electric .electric-outline {
+  fill: var(--canvas-bg);
+}
+
+.electric .electric-fill {
+  fill: var(--electric);
+  stroke: none;
+}
+
+.electric .electric-cup {
+  fill: var(--canvas-bg);
+  stroke: var(--electric);
+  stroke-width: 1.5;
+}
+
+.electric.special .electric-cup {
+  fill: var(--electric);
+}
+
+/* text strokes scale with the drawing: a halo a quarter of the text's size */
+.electric-label {
+  fill: var(--electric);
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--canvas-bg);
+  stroke-width: 0.25em;
+}
+
+.electric.hovered {
+  --electric: var(--hover);
+}
+
+.electric.selected {
+  --electric: var(--selection);
+}
+
+.electric.selected :is(.electric-outline, .electric-line, .electric-cup) {
+  stroke-width: 2.5;
+}
+
+.electric.preview {
+  opacity: 0.7;
+}
+
+.electric.preview.problem {
+  --electric: var(--error);
+}
+
+/* cable runs: a colour per circuit (set on the circuit), solid in the ceiling, dashed in the floor, dotted buried */
+.wiring .run {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.wiring .circuit.floor .run {
+  stroke-dasharray: 7 4;
+}
+
+.wiring .run.buried {
+  stroke-width: 2.5;
+  stroke-dasharray: 1 5;
+}
+
+.wiring .run.hovered {
+  stroke-width: 3;
+}
+
+.wiring .run.selected {
+  stroke-width: 3.5;
+}
+
+.wiring .circuit.faded {
+  opacity: 0.25;
+}
+
+.wiring .circuit.focus .run {
+  stroke-width: 2.5;
+}
+
+.wiring .circuit-label {
+  stroke: var(--canvas-bg);
+  stroke-width: 0.3em;
+  paint-order: stroke;
+  font-weight: 600;
+}
+
+.wiring .riser circle {
+  fill: var(--canvas-bg);
+  stroke: #38bdf8;
+  stroke-width: 1.5;
+}
+
+.wiring .riser path {
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 1.5;
+}
+
+.wiring .riser text {
+  fill: #38bdf8;
+  stroke: var(--canvas-bg);
+  stroke-width: 0.3em;
+  paint-order: stroke;
+}
+
+.board-circuits + .board-circuits {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.board-circuits h3 {
+  margin-top: 0;
+}
+
+.circuit-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.circuit-list li {
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.circuit-list li:hover {
+  background: var(--surface-2);
+}
+
+.circuit-list li.selected {
+  border-color: var(--selection);
+  background: var(--surface-2);
+}
+
+.circuit-list .warning {
+  color: var(--warning);
+}
+
+.circuit-list li > .row {
+  margin-bottom: 0;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.circuit-list li > .row > b,
+.circuit-list li > div > span,
+.circuit-list li > .muted {
+  cursor: pointer;
+}
+
+.circuit-list li > .row > .circuit-name {
+  flex: 1;
+}
+
+.circuit-list li > .row > button {
+  margin-left: auto;
+}
+
+.circuit-move {
+  max-width: 96px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  padding: 1px 2px;
+  font: inherit;
+  font-size: 11px;
+}
+
+.circuit-name {
+  min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 2px 6px;
+  font: inherit;
+}
+
+.add-circuit {
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+
+.add-circuit .segmented-field,
+.add-circuit .field {
+  margin: 0;
+}
+
+.circuit-list li.active {
+  border-color: var(--accent);
+}
+
+.circuit-list .tag-active {
+  color: var(--accent-strong);
+}
+
+/* a new board's dialog: wider, its areas in groups by layer */
+.prompt-dialog:has(.board-form) {
+  width: 440px;
+}
+
+.board-form .field {
+  margin-bottom: 10px;
+}
+
+.choice-groups {
+  max-height: 45vh;
+  overflow-y: auto;
+}
+
+.choice-groups h3 {
+  margin: 8px 0 4px;
+}
+
+.check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* a choice prompt's ticks (the layers a new board feeds) */
+.choice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.choice-note {
+  display: block;
+  margin-left: 22px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
 /* the floor below the one shown, to draw over */
 .canvas .underlay {
   opacity: 0.3;
@@ -1988,4 +2284,22 @@ button.icon {
   stroke-width: 2;
   stroke-dasharray: 6 3;
   vector-effect: non-scaling-stroke;
+}
+
+.how-worked-out {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.how-worked-out summary {
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.how-worked-out ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }

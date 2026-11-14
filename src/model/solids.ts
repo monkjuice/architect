@@ -4,10 +4,11 @@ import { COLUMNS, GLAZED_BASE, heldByWall, layerColonnades } from './colonnades'
 import { placeFurniture } from './furniture'
 import { furnitureParts } from './furniture3d'
 import { sideNormal, wallSide, type WallSide } from './finishes'
+import { frontOf, heightOf } from './electrical'
 import { findMaterial } from './materials'
 import { besideWall, FIREPLACE_DEPTH, fireplaceShape, HEARTH, hasHinge, PARRILLA_CHEEK, PARRILLA_DEPTH, placeOpening, type PlacedOpening } from './openings'
 import { segmentKind, storeyOf, type ColumnStyle, type Layer, type Opening, type Plan, type Ref, type Roof } from './plan'
-import { layerFaces, pointInPolygon, regionAt, type LayerFaces, type Region } from './regions'
+import { isCovered, layerFaces, pointInPolygon, regionAt, type LayerFaces, type Region } from './regions'
 import {
   eavesOf,
   GLASS_SHEET,
@@ -97,12 +98,15 @@ export type SolidKind =
   | 'chimney'
   | 'furniture'
   | 'railing'
+  | 'electrical'
 
 /**
  * What a solid is made of: walls that face outside and the structure are `facade`, walls between rooms `interior`;
  * a pitched roof is `roof` and a flat one `slab`; covered floors are `floor` and floors in the open `paving`.
  * Roman columns are `stone` and metal ones `metal`; fireplaces and chimneys are `brick`, with a `soot` firebox.
  * Furniture adds `ceramic` (basins, tubs), `wood` and `fabric` (a bed's cover). Grow lights' diodes are `light`: they glow.
+ * Electrical plates and boards are `ceramic`, with a `device` grey rocker, socket face or breaker window so they
+ * read against a white wall; light fixtures `lamp` (a warm glow), floor sockets' lids `metal`.
  */
 export type SolidMaterial =
   | 'facade'
@@ -130,6 +134,8 @@ export type SolidMaterial =
   | 'lavender'
   | 'blossom'
   | 'light'
+  | 'lamp'
+  | 'device'
 
 export type { Face, Vec3 } from './faces'
 
@@ -191,6 +197,7 @@ export function houseSolids(plan: Plan, source: SolidsSource = direct): Solid[] 
     }
     const upper = storey > 0
     layerSolids(layer, index * LAYER_LIFT, source, out, pools, { upper, rise: stairRise(plan, layer) }, overhead)
+    out.push(...electricalSolids(plan, layer))
     // a raised layer: everything on it up to its floor level (but what is under the ground), on its groundworks, or
     // on a floor above, on its slab
     if (level <= 0) return
@@ -337,7 +344,7 @@ function upperworks(layer: Layer, level: number, source: SolidsSource): Solid[] 
 export const POOL_WATER = 0.1
 
 /** Whether an area is covered: a room, or a space bounded by walls and open edges only (a gallery). */
-export const isCovered = (region: Region): boolean => region.indoor || region.outline < EPS
+export { isCovered }
 
 /**
  * One column standing from the floor to `top`, squared to `dir`. Roman: a plinth, a round base, a shaft that
@@ -1055,4 +1062,88 @@ function openingSolids(o: Opening, p: PlacedOpening, half: number, host: Host | 
     leaf(FRAME, w / 2 - 0.005, 0.01, head - FRAME, 'door')
     leaf(w / 2 + 0.005, w - FRAME, 0.01, head - FRAME, 'door')
   } else leaf(FRAME, w - FRAME, 0.01, head - FRAME, 'door')
+}
+
+/** Plates, boxes and fixtures in 3-D, m: across the wall, tall, out from its face. */
+const ELECTRIC_3D = {
+  board: { w: 0.45, h: 0.6, d: 0.1 },
+  plate: { w: 0.08, h: 0.12, d: 0.012 },
+  wallLight: { w: 0.2, h: 0.12, d: 0.12 },
+  /** A ceiling light's fixture: its radius and how far it hangs; a floor socket's lid, its side. */
+  ceilingLight: { r: 0.16, d: 0.06 },
+  floorLid: 0.12,
+  /** A floor light: flush, its metal rim and glowing lens; on a post, the pole and the lamp head at its top. */
+  floorLight: { rim: 0.14, lens: 0.1, pole: 0.1, head: { w: 0.16, h: 0.22 } },
+  /** On a plate's front: a switch's rocker and a socket's face, m; a board's breaker window, as shares of its front. */
+  rocker: { w: 0.035, h: 0.06 },
+  socketFace: { w: 0.05, h: 0.05 },
+  window: { w: 0.8, h: 0.45 },
+}
+
+/**
+ * A layer's electrical boards and points as the Exterior and the Elevations show them (the Electricity tab's plan,
+ * see electrical.ts): a board's enclosure and switch and socket plates on their wall's face at their heights, wall
+ * lights as small glowing fixtures, ceiling lights as glowing discs under the ceiling (the nearest wall's height),
+ * floor sockets as lids in the floor, floor lights flush in it or on a post. A sub-board in its parent's enclosure is
+ * not drawn apart.
+ */
+function electricalSolids(plan: Plan, layer: Layer): Solid[] {
+  const out: Solid[] = []
+  const walls = plan.layers.flatMap((l) =>
+    l.visible && storeyOf(l) === storeyOf(layer)
+      ? Object.values(l.segments).flatMap((s) => (segmentKind(s) === 'wall' ? [{ a: l.vertices[s.a], b: l.vertices[s.b], h: wallHeight(s) }] : []))
+      : [],
+  )
+  const ceilingAt = (p: Vec) => {
+    let best = { d: Infinity, h: WALL_HEIGHT }
+    for (const w of walls) {
+      const d = closestOnSegment(p, w.a, w.b).dist
+      if (d < best.d) best = { d, h: w.h }
+    }
+    return best.h
+  }
+  for (const [id, e] of Object.entries(layer.electrical)) {
+    if (e.kind === 'board' && e.integrated) continue
+    const ref: Ref = { layer: layer.id, kind: 'electrical', id }
+    const ceiling = ceilingAt(e.at)
+    const h = heightOf(e, ceiling)
+    if (e.mount === 'wall') {
+      const f = frontOf(e.angle)
+      const t = { x: -f.y, y: f.x }
+      const size = e.kind === 'board' ? ELECTRIC_3D.board : e.kind === 'light' ? ELECTRIC_3D.wallLight : ELECTRIC_3D.plate
+      const corner = (u: number, v: number) => add(add(e.at, mul(t, u)), mul(f, v))
+      const outline = [corner(-size.w / 2, 0), corner(size.w / 2, 0), corner(size.w / 2, size.d), corner(-size.w / 2, size.d)]
+      out.push(prism('electrical', outline, [], h - size.h / 2, h + size.h / 2, e.kind === 'light' ? 'lamp' : 'ceramic', ref))
+      // a switch's rocker, a socket's face, a board's breaker window: grey, standing out of the plate's front
+      const front = e.kind === 'switch' ? ELECTRIC_3D.rocker : e.kind === 'socket' ? ELECTRIC_3D.socketFace : e.kind === 'board' ? ELECTRIC_3D.window : null
+      if (front) {
+        const fw = front.w * (e.kind === 'board' ? size.w : 1)
+        const fh = front.h * (e.kind === 'board' ? size.h : 1)
+        const mid = h + (e.kind === 'board' ? size.h * 0.1 : 0)
+        const face = [corner(-fw / 2, size.d), corner(fw / 2, size.d), corner(fw / 2, size.d + 0.005), corner(-fw / 2, size.d + 0.005)]
+        out.push(prism('electrical', face, [], mid - fh / 2, mid + fh / 2, 'device', ref))
+      }
+    } else if (e.mount === 'ceiling') {
+      const { r, d } = ELECTRIC_3D.ceilingLight
+      const disc = Array.from({ length: 12 }, (_, i) => add(e.at, { x: Math.cos((i * Math.PI) / 6) * r, y: Math.sin((i * Math.PI) / 6) * r }))
+      out.push(prism('electrical', disc, [], ceiling - d, ceiling - 0.005, 'lamp', ref))
+    } else if (e.kind === 'light') {
+      // a floor light: flush in the ground (an uplight, a step light), or on a post (a bollard, a garden lamp post)
+      const square = (side: number) => [add(e.at, { x: -side / 2, y: -side / 2 }), add(e.at, { x: side / 2, y: -side / 2 }), add(e.at, { x: side / 2, y: side / 2 }), add(e.at, { x: -side / 2, y: side / 2 })]
+      const post = e.post ?? 0
+      const { rim, lens, pole, head } = ELECTRIC_3D.floorLight
+      if (post < head.h + 0.05) {
+        out.push(prism('electrical', square(rim), [], FLOOR, FLOOR + 0.008, 'metal', ref))
+        out.push(prism('electrical', square(lens), [], FLOOR + 0.008, FLOOR + 0.012, 'lamp', ref))
+      } else {
+        out.push(prism('electrical', square(pole), [], FLOOR, FLOOR + post - head.h, 'metal', ref))
+        out.push(prism('electrical', square(head.w), [], FLOOR + post - head.h, FLOOR + post - 0.02, 'lamp', ref))
+        out.push(prism('electrical', square(head.w + 0.03), [], FLOOR + post - 0.02, FLOOR + post, 'metal', ref))
+      }
+    } else {
+      const s = ELECTRIC_3D.floorLid / 2
+      out.push(prism('electrical', [add(e.at, { x: -s, y: -s }), add(e.at, { x: s, y: -s }), add(e.at, { x: s, y: s }), add(e.at, { x: -s, y: s })], [], FLOOR, FLOOR + 0.008, 'metal', ref))
+    }
+  }
+  return out
 }

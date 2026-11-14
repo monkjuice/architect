@@ -36,6 +36,8 @@ const FILL: Record<SolidMaterial, string> = {
   lavender: '#a99dc9',
   blossom: '#f7f5f0',
   light: '#f2a6dc',
+  lamp: '#fbe7b8',
+  device: '#7d8287',
 }
 const INK = '#2a2a2d'
 

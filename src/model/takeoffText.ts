@@ -2,6 +2,7 @@ import { FOOTING, PAD, PILE, RAFT, RING_BEAM, TIE_COLUMN } from './foundations'
 import { furnitureInfo } from './furniture'
 import { findMaterial } from './materials'
 import { bought, rowCost, unitPrice } from './prices'
+import { BURIED_DEPTH } from './wiring'
 import type { FurnitureKind } from './plan'
 import {
   BAG,
@@ -54,6 +55,7 @@ export const CHAPTER_TITLES: Record<Chapter, Record<Lang, string>> = {
   openings: { en: 'Doors and windows', es: 'Carpinterías' },
   glazing: { en: 'Glazing', es: 'Vidrios' },
   metalwork: { en: 'Metalwork and timber', es: 'Herrería y maderas' },
+  electricity: { en: 'Electrical installation', es: 'Instalación eléctrica' },
   pools: { en: 'Pools', es: 'Piletas' },
   fixtures: { en: 'Fixtures', es: 'Artefactos y equipamiento' },
   garden: { en: 'Garden', es: 'Parquización' },
@@ -463,6 +465,77 @@ const TEXT: Record<string, Record<Lang, [item: Words, basis: Words]>> = {
   hydrofuge: {
     en: ['Hydrofuge', `${HYDROFUGE * 100}% of the cement in the damp-proofing`],
     es: ['Hidrófugo', `${HYDROFUGE * 100} % del cemento de la capa aisladora`],
+  },
+  'elec.cable': {
+    en: [
+      (p, n) => (p.elecRole === 'buried' ? `Subterranean cable 3 × ${n(p.elecSection!, 1)} mm² (IRAM 2178)` : `Cable ${n(p.elecSection!, 1)} mm² single-core (IRAM NM 247-3)`),
+      (p) =>
+        p.elecRole === 'buried'
+          ? 'Buried stretches (between buildings, to outdoor points) and down the wall into the ground: line, neutral and earth in one cable'
+          : "Each circuit's line, neutral or earth of this section, in conduit",
+    ],
+    es: [
+      (p, n) => (p.elecRole === 'buried' ? `Cable subterráneo 3 × ${n(p.elecSection!, 1)} mm² (IRAM 2178)` : `Cable ${n(p.elecSection!, 1)} mm² unipolar (IRAM NM 247-3)`),
+      (p) =>
+        p.elecRole === 'buried'
+          ? 'Tramos enterrados (entre edificios, a bocas exteriores) y su bajada por el muro: fase, neutro y tierra en un solo cable'
+          : 'Fase, neutro o tierra de cada circuito de esta sección, en cañería',
+    ],
+  },
+  'elec.conduit': {
+    en: [
+      (p) =>
+        p.elecWay === 'buried'
+          ? `Rigid PVC pipe ${p.elecConduit}, buried`
+          : p.elecWay === 'floor'
+            ? `Reinforced corrugated PVC conduit ${p.elecConduit}`
+            : `Corrugated PVC conduit ${p.elecConduit} (IRAM 62386)`,
+      (p) =>
+        p.elecWay === 'buried'
+          ? `${BURIED_DEPTH} m deep, for the subterranean cable`
+          : p.elecWay === 'floor'
+            ? 'Socket circuits: in the floor screed and up the walls'
+            : 'Lighting circuits and feeders: in the walls and the ceiling',
+    ],
+    es: [
+      (p) =>
+        p.elecWay === 'buried'
+          ? `Caño de PVC rígido ${p.elecConduit}, enterrado`
+          : p.elecWay === 'floor'
+            ? `Caño corrugado de PVC reforzado ${p.elecConduit}`
+            : `Caño corrugado de PVC ${p.elecConduit} (IRAM 62386)`,
+      (p) =>
+        p.elecWay === 'buried'
+          ? `A ${BURIED_DEPTH} m de profundidad, para el cable subterráneo`
+          : p.elecWay === 'floor'
+            ? 'Circuitos de tomas: en el contrapiso y por los muros'
+            : 'Circuitos de iluminación y alimentaciones: en muros y cielorraso',
+    ],
+  },
+  'elec.box.ceiling': { en: ['Octagonal ceiling box', 'One per ceiling light outlet'], es: ['Caja octogonal de techo', 'Una por boca de techo'] },
+  'elec.box.wall': { en: ['Rectangular box 5 × 10 cm', 'One per switch, wall light and socket'], es: ['Caja rectangular 5 × 10 cm', 'Una por llave, aplique y tomacorriente'] },
+  'elec.switch': { en: ['Switch, 10 A', 'One per light switch'], es: ['Interruptor o llave, 10 A', 'Uno por llave de luz'] },
+  'elec.socket.general': { en: ['Socket, 10 A', 'One per general-use socket'], es: ['Tomacorriente, 10 A', 'Uno por toma de uso general'] },
+  'elec.socket.special': { en: ['Socket, 20 A', 'One per special-use socket (an oven, an AC, a pump)'], es: ['Tomacorriente, 20 A', 'Uno por toma de uso especial (horno, aire, bomba)'] },
+  'elec.breaker': {
+    en: [(p, n) => `Thermomagnetic breaker, 2 × ${n(p.elecAmps!, 0)} A, curve C`, 'One per circuit'],
+    es: [(p, n) => `Interruptor termomagnético, 2 × ${n(p.elecAmps!, 0)} A, curva C`, 'Uno por circuito'],
+  },
+  'elec.mainbreaker': {
+    en: [(p, n) => `Main breaker, ${p.elecPoles} × ${n(p.elecAmps!, 0)} A`, "The board's own, sized to its heaviest phase"],
+    es: [(p, n) => `Interruptor principal, ${p.elecPoles} × ${n(p.elecAmps!, 0)} A`, 'El propio del tablero, según su fase más cargada'],
+  },
+  'elec.rcd': {
+    en: [(p, n) => `RCD, ${p.elecPoles} × ${n(p.elecAmps!, 0)} A, 30 mA`, "The board's own"],
+    es: [(p, n) => `Interruptor diferencial, ${p.elecPoles} × ${n(p.elecAmps!, 0)} A, 30 mA`, 'El propio del tablero'],
+  },
+  'elec.board': {
+    en: [(p) => `Enclosure, ${p.elecModules} modules`, 'With room to spare for its breakers'],
+    es: [(p) => `Gabinete, ${p.elecModules} módulos`, 'Con margen para sus interruptores'],
+  },
+  'elec.earth': {
+    en: ['Earth rod with its inspection box', 'One per board fed straight from the meter'],
+    es: ['Jabalina de puesta a tierra con caja de inspección', 'Una por tablero alimentado directo del medidor'],
   },
 }
 

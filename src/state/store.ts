@@ -3,6 +3,8 @@ import {
   findLayer,
   refExists,
   storeyOf,
+  type BoardSupply,
+  type CircuitKind,
   type ColumnStyle,
   type DoorStyle,
   type FireplaceStyle,
@@ -12,6 +14,7 @@ import {
   type Ref,
   type RoofType,
   type SegmentKind,
+  type SocketUse,
   type WindowStyle,
 } from '../model/plan'
 
@@ -39,6 +42,11 @@ export type ToolId =
   | 'roof'
   | 'roof-select'
   | 'foundation-select'
+  | 'electric-select'
+  | 'board'
+  | 'switch'
+  | 'light'
+  | 'socket'
 
 export interface Notice {
   kind: 'info' | 'error'
@@ -65,6 +73,49 @@ export interface Viewport {
 export type Prompt =
   | { kind: 'length'; title: string; text: string; resolve: (length: number | null) => void }
   | { kind: 'text'; title: string; text: string; initial: string; resolve: (text: string | null) => void }
+  | { kind: 'choice'; title: string; text: string; options: ChoiceOption[]; resolve: (ids: string[] | null) => void }
+  | ({ kind: 'board'; title: string; resolve: (board: BoardAnswer | null) => void } & BoardQuestion)
+
+/** What a new board's dialog offers: its name, the boards it may be fed from, and the layers or areas to tick. */
+export interface BoardQuestion {
+  name: string
+  /** Boards it may be fed from (key and name); none: only a main board. */
+  parents: { key: string; label: string }[]
+  /** The parent to start with, as a sub-board; absent: a main board. */
+  parent?: string
+  layers: ChoiceOption[]
+  /** Named areas by layer. */
+  areas: { layer: string; label: string; options: ChoiceOption[] }[]
+  /** Only a sub-board (it is made inside its parent's enclosure). */
+  subOnly?: boolean
+}
+
+/** The answer: a main board's layers, or a sub-board's parent (a board key) and areas ("layer:area" ids). */
+export interface BoardAnswer {
+  name: string
+  parent: string | null
+  layers: string[]
+  areas: string[]
+}
+
+/** The circuit a circuit kind's new points go on: a circuit defined by hand, by its board's key and its id. */
+export type CircuitPick = Partial<Record<CircuitKind, { board: string; id: string }>>
+
+/** One box of a choice prompt: what it is, a note under it, and whether it starts ticked. */
+export interface ChoiceOption {
+  id: string
+  label: string
+  note?: string
+  checked: boolean
+}
+
+/** How the Electricity tab's tools put things down: lights on the ceiling or a wall, sockets on a wall or the floor… */
+export interface ElectricPick {
+  light: 'ceiling' | 'wall' | 'floor'
+  socket: 'wall' | 'floor'
+  use: SocketUse
+  supply: BoardSupply
+}
 
 export interface EditorState {
   /** The tab shown; every tab works on the same plan, with one undo history. */
@@ -88,6 +139,10 @@ export interface EditorState {
   materialPick: { id: string; surface: 'wall' | 'floor' }
   /** The type new roofs get (the Roof tab's toolbar). */
   roofType: RoofType
+  /** Where the Electricity tab's tools put lights and sockets, and what new sockets and boards are. */
+  electricPick: ElectricPick
+  /** The circuit of each kind new points go on (picked in the bar, the Circuits list, or by selecting a point on it). */
+  circuitPick: CircuitPick
   /** Zoom and pan; absent: the canvas fits the plan once and stores that fit (start, Fit, new plan or image). */
   view?: Viewport
   file: FileInfo
@@ -118,6 +173,8 @@ export class EditorStore {
       furniturePick: { kind: 'counter' },
       materialPick: { id: 'plaster-white', surface: 'wall' },
       roofType: 'gable',
+      electricPick: { light: 'ceiling', socket: 'wall', use: 'general', supply: 'triphasic' },
+      circuitPick: {},
       view: extra.view,
       file,
       notice: extra.notice,
@@ -231,6 +288,28 @@ export class EditorStore {
         resolve(value)
       }
       this.update({ prompt: { kind: 'text', title, text, initial, resolve: done } })
+    })
+  }
+
+  /** Asks which of `options` to take (ticks); null when cancelled. */
+  askChoice(title: string, text: string, options: ChoiceOption[]): Promise<string[] | null> {
+    return new Promise((resolve) => {
+      const done = (ids: string[] | null) => {
+        this.update({ prompt: undefined })
+        resolve(ids)
+      }
+      this.update({ prompt: { kind: 'choice', title, text, options, resolve: done } })
+    })
+  }
+
+  /** Asks for a new board's name and what it feeds; null when cancelled. */
+  askBoard(title: string, question: BoardQuestion): Promise<BoardAnswer | null> {
+    return new Promise((resolve) => {
+      const done = (answer: BoardAnswer | null) => {
+        this.update({ prompt: undefined })
+        resolve(answer)
+      }
+      this.update({ prompt: { kind: 'board', title, ...question, resolve: done } })
     })
   }
 

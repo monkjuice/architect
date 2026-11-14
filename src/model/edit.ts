@@ -1,4 +1,5 @@
-import { closestOnSegment, dist, EPS, lerp, type Vec } from './geometry'
+import { boardAndDescendants, boardKey, boardPlace, frontOf } from './electrical'
+import { add, closestOnSegment, dist, EPS, lerp, mul, type Vec } from './geometry'
 import {
   createLayer,
   findLayer,
@@ -6,7 +7,11 @@ import {
   LAYER_COLORS,
   segmentKind,
   type Area,
+  type Board,
+  type BoardCircuit,
   type Colonnade,
+  type CircuitKind,
+  type Electrical,
   type FoundationSystem,
   type Furniture,
   type Layer,
@@ -260,9 +265,19 @@ export function deleteItems(plan: Plan, refs: readonly Ref[]): Plan {
   let next = plan
   for (const layerId of new Set(refs.map((r) => r.layer))) {
     if (!isEditable(findLayer(next, layerId))) continue
+    // electrical items leave the lines alone, so the regions worked out from them stay
+    const onLayer = refs.filter((r) => r.layer === layerId)
+    const electrical = onLayer.filter((r) => r.kind === 'electrical')
+    if (electrical.length) {
+      const gone = electrical.map((r) => ({ ref: { layer: layerId, id: r.id }, item: findLayer(next, layerId)?.electrical[r.id] }))
+      next = withElectrical(next, layerId, (items) => electrical.forEach((r) => delete items[r.id]))
+      // a deleted board's sub-boards: those in its enclosure go with it, the others are fed from its own parent
+      for (const { ref, item } of gone) if (item?.kind === 'board') next = detachChildren(next, ref, item.parent ?? null)
+    }
+    if (electrical.length === onLayer.length) continue
     next = editLayer(next, layerId, (d) => {
       for (const ref of refs) {
-        if (ref.layer !== layerId) continue
+        if (ref.layer !== layerId || ref.kind === 'electrical') continue
         if (ref.kind === 'segment') delete d.segments[ref.id]
         else if (ref.kind === 'area') delete d.areas[ref.id]
         else if (ref.kind === 'opening') delete d.openings[ref.id]
@@ -712,6 +727,248 @@ export function turnFurniture(plan: Plan, refs: readonly Ref[], degrees = 90): P
   return next
 }
 
+// ---- electrical boards and points: they only touch a layer's electrical map
+
+function withElectrical(plan: Plan, layerId: string, change: (items: Record<string, Electrical>) => boolean | void): Plan {
+  const layer = findLayer(plan, layerId)
+  if (!layer) return plan
+  const electrical = { ...layer.electrical }
+  return change(electrical) === false ? plan : replaceLayer(plan, { ...layer, electrical })
+}
+
+export function addElectrical(plan: Plan, layerId: string, item: Electrical): { plan: Plan; id: string } | null {
+  if (!findLayer(plan, layerId)) return null
+  let id = ''
+  const next = withElectrical(plan, layerId, (items) => {
+    id = nextId('e', items)
+    items[id] = item
+  })
+  return { plan: next, id }
+}
+
+/** Replaces a board or point; the same plan when nothing changes. Undefined fields are dropped (back to the usual). */
+export function updateElectrical(plan: Plan, layerId: string, id: string, item: Electrical): Plan {
+  return withElectrical(plan, layerId, (items) => {
+    const old = items[id]
+    const next = Object.fromEntries(Object.entries(item).filter(([, v]) => v !== undefined)) as Electrical
+    if (!old || old.kind !== next.kind || JSON.stringify(old) === JSON.stringify(next)) return false
+    items[id] = next
+  })
+}
+
+/**
+ * Sets the layers a board feeds. A layer feeds from one board only, so a layer another board fed moves to this one.
+ * The same plan when nothing changes.
+ */
+export function setBoardLayers(plan: Plan, layerId: string, id: string, layers: readonly string[]): Plan {
+  const board = findLayer(plan, layerId)?.electrical[id]
+  if (board?.kind !== 'board') return plan
+  const wanted = [...new Set(layers)].filter((l) => findLayer(plan, l))
+  let next = plan
+  for (const layer of plan.layers) {
+    for (const [eid, e] of Object.entries(layer.electrical)) {
+      if (e.kind !== 'board') continue
+      const fed = layer.id === layerId && eid === id ? wanted : e.layers.filter((l) => !wanted.includes(l))
+      if (fed.length !== e.layers.length || fed.some((l, i) => l !== e.layers[i])) next = updateElectrical(next, layer.id, eid, { ...e, layers: fed })
+    }
+  }
+  return next
+}
+
+/** Sets the hand-drawn way of the cable into a point or a sub-board, or with null goes back to the worked-out one. */
+export function setRoute(plan: Plan, layerId: string, id: string, route: readonly Vec[] | null): Plan {
+  const item = findLayer(plan, layerId)?.electrical[id]
+  if (!item) return plan
+  return updateElectrical(plan, layerId, id, { ...item, route: route?.map((p) => ({ x: p.x, y: p.y })) })
+}
+
+/**
+ * Adds a circuit defined by hand to a board, for the points of layer `forLayer` (usually one it feeds); its points
+ * join it through `setPointCircuit`. Null when the board, or the layer, does not exist.
+ */
+export function addCircuit(plan: Plan, layerId: string, boardId: string, kind: CircuitKind, forLayer: string, name = ''): { plan: Plan; id: string } | null {
+  const board = findLayer(plan, layerId)?.electrical[boardId]
+  if (board?.kind !== 'board' || !findLayer(plan, forLayer)) return null
+  const id = nextCircuitId(plan)
+  const next = updateElectrical(plan, layerId, boardId, { ...board, circuits: { ...board.circuits, [id]: { type: kind, name, layer: forLayer } } })
+  return { plan: next, id }
+}
+
+/**
+ * A circuit id no board has and no point refers to, so a point's `circuit` names one circuit in the whole plan
+ * (wherever its board is) and a point left on a deleted board's circuit is never taken by a new one.
+ */
+function nextCircuitId(plan: Plan): string {
+  const used = new Set<string>()
+  for (const layer of plan.layers) {
+    for (const e of Object.values(layer.electrical)) {
+      if (e.kind === 'board') for (const id of Object.keys(e.circuits)) used.add(id)
+      else if (e.circuit) used.add(e.circuit)
+    }
+  }
+  let n = used.size + 1
+  while (used.has(`c${n}`)) n++
+  return `c${n}`
+}
+
+/**
+ * Moves a circuit defined by hand from one board to another, with its points (`members`, the points now on it), to
+ * the end of the other's list: they are fed from there from now on. It keeps its id when no other board has it, else
+ * gets a new one its points follow. Null when either board or the circuit is missing, or both boards are one.
+ */
+export function moveCircuit(
+  plan: Plan,
+  from: { layer: string; id: string },
+  id: string,
+  to: { layer: string; id: string },
+  members: readonly { layer: string; id: string }[],
+): { plan: Plan; id: string } | null {
+  const source = findLayer(plan, from.layer)?.electrical[from.id]
+  const target = findLayer(plan, to.layer)?.electrical[to.id]
+  const def = source?.kind === 'board' ? source.circuits[id] : undefined
+  if (source?.kind !== 'board' || target?.kind !== 'board' || !def || (from.layer === to.layer && from.id === to.id)) return null
+  const shared = plan.layers.some((l) => Object.entries(l.electrical).some(([bid, e]) => e.kind === 'board' && !(l.id === from.layer && bid === from.id) && id in e.circuits))
+  const newId = shared ? nextCircuitId(plan) : id
+  const circuits = { ...source.circuits }
+  delete circuits[id]
+  let next = updateElectrical(plan, from.layer, from.id, { ...source, circuits })
+  const moved = findLayer(next, to.layer)!.electrical[to.id] as Board
+  next = updateElectrical(next, to.layer, to.id, { ...moved, circuits: { ...moved.circuits, [newId]: def } })
+  if (newId !== id) for (const m of members) next = setPointCircuit(next, m.layer, m.id, newId)
+  return { plan: next, id: newId }
+}
+
+/** Renames a circuit, or changes what it may hold; the same plan when nothing changes. */
+export function updateCircuit(plan: Plan, layerId: string, boardId: string, id: string, patch: Partial<BoardCircuit>): Plan {
+  const board = findLayer(plan, layerId)?.electrical[boardId]
+  const circuit = board?.kind === 'board' ? board.circuits[id] : undefined
+  if (!board || board.kind !== 'board' || !circuit) return plan
+  const next = { ...circuit, ...patch }
+  if (next.type === circuit.type && next.name === circuit.name && next.layer === circuit.layer) return plan
+  return updateElectrical(plan, layerId, boardId, { ...board, circuits: { ...board.circuits, [id]: next } })
+}
+
+/** Removes a circuit defined by hand; its points go back to being grouped automatically. */
+export function removeCircuit(plan: Plan, layerId: string, boardId: string, id: string): Plan {
+  const board = findLayer(plan, layerId)?.electrical[boardId]
+  if (board?.kind !== 'board' || !board.circuits[id]) return plan
+  const circuits = { ...board.circuits }
+  const layer = circuits[id].layer
+  delete circuits[id]
+  let next = updateElectrical(plan, layerId, boardId, { ...board, circuits })
+  next = withElectrical(next, layer, (items) => {
+    let changed = false
+    for (const [pid, e] of Object.entries(items)) {
+      if (e.kind !== 'board' && e.circuit === id) {
+        items[pid] = { ...e, circuit: undefined }
+        changed = true
+      }
+    }
+    return changed
+  })
+  return next
+}
+
+/** Puts a point on a circuit defined by hand (its id on the layer's board), or with null back to automatic grouping. */
+export function setPointCircuit(plan: Plan, layerId: string, id: string, circuit: string | null): Plan {
+  const item = findLayer(plan, layerId)?.electrical[id]
+  if (!item || item.kind === 'board' || (item.circuit ?? null) === circuit) return plan
+  return updateElectrical(plan, layerId, id, { ...item, circuit: circuit ?? undefined })
+}
+
+/**
+ * The sub-boards of a board that is gone: one in its enclosure goes with it (and so do its own, in turn); one on a
+ * wall of its own is fed from the gone board's parent (`grandparent`), or with none becomes a main board feeding no
+ * layer yet (its areas dropped).
+ */
+function detachChildren(plan: Plan, parent: { layer: string; id: string }, grandparent: { layer: string; board: string } | null): Plan {
+  let next = plan
+  for (const layer of plan.layers) {
+    for (const [id, e] of Object.entries(layer.electrical)) {
+      if (e.kind !== 'board' || e.parent?.layer !== parent.layer || e.parent.board !== parent.id) continue
+      if (e.integrated) {
+        next = withElectrical(next, layer.id, (items) => {
+          delete items[id]
+        })
+        next = detachChildren(next, { layer: layer.id, id }, grandparent)
+      } else if (grandparent && findLayer(next, grandparent.layer)?.electrical[grandparent.board]?.kind === 'board') {
+        next = updateElectrical(next, layer.id, id, { ...e, parent: { ...grandparent } })
+      } else next = updateElectrical(next, layer.id, id, { ...e, parent: undefined, areas: [] })
+    }
+  }
+  return next
+}
+
+/**
+ * Sets the board a board is fed from (a sub-board, which feeds areas, not layers), or with null feeds it straight
+ * from the meter (a main board, which feeds layers, not areas, and stands on its own wall); refused if that would
+ * feed it from itself or from one of its own sub-boards (a loop). The same plan when nothing changes.
+ */
+export function setBoardParent(plan: Plan, layerId: string, id: string, parent: { layer: string; board: string } | null): Plan {
+  const board = findLayer(plan, layerId)?.electrical[id]
+  if (board?.kind !== 'board') return plan
+  if (parent) {
+    if (findLayer(plan, parent.layer)?.electrical[parent.board]?.kind !== 'board') return plan
+    if (boardAndDescendants(plan, { layer: layerId, id }).has(boardKey({ layer: parent.layer, id: parent.board }))) return plan
+  }
+  if ((board.parent?.layer ?? null) === (parent?.layer ?? null) && (board.parent?.board ?? null) === (parent?.board ?? null)) return plan
+  const next = { ...board }
+  if (parent) {
+    next.parent = { ...parent }
+    next.layers = []
+  } else {
+    delete next.parent
+    delete next.integrated
+    next.areas = []
+  }
+  return updateElectrical(plan, layerId, id, next)
+}
+
+/**
+ * Sets the areas a sub-board feeds. An area feeds from one sub-board only, so an area another sub-board fed moves to
+ * this one. The same plan when nothing changes.
+ */
+export function setBoardAreas(plan: Plan, layerId: string, id: string, areas: readonly { layer: string; area: string }[]): Plan {
+  const board = findLayer(plan, layerId)?.electrical[id]
+  if (board?.kind !== 'board' || !board.parent) return plan
+  const same = (a: { layer: string; area: string }, b: { layer: string; area: string }) => a.layer === b.layer && a.area === b.area
+  const wanted = areas.filter((a, i) => findLayer(plan, a.layer)?.areas[a.area] && areas.findIndex((b) => same(a, b)) === i)
+  let next = plan
+  for (const layer of plan.layers) {
+    for (const [eid, e] of Object.entries(layer.electrical)) {
+      if (e.kind !== 'board' || !e.parent) continue
+      const fed = layer.id === layerId && eid === id ? wanted : e.areas.filter((a) => !wanted.some((w) => same(a, w)))
+      if (fed.length !== e.areas.length || fed.some((a, i) => !same(a, e.areas[i]))) next = updateElectrical(next, layer.id, eid, { ...e, areas: fed.map((a) => ({ ...a })) })
+    }
+  }
+  return next
+}
+
+/** How far from its parent a sub-board taken out of its parent's enclosure starts, along the wall, m. */
+const OUT_OF_ENCLOSURE = 0.6
+
+/**
+ * Puts a sub-board in its parent's enclosure (it takes its parent's place) or out of it, onto the wall beside its
+ * parent, to be dragged where it goes. The same plan when nothing changes.
+ */
+export function setBoardIntegrated(plan: Plan, layerId: string, id: string, integrated: boolean): Plan {
+  const layer = findLayer(plan, layerId)
+  const board = layer?.electrical[id]
+  if (!layer || board?.kind !== 'board' || !board.parent || !!board.integrated === integrated) return plan
+  const place = boardPlace(plan, { layer, id, board: { ...board, integrated: true } })
+  const next = { ...board, angle: place.angle }
+  if (integrated) {
+    next.integrated = true
+    next.at = { ...place.at }
+    delete next.route
+  } else {
+    delete next.integrated
+    const f = frontOf(place.angle)
+    next.at = add(place.at, mul({ x: -f.y, y: f.x }, OUT_OF_ENCLOSURE))
+  }
+  return updateElectrical(plan, layerId, id, next)
+}
+
 /** Changes where the plan is in the world (north, latitude…); the same plan when nothing changes. */
 export function updateSite(plan: Plan, patch: Partial<Site>): Plan {
   const site = { ...plan.site, ...patch }
@@ -737,7 +994,20 @@ export function updateLayer(plan: Plan, id: string, patch: LayerPatch): Plan {
 /** Removes a layer with everything on it; a plan keeps at least one. Returns an error message when refused. */
 export function removeLayer(plan: Plan, id: string): Plan | string {
   if (plan.layers.length <= 1) return 'A plan keeps at least one layer.'
-  return { ...plan, layers: plan.layers.filter((l) => l.id !== id) }
+  const removed = findLayer(plan, id)
+  // boards stop feeding it
+  const layers = plan.layers.flatMap((l) => {
+    if (l.id === id) return []
+    const fed = Object.entries(l.electrical).filter(([, e]) => e.kind === 'board' && (e.layers.includes(id) || e.areas.some((a) => a.layer === id)))
+    if (!fed.length) return [l]
+    const electrical = { ...l.electrical }
+    for (const [eid, e] of fed) if (e.kind === 'board') electrical[eid] = { ...e, layers: e.layers.filter((x) => x !== id), areas: e.areas.filter((a) => a.layer !== id) }
+    return [{ ...l, electrical }]
+  })
+  let next: Plan = { ...plan, layers }
+  // its boards' sub-boards on other layers: fed from the gone board's parent, or main boards
+  for (const [eid, e] of Object.entries(removed?.electrical ?? {})) if (e.kind === 'board') next = detachChildren(next, { layer: id, id: eid }, e.parent && e.parent.layer !== id ? e.parent : null)
+  return next
 }
 
 /** Moves a layer up (drawn later, +1) or down (-1) the stack. */

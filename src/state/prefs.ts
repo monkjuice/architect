@@ -25,6 +25,8 @@ export interface Prefs {
   roofs: boolean
   /** The top floor the Exterior tab shows (0 the ground floor); the floors above it are hidden, to look into it. */
   topStorey: number
+  /** The Electricity tab shows every layer's points and runs on the floor; off, only the active layer's plan. */
+  wiringAll: boolean
   /** Widths new doors and windows get, by style ("door:double"…), in m: the last one typed for each style. */
   widths: Record<string, number>
   /** Ids of the panel sections that are folded away. */
@@ -60,6 +62,7 @@ const DEFAULTS: Prefs = {
   materials: true,
   roofs: true,
   topStorey: MAX_STOREY,
+  wiringAll: false,
   widths: {},
   collapsed: [],
   sun: SUN_DEFAULTS,
@@ -73,7 +76,7 @@ function load(): Prefs {
   try {
     const stored = JSON.parse(localStorage.getItem(KEY) ?? 'null') as (Partial<Prefs> & { doorWidth?: unknown }) | null
     if (!stored) return DEFAULTS
-    const flag = (key: 'grid' | 'lengths' | 'snap' | 'calibration' | 'thickWalls' | 'areaNames' | 'areaSizes' | 'materials' | 'roofs') =>
+    const flag = (key: 'grid' | 'lengths' | 'snap' | 'calibration' | 'thickWalls' | 'areaNames' | 'areaSizes' | 'materials' | 'roofs' | 'wiringAll') =>
       typeof stored[key] === 'boolean' ? stored[key] : DEFAULTS[key]
     const widths: Record<string, number> = {}
     for (const [key, value] of Object.entries(stored.widths ?? {})) if (typeof value === 'number' && value > 0) widths[key] = value
@@ -91,6 +94,7 @@ function load(): Prefs {
       materials: flag('materials'),
       roofs: flag('roofs'),
       topStorey: Number.isInteger(stored.topStorey) && stored.topStorey! >= 0 && stored.topStorey! <= MAX_STOREY ? stored.topStorey! : DEFAULTS.topStorey,
+      wiringAll: flag('wiringAll'),
       widths,
       collapsed,
       sun: loadSun(stored.sun),

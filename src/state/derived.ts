@@ -5,6 +5,7 @@ import { foundationPlan, type FoundationPlan } from '../model/foundations'
 import { houseSolids, type Solid } from '../model/solids'
 import { materialsList, type TakeoffRow } from '../model/takeoff'
 import { INTERIOR_WALL, layerWalls, type LayerWalls } from '../model/walls'
+import { wallGraph, wiringPlan, type WallGraph, type Wiring } from '../model/wiring'
 import { getPrefs } from './prefs'
 
 /**
@@ -171,4 +172,27 @@ export function getFoundation(plan: Plan): FoundationPlan {
   let f = foundationCache.get(plan)
   if (!f) foundationCache.set(plan, (f = foundationPlan(plan, getSolids(plan), { faces: getFaces, walls: getWalls })))
   return f
+}
+
+// a floor's wall graph depends on its visible layers' lines only: the last one of each floor is kept while they stay,
+// so moving a socket does not build it again
+const graphs = new Map<number, { maps: object[]; graph: WallGraph }>()
+
+function storeyGraph(plan: Plan, storey: number): WallGraph {
+  const layers = plan.layers.filter((l) => l.visible && storeyOf(l) === storey)
+  const maps = layers.flatMap((l) => [l.vertices, l.segments])
+  const known = graphs.get(storey)
+  if (known && known.maps.length === maps.length && known.maps.every((m, i) => m === maps[i])) return known.graph
+  const graph = wallGraph(layers)
+  graphs.set(storey, { maps, graph })
+  return graph
+}
+
+const wiringCache = new WeakMap<Plan, Wiring>()
+
+/** The boards' circuits, runs and sizes for the Electricity tab, from the visible layers. */
+export function getWiring(plan: Plan): Wiring {
+  let w = wiringCache.get(plan)
+  if (!w) wiringCache.set(plan, (w = wiringPlan(plan, { regions: getRegions, graph: (storey) => storeyGraph(plan, storey) })))
+  return w
 }

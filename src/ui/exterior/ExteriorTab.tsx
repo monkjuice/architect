@@ -119,7 +119,7 @@ export default function ExteriorTab() {
         {supported && !solids.length && <p className="exterior-message">Nothing to show yet: draw walls and name areas on the Floor tab.</p>}
         <p className="exterior-hint">
           Drag to orbit, right-drag to pan, wheel to zoom. Built from the visible layers: walls and openings from the Floor tab, roofs from the Roof
-          tab.
+          tab, boards, switches, sockets and light fixtures from the Electricity tab.
         </p>
         <NoticeBar />
       </main>

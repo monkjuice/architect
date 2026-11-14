@@ -1,6 +1,8 @@
 import type { ToolId } from '../../../state/store'
 import { createAreaTool } from './area'
 import { createColonnadeTool } from './colonnade'
+import { createElectricTool } from './electric'
+import { createElectricSelectTool } from './electricSelect'
 import { createFoundationSelectTool } from './foundationSelect'
 import { createFurnitureTool } from './furniture'
 import { createMaterialTool } from './material'
@@ -37,6 +39,11 @@ export function createTools(ctx: ToolContext): Record<ToolId, Tool> {
     roof: createRoofTool(ctx),
     'roof-select': createRoofSelectTool(ctx),
     'foundation-select': createFoundationSelectTool(ctx),
+    'electric-select': createElectricSelectTool(ctx),
+    board: createElectricTool(ctx, 'board'),
+    switch: createElectricTool(ctx, 'switch'),
+    light: createElectricTool(ctx, 'light'),
+    socket: createElectricTool(ctx, 'socket'),
   }
 }
 
@@ -115,5 +122,26 @@ export const TOOL_INFO: Record<ToolId, { title: string; key?: string; hint: stri
     title: 'Select',
     key: 'V',
     hint: "Click a wall's footing (Shift: add) to set its width and depth in the Foundation section · Esc: clear",
+  },
+  'electric-select': {
+    title: 'Select',
+    key: 'V',
+    hint: "Click a board or point (Shift: add) · a point's circuit becomes the one new points go on · drag it along its wall · click a cable run, then drag a stretch sideways or a bend anywhere · Del: delete",
+  },
+  board: {
+    title: 'Board',
+    key: 'B',
+    hint: 'Click a wall to put a board on it (biphasic or triphasic, in the toolbar): name it, and pick the meter (a main board, feeding layers) or a board (a sub-board, feeding areas)',
+  },
+  switch: { title: 'Switch', key: 'S', hint: 'Click a wall to put a light switch on it, on the side the cursor is on; it goes on the circuit picked in the bar, or a new one you name' },
+  light: {
+    title: 'Light',
+    key: 'L',
+    hint: "Ceiling: click inside a room (it snaps to the room's centre lines and in line with other lights; Alt: not); Wall: click a wall; Floor: click in a room or outdoors (a garden light, fed underground). It goes on the circuit picked in the bar, or a new one you name",
+  },
+  socket: {
+    title: 'Socket',
+    key: 'O',
+    hint: 'Click a wall, or for a floor socket in a room or outdoors (fed underground); it goes on the circuit picked in the bar, or a new one you name (a special socket asks each time)',
   },
 }

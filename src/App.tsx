@@ -7,6 +7,7 @@ import { writeDraft } from './state/files'
 import { getStore, useEditor } from './state/store'
 import { ElevationsTab } from './ui/ElevationsTab'
 import { FoundationTab } from './ui/FoundationTab'
+import { ElectricityTab } from './ui/ElectricityTab'
 import { MaterialsTab } from './ui/MaterialsTab'
 import { FloorTab } from './ui/FloorTab'
 import { RoofTab } from './ui/RoofTab'
@@ -28,6 +29,7 @@ export default function App() {
       {tab === 'floor' && <FloorTab />}
       {tab === 'roof' && <RoofTab />}
       {tab === 'elevations' && <ElevationsTab />}
+      {tab === 'electricity' && <ElectricityTab />}
       {tab === 'materials' && <MaterialsTab />}
       {tab === 'exterior' && (
         <Suspense fallback={<p className="tab-loading">Loading the 3-D view…</p>}>

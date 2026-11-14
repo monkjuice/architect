@@ -1,6 +1,8 @@
 import { createBaseImage, imageToWorld, visibleCorners } from '../model/baseImage'
 import { newColonnade } from '../model/colonnades'
-import { addFurniture, addOpening, addRoof, deleteItems, setAreaFloor, setColonnade, setWallFinish, updateLayer, updateRoof } from '../model/edit'
+import { addCircuit, addElectrical, addFurniture, addOpening, addRoof, deleteItems, moveCircuit, setAreaFloor, setBoardAreas, setBoardLayers, setBoardParent, setColonnade, setPointCircuit, setWallFinish, updateLayer, updateRoof } from '../model/edit'
+import { boardAndDescendants, boardCovers, boardFeeding, boardFor, boardKey, boardOfArea, boardOfPoint, boardsOf, roomAt, ELECTRIC_REACH_M, electricFor, electricTarget, nextBoardName, probeOf, type ElectricTarget } from '../model/electrical'
+import { CIRCUIT_RULES, circuitKindOf, type Circuit } from '../model/wiring'
 import { faceLine, finishProblem, sideOf, wallSide, type WallSide } from '../model/finishes'
 import { findMaterial } from '../model/materials'
 import { pointInPolygon, type Region } from '../model/regions'
@@ -15,9 +17,15 @@ import {
   segmentKind,
   storeyOf,
   type BaseImage,
+  type Board,
+  type CircuitKind,
   type ColumnStyle,
+  type Electrical,
+  type ElectricKind,
+  type ElectricMount,
   type Furniture,
   type FurnitureKind,
+  type Layer,
   type Opening,
   type OpeningKind,
   type OpeningStyle,
@@ -27,12 +35,12 @@ import {
 import { parsePlanText, serializePlan } from '../model/planFile'
 import { fitRoof, galleryRoof, GALLERY_PITCH, newRoof, offsetPolygon, unionOutlines } from '../model/roofs'
 import { isCovered } from '../model/solids'
-import { addStorey, levelOf, MAX_STOREY, storeyLevel } from '../model/storeys'
+import { addStorey, levelOf, MAX_STOREY, storeyLevel, storeyName } from '../model/storeys'
 import { EXTERIOR_WALL, WALL_HEIGHT, wallHeight } from '../model/walls'
 import { pickFile, pickPlanFile, readImageFile, savePlanFile } from './files'
-import { drawnHalfWidth, getPlacedAreas, getRegions, getThickness, hostThickness, storeyView } from './derived'
+import { drawnHalfWidth, getPlacedAreas, getRegions, getThickness, getWiring, hostThickness, storeyView } from './derived'
 import { getPrefs, openingWidth } from './prefs'
-import { getStore, type EditorState, type Tab, type ToolId } from './store'
+import { getStore, type BoardAnswer, type BoardQuestion, type EditorState, type ElectricPick, type Tab, type ToolId } from './store'
 
 export const DEFAULT_FILE_NAME = 'house-plan.json'
 
@@ -53,20 +61,24 @@ export function chooseTool(tool: ToolId) {
 export const ROOF_TOOLS: readonly ToolId[] = ['roof-select', 'roof']
 /** The Foundation tab's tools, besides Measure and Pan, which every plan has. */
 export const FOUNDATION_TOOLS: readonly ToolId[] = ['foundation-select']
+/** The Electricity tab's tools, besides Measure and Pan; each but the first puts down the kind it is named after. */
+export const ELECTRIC_TOOLS: readonly ToolId[] = ['electric-select', 'board', 'switch', 'light', 'socket']
 
 /**
- * Opens a tab. The floor plan, the roof plan and the foundation plan have tools of their own and select their own
- * things, so moving between them picks the right tool and keeps only what that tab can select.
+ * Opens a tab. The floor plan, the roof plan, the foundation plan and the electrical plan have tools of their own and
+ * select their own things, so moving between them picks the right tool and keeps only what that tab can select.
  */
 export function openTab(tab: Tab) {
   const store = getStore()
   const { tool, selection } = store.getState()
   const patch: Partial<EditorState> = { tab }
+  const anywhere = tool === 'measure' || tool === 'pan'
   if (tab === 'roof' && !ROOF_TOOLS.includes(tool)) patch.tool = 'roof-select'
-  if (tab === 'floor' && (ROOF_TOOLS.includes(tool) || FOUNDATION_TOOLS.includes(tool))) patch.tool = 'select'
-  if (tab === 'foundation' && !FOUNDATION_TOOLS.includes(tool) && tool !== 'measure' && tool !== 'pan') patch.tool = 'foundation-select'
-  if (tab === 'roof' || tab === 'floor' || tab === 'foundation') {
-    const keep = selection.filter((r) => (r.kind === 'roof') === (tab === 'roof'))
+  if (tab === 'floor' && (ROOF_TOOLS.includes(tool) || FOUNDATION_TOOLS.includes(tool) || ELECTRIC_TOOLS.includes(tool))) patch.tool = 'select'
+  if (tab === 'foundation' && !FOUNDATION_TOOLS.includes(tool) && !anywhere) patch.tool = 'foundation-select'
+  if (tab === 'electricity' && !ELECTRIC_TOOLS.includes(tool) && !anywhere) patch.tool = 'electric-select'
+  if (tab === 'roof' || tab === 'floor' || tab === 'foundation' || tab === 'electricity') {
+    const keep = selection.filter((r) => (tab === 'roof' ? r.kind === 'roof' : tab === 'electricity' ? r.kind === 'electrical' : r.kind !== 'roof' && r.kind !== 'electrical'))
     if (keep.length !== selection.length) patch.selection = keep
   }
   store.update(patch)
@@ -437,6 +449,317 @@ export function selectAll() {
     ...Object.keys(layer.areas).map((id) => ({ layer: layer.id, kind: 'area' as const, id })),
     ...Object.keys(layer.furniture).map((id) => ({ layer: layer.id, kind: 'furniture' as const, id })),
   ])
+}
+
+/** What a placing tool of the Electricity tab fixes its item to: lights and sockets as picked, the rest to walls. */
+export const pickedMount = (kind: ElectricKind, pick: ElectricPick): ElectricMount => (kind === 'light' ? pick.light : kind === 'socket' ? pick.socket : 'wall')
+
+/** Where a board or point put down at cursor `p` goes, on the active layer of the active floor; null when it is hidden or locked. */
+export function electricTargetAt(
+  kind: ElectricKind,
+  p: Vec,
+  snap = true,
+  mount?: ElectricMount,
+  extra: { snapReach?: number; ignore?: { layer: string; id: string } } = {},
+): ElectricTarget | null {
+  const { plan, activeLayer, electricPick } = getStore().getState()
+  return electricTarget(storeyView(plan, activeLayer), p, {
+    kind,
+    mount: mount ?? pickedMount(kind, electricPick),
+    layer: activeLayer,
+    reach: ELECTRIC_REACH_M,
+    thickness: hostThickness,
+    regions: getRegions,
+    snap,
+    ...extra,
+  })
+}
+
+/**
+ * What a board's dialog offers: the boards it may be fed from (not itself nor its own sub-boards), the layers a main
+ * board may feed (those no main board feeds yet ticked) and the named areas a sub-board may feed, by layer.
+ */
+function boardQuestion(plan: Plan, name: string, self?: { layer: string; id: string }): BoardQuestion {
+  const excluded = self ? boardAndDescendants(plan, self) : new Set<string>()
+  const parents = boardsOf(plan)
+    .filter((b) => !excluded.has(boardKey({ layer: b.layer.id, id: b.id })))
+    .map((b) => ({ key: boardKey({ layer: b.layer.id, id: b.id }), label: `${b.board.name} (${b.layer.name})` }))
+  const layers = [...plan.layers].reverse().map((layer) => {
+    const by = boardFeeding(plan, layer.id)
+    const points = Object.values(layer.electrical).filter((e) => e.kind !== 'board').length
+    return {
+      id: layer.id,
+      label: `${layer.name} (${storeyName(storeyOf(layer)).toLowerCase()})`,
+      note: [points ? `${points} point${points === 1 ? '' : 's'}` : 'no points yet', by && `fed by ${by.board.name}: ticking it moves it here`].filter(Boolean).join(' · '),
+      checked: !by,
+    }
+  })
+  const areas = [...plan.layers].reverse().flatMap((layer) => {
+    const options = getPlacedAreas(layer)
+      .filter((a) => a.region && !a.area.lot)
+      .map((a) => {
+        const by = boardOfArea(plan, layer.id, a.id)
+        return { id: `${layer.id}:${a.id}`, label: a.area.name, note: by ? `fed by ${by.board.name}: ticking it moves it here` : undefined, checked: false }
+      })
+    return options.length ? [{ layer: layer.id, label: `${layer.name} (${storeyName(storeyOf(layer)).toLowerCase()})`, options }] : []
+  })
+  return { name, parents, layers, areas }
+}
+
+/** A board's answer applied to the board `ref` (just added): what feeds it, and what it feeds. */
+function applyBoard(plan: Plan, ref: { layer: string; id: string }, answer: BoardAnswer): Plan {
+  const parent = answer.parent ? boardsOf(plan).find((b) => boardKey({ layer: b.layer.id, id: b.id }) === answer.parent) : undefined
+  let next = plan
+  if (parent) {
+    next = setBoardParent(next, ref.layer, ref.id, { layer: parent.layer.id, board: parent.id })
+    const areas = answer.areas.map((id) => {
+      const [layer, area] = id.split(':')
+      return { layer, area }
+    })
+    return setBoardAreas(next, ref.layer, ref.id, areas)
+  }
+  // a layer another main board fed moves to this one
+  return setBoardLayers(next, ref.layer, ref.id, answer.layers)
+}
+
+/** A short name for what a circuit of `kind` in a room feeds: "Kitchen lighting", "Hall sockets"… */
+function circuitName(kind: CircuitKind, room: string | undefined, board: Board): string {
+  const what = kind === 'lighting' ? 'lighting' : kind === 'sockets' ? 'sockets' : 'special socket'
+  if (room) return `${room} ${what}`
+  const n = Object.values(board.circuits).filter((c) => c.type === kind).length + 1
+  return `${what[0].toUpperCase()}${what.slice(1)} ${n}`
+}
+
+/** The name of the named area a point is in, on its floor. */
+function roomOf(plan: Plan, layerId: string, e: Electrical): string | undefined {
+  const p = probeOf(e)
+  let best: { name: string; area: number } | null = null
+  for (const layer of storeyView(plan, layerId).layers) {
+    for (const a of getPlacedAreas(layer)) {
+      const r = a.region
+      if (!r || a.area.lot || !pointInPolygon(p, r.outer) || r.holes.some((h) => pointInPolygon(p, h))) continue
+      if (!best || r.area < best.area) best = { name: a.area.name, area: r.area }
+    }
+  }
+  if (best || e.mount !== 'floor') return best?.name
+  // a floor item in no named area and under no cover is outdoors
+  const room = roomAt(storeyView(plan, layerId), e.at, getRegions)
+  return room && isCovered(room) ? undefined : 'Garden'
+}
+
+/**
+ * The circuit of `kind` new points of the active layer go on: the one picked, while it still exists on that layer;
+ * undefined, a new circuit.
+ */
+export function pickedCircuit(kind: CircuitKind): { board: { layer: Layer; id: string; board: Board }; id: string } | undefined {
+  const { plan, activeLayer, circuitPick } = getStore().getState()
+  const pick = circuitPick[kind]
+  const board = pick && boardsOf(plan).find((b) => boardKey({ layer: b.layer.id, id: b.id }) === pick.board)
+  const circuit = board && board.board.circuits[pick.id]
+  return board && circuit && circuit.type === kind && circuit.layer === activeLayer ? { board, id: pick.id } : undefined
+}
+
+/** Makes a circuit the one new points of its kind go on; null: a new one each time. */
+export function pickCircuit(kind: CircuitKind, pick: { board: string; id: string } | null) {
+  const store = getStore()
+  const circuitPick = { ...store.getState().circuitPick }
+  if (pick) circuitPick[kind] = pick
+  else delete circuitPick[kind]
+  store.update({ circuitPick })
+}
+
+/** After a point is selected: its circuit, when it was made by hand, becomes the one new points of its kind go on. */
+export function followCircuitOf(ref: Ref) {
+  const { plan } = getStore().getState()
+  const e = findLayer(plan, ref.layer)?.electrical[ref.id]
+  if (!e || e.kind === 'board' || !e.circuit) return
+  const by = boardOfPoint(plan, ref.layer, e, getRegions)
+  if (by?.board.circuits[e.circuit]) pickCircuit(circuitKindOf(e), { board: boardKey({ layer: by.layer.id, id: by.id }), id: e.circuit })
+}
+
+/**
+ * Puts a board or point down where `target` says and selects it; says why when it cannot go there. A board first asks
+ * its name and what it feeds (cancelling puts none down). A point goes on the circuit picked for its kind (when its
+ * board may feed the spot), or else on a new circuit of the board feeding its spot, named in a dialog (cancelling puts none down) and picked for the next ones (but a
+ * special circuit, which feeds one appliance).
+ */
+export async function placeElectricAt(kind: ElectricKind, target: ElectricTarget) {
+  const store = getStore()
+  if (target.problem) return store.notify({ kind: 'error', text: target.problem })
+  const { electricPick } = store.getState()
+  if (kind === 'board') {
+    const plan = store.getState().plan
+    const answer = await store.askBoard('A new board', boardQuestion(plan, nextBoardName(plan)))
+    if (!answer) return
+    const item = electricFor('board', 'wall', target, { board: { name: answer.name, supply: electricPick.supply, layers: [] } })
+    const result = addElectrical(store.getState().plan, target.layer, item)
+    if (!result) return
+    store.edit(() => applyBoard(result.plan, { layer: target.layer, id: result.id }, answer))
+    store.select([{ layer: target.layer, kind: 'electrical', id: result.id }])
+    return offerCircuitsTo({ layer: target.layer, id: result.id })
+  }
+  const item = electricFor(kind, pickedMount(kind, electricPick), target, { use: electricPick.use })
+  if (item.kind === 'board') return
+  const plan = store.getState().plan
+  const ck = circuitKindOf(item)
+  const by = boardFor(plan, target.layer, item, getRegions)
+  const picked = pickedCircuit(ck)
+  if (!by && !picked) {
+    // nothing feeds this spot yet: the point waits for a board, on no circuit
+    const result = addElectrical(plan, target.layer, item)
+    if (!result) return
+    store.edit(() => result.plan)
+    store.select([{ layer: target.layer, kind: 'electrical', id: result.id }])
+    return store.notify({ kind: 'info', text: 'No board feeds this spot yet: put a board on a wall (B), and its circuits will take this point.' })
+  }
+  // the picked circuit takes it when its board may feed this spot (even if another board feeds it by default)
+  if (picked && !boardCovers(plan, picked.board, target.layer, item, getRegions)) {
+    const name = picked.board.board.circuits[picked.id].name || 'The circuit picked'
+    return store.notify({
+      kind: 'error',
+      text: `${name} is on ${picked.board.board.name}, which does not feed this spot${by ? ` (${by.board.name} does)` : ''}: pick another circuit, or New circuit, in the bar.`,
+    })
+  }
+  let circuit = picked?.id
+  let base = plan
+  if (!circuit && by) {
+    const suggested = circuitName(ck, roomOf(plan, target.layer, item), by.board)
+    const name = await store.askText('A new circuit', `${CIRCUIT_RULES[ck].title} on ${by.board.name}: what does it feed?`, suggested)
+    if (name === null) return
+    const made = addCircuit(store.getState().plan, by.layer.id, by.id, ck, target.layer, name.trim() || suggested)
+    if (!made) return
+    base = made.plan
+    circuit = made.id
+    if (ck !== 'special') pickCircuit(ck, { board: boardKey({ layer: by.layer.id, id: by.id }), id: made.id })
+  }
+  const result = addElectrical(base, target.layer, { ...item, circuit })
+  if (!result) return
+  store.edit(() => result.plan)
+  store.select([{ layer: target.layer, kind: 'electrical', id: result.id }])
+}
+
+/** Adds a sub-board inside `parent`'s enclosure: it asks the sub-board's name and the areas it feeds. */
+export async function addIntegratedSubBoard(parent: { layer: string; id: string }) {
+  const store = getStore()
+  const plan = store.getState().plan
+  const layer = findLayer(plan, parent.layer)
+  const host = layer?.electrical[parent.id]
+  if (!layer || host?.kind !== 'board') return
+  const question = { ...boardQuestion(plan, nextBoardName(plan)), parent: boardKey(parent), subOnly: true }
+  const answer = await store.askBoard(`A sub-board in ${host.name}`, question)
+  if (!answer) return
+  const item = electricFor('board', 'wall', { layer: layer.id, at: host.at, angle: host.angle }, { board: { name: answer.name, supply: host.supply, layers: [] } })
+  const result = addElectrical(store.getState().plan, layer.id, item.kind === 'board' ? { ...item, integrated: true } : item)
+  if (!result) return
+  store.edit(() => applyBoard(result.plan, { layer: layer.id, id: result.id }, { ...answer, parent: answer.parent ?? boardKey(parent) }))
+  store.select([{ layer: layer.id, kind: 'electrical', id: result.id }])
+  return offerCircuitsTo({ layer: layer.id, id: result.id })
+}
+
+/**
+ * Makes a circuit grouped automatically into one defined by hand (asking its name), with the same points, on its
+ * board or, with `to`, on another board (which feeds them from then on).
+ */
+export async function keepCircuit(c: Circuit, to?: { layer: string; id: string }) {
+  const store = getStore()
+  const plan = store.getState().plan
+  const dest = to ?? c.board
+  const board = findLayer(plan, dest.layer)?.electrical[dest.id]
+  if (board?.kind !== 'board' || c.type === 'subfeeder') return
+  const first = c.points[0] && findLayer(plan, c.points[0].layer)?.electrical[c.points[0].id]
+  const suggested = circuitName(c.type, first ? roomOf(plan, c.layer, first) : undefined, board)
+  const text = to ? `Its points are fed from ${board.name} from now on: what does it feed?` : 'Its points stay on it from now on, however the others move: what does it feed?'
+  const name = await store.askText(to ? `Move this circuit to ${board.name}` : 'Keep this circuit', text, suggested)
+  if (name === null) return
+  const made = addCircuit(store.getState().plan, dest.layer, dest.id, c.type, c.layer, name.trim() || suggested)
+  if (!made) return
+  store.edit(() => c.points.reduce((p, ref) => setPointCircuit(p, ref.layer, ref.id, made.id), made.plan))
+}
+
+/**
+ * Moves a circuit, with its points, to board `to` (the end of its list), when that board may feed them all: a circuit
+ * defined by hand keeps its name, one grouped automatically is kept (named) there. The circuit picked for new points follows it.
+ */
+export async function moveCircuitTo(c: Circuit, to: { layer: string; id: string }) {
+  if (c.type === 'subfeeder') return
+  const store = getStore()
+  const { plan, circuitPick } = store.getState()
+  const dest = boardsOf(plan).find((b) => b.layer.id === to.layer && b.id === to.id)
+  if (!dest) return
+  const outside = c.points.filter((p) => {
+    const e = findLayer(plan, p.layer)?.electrical[p.id]
+    return !e || !boardCovers(plan, dest, p.layer, e, getRegions)
+  })
+  if (outside.length) {
+    return store.notify({
+      kind: 'error',
+      text: `${dest.board.name} does not feed ${outside.length === c.points.length ? 'its points' : `${outside.length} of its points`}: tick their layer or area on it first.`,
+    })
+  }
+  if (!c.manualId) return keepCircuit(c, to)
+  const moved = moveCircuit(plan, c.board, c.manualId, to, c.points)
+  if (!moved) return
+  store.edit(() => moved.plan)
+  const pick = circuitPick[c.type]
+  if (pick?.board === boardKey(c.board) && pick.id === c.manualId) pickCircuit(c.type, { board: boardKey(to), id: moved.id })
+  const target = findLayer(moved.plan, to.layer)?.electrical[to.id]
+  if (target?.kind === 'board') store.notify({ kind: 'info', text: `${c.label ?? c.name} is on ${target.name} now, with its ${c.points.length} point${c.points.length === 1 ? '' : 's'}.` })
+}
+
+/**
+ * After what board `ref` feeds changed: the circuits defined by hand on other boards whose points are all in what it
+ * feeds now (its areas, or its layers for a main board) are offered to move to it, ticked.
+ */
+export async function offerCircuitsTo(ref: { layer: string; id: string }) {
+  const store = getStore()
+  const plan = store.getState().plan
+  const board = findLayer(plan, ref.layer)?.electrical[ref.id]
+  if (board?.kind !== 'board') return
+  const key = boardKey(ref)
+  const wiring = getWiring(plan)
+  const candidates = wiring.boards
+    .filter((bw) => boardKey(bw.ref) !== key)
+    .flatMap((bw) =>
+      bw.circuits.filter(
+        (c) =>
+          c.manualId &&
+          c.type !== 'subfeeder' &&
+          c.points.length > 0 &&
+          c.points.every((p) => {
+            const e = findLayer(plan, p.layer)?.electrical[p.id]
+            const by = e && e.kind !== 'board' ? boardFor(plan, p.layer, e, getRegions) : undefined
+            return by && boardKey({ layer: by.layer.id, id: by.id }) === key
+          }),
+      ),
+    )
+  if (!candidates.length) return
+  const from = (c: Circuit) => wiring.boards.find((bw) => boardKey(bw.ref) === boardKey(c.board))?.board.name ?? 'another board'
+  const ids = await store.askChoice(
+    `Move circuits to ${board.name}?`,
+    `These circuits have all their points in what ${board.name} feeds now. The ticked ones move to it, points and all; the others stay where they are.`,
+    candidates.map((c) => ({ id: `${boardKey(c.board)}|${c.manualId}`, label: `${c.label ?? c.name}`, note: `on ${from(c)}, ${c.points.length} point${c.points.length === 1 ? '' : 's'}`, checked: true })),
+  )
+  if (!ids?.length) return
+  let next = store.getState().plan
+  const picks = { ...store.getState().circuitPick }
+  for (const c of candidates.filter((c) => ids.includes(`${boardKey(c.board)}|${c.manualId}`))) {
+    const moved = moveCircuit(next, c.board, c.manualId!, ref, c.points)
+    if (!moved) continue
+    next = moved.plan
+    const pick = c.type !== 'subfeeder' ? picks[c.type] : undefined
+    if (c.type !== 'subfeeder' && pick?.board === boardKey(c.board) && pick.id === c.manualId) picks[c.type] = { board: key, id: moved.id }
+  }
+  store.edit(() => next)
+  store.update({ circuitPick: picks })
+}
+
+/** Every board and point of the active layer. */
+export function selectAllElectrical() {
+  const store = getStore()
+  const { plan, activeLayer } = store.getState()
+  const layer = findLayer(plan, activeLayer)
+  if (!isEditable(layer)) return
+  store.select(Object.keys(layer.electrical).map((id) => ({ layer: layer.id, kind: 'electrical' as const, id })))
 }
 
 /** Shows floor `storey` on the canvas: its top visible layer becomes the active one. */

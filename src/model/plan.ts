@@ -32,6 +32,10 @@ import { z } from 'zod'
  *
  * Each layer is on a floor (a storey): the ground floor, or one above it, standing on a slab at its level (see
  * storeys.ts). The canvas shows one floor at a time, over the floor below.
+ *
+ * Electrical boards, switches, light outlets and sockets stand where they are put on a wall, the ceiling or the
+ * floor, like furniture (see electrical.ts); each board feeds the layers it lists, and the circuits, their cables
+ * and the way those run are worked out from them (see wiring.ts), except the runs drawn by hand.
  */
 
 /** Identifies the file format; checked before anything else when a file is loaded. */
@@ -277,6 +281,90 @@ export const RoofSchema = z.strictObject({
   lights: z.literal(true).optional(),
 })
 
+/** How a board is supplied: two phases and neutral, or three phases and neutral (see wiring.ts). */
+export const BOARD_SUPPLIES = ['biphasic', 'triphasic'] as const
+
+/** What an electrical point is fixed to: a wall, the ceiling (under a roof or the floor above) or the floor. */
+export const ELECTRIC_MOUNTS = ['wall', 'ceiling', 'floor'] as const
+
+/** A socket on a general circuit, or on a circuit of its own for one big appliance (an oven, an AC, a pump). */
+export const SOCKET_USES = ['general', 'special'] as const
+
+/** A circuit the user laid out by hand, kept on its board: the kind of point it may hold, and which layer. */
+export const CIRCUIT_TYPES = ['lighting', 'sockets', 'special'] as const
+
+const Fixed = {
+  /** Where it is on the plan, m: a wall mount's on the wall's face, a ceiling or floor mount's anywhere in a room. */
+  at: VecSchema,
+  /** Which way it faces, degrees clockwise, as furniture's front: out of its wall into the room. */
+  angle: Num,
+  /** The middle of its box above the floor, m; absent: the usual height for what it is (see electrical.ts). */
+  height: z.number().min(0).max(6).optional(),
+}
+
+/**
+ * The cable that feeds a point, drawn by hand: the plan points it passes through on its way from the box before it
+ * on its circuit (see wiring.ts); absent, it is routed along the walls.
+ */
+const Route = z.array(VecSchema).max(64).optional()
+
+/** A point that takes a cable: it may be put on a circuit by hand (its id on the feeding board), else it is grouped automatically. */
+const Wired = { ...Fixed, route: Route, circuit: z.string().min(1).optional() }
+
+/** A circuit defined by hand on a board: what it may hold, a name, and the layer (one of the board's) it organises. */
+export const CircuitSchema = z.strictObject({ type: z.enum(CIRCUIT_TYPES), name: z.string(), layer: z.string().min(1) })
+
+/**
+ * An electrical board. A main board (no `parent`) is on a wall and feeds the points of the layers it lists (each
+ * layer from one main board). A sub-board is fed from another board (`parent`) and feeds the points in the named
+ * areas it lists (each area from one sub-board), taking them from the board that feeds their layer; it is either on
+ * a wall of its own, with a feeder from its parent, or `integrated` in its parent's enclosure (then it has no place
+ * of its own: its `at` and `angle` are its parent's). Either may hold circuits defined by hand.
+ */
+export const BoardSchema = z.strictObject({
+  kind: z.literal('board'),
+  name: z.string(),
+  supply: z.enum(BOARD_SUPPLIES),
+  /** A main board's layers. */
+  layers: z.array(z.string().min(1)),
+  /** A sub-board's areas: the named areas (layer and area id) whose points it feeds. */
+  areas: z.array(z.strictObject({ layer: z.string().min(1), area: z.string().min(1) })).default([]),
+  circuits: z.record(z.string(), CircuitSchema).default({}),
+  /** The board it is fed from (a sub-board), if any. */
+  parent: z.strictObject({ layer: z.string().min(1), board: z.string().min(1) }).optional(),
+  /** A sub-board inside its parent's enclosure, not on a wall of its own. */
+  integrated: z.literal(true).optional(),
+  mount: z.literal('wall'),
+  ...Fixed,
+  route: Route,
+})
+
+export const SwitchSchema = z.strictObject({ kind: z.literal('switch'), mount: z.literal('wall'), ...Wired })
+
+/**
+ * A light outlet on the ceiling, a wall or the floor (in a room, or outdoors: a garden light, fed underground); `power`
+ * its lamps', W (absent: the usual, see electrical.ts); a floor light's `post`, m: absent or 0 flush in the ground (an
+ * uplight, a step light), else a bollard or lamp post this tall.
+ */
+export const LightSchema = z.strictObject({
+  kind: z.literal('light'),
+  mount: z.enum(['ceiling', 'wall', 'floor']),
+  ...Wired,
+  power: z.number().positive().max(20000).optional(),
+  post: z.number().min(0).max(6).optional(),
+})
+
+/** A socket on a wall or in the floor (in a room, or outdoors); `power` what it is expected to feed, W (absent: the usual for its use). */
+export const SocketSchema = z.strictObject({
+  kind: z.literal('socket'),
+  mount: z.enum(['wall', 'floor']),
+  use: z.enum(SOCKET_USES),
+  ...Wired,
+  power: z.number().positive().max(20000).optional(),
+})
+
+export const ElectricalSchema = z.discriminatedUnion('kind', [BoardSchema, SwitchSchema, LightSchema, SocketSchema])
+
 export const LayerSchema = z.strictObject({
   id: z.string().min(1),
   name: z.string(),
@@ -293,6 +381,8 @@ export const LayerSchema = z.strictObject({
   roofs: z.record(z.string(), RoofSchema).default({}),
   /** Furniture and fixtures in this layer's rooms. Files from before furniture lack it. */
   furniture: z.record(z.string(), FurnitureSchema).default({}),
+  /** Electrical boards, switches, light outlets and sockets (the Electricity tab). Files from before them lack it. */
+  electrical: z.record(z.string(), ElectricalSchema).default({}),
   /**
    * Its floor level above the ground, m: everything on it stands that high. On the ground floor (up to 3 m) on a
    * plinth under its rooms and galleries, with steps down to the ground outside its doors to the outside and along
@@ -375,6 +465,16 @@ export type KitchenSink = z.infer<typeof KitchenSinkSchema>
 /** Everything but a kitchen sink stands where it is put. */
 export type StandingFurniture = Exclude<Furniture, KitchenSink>
 export type RoofType = (typeof ROOF_TYPES)[number]
+export type Electrical = z.infer<typeof ElectricalSchema>
+export type ElectricKind = Electrical['kind']
+export type ElectricMount = (typeof ELECTRIC_MOUNTS)[number]
+export type Board = z.infer<typeof BoardSchema>
+export type BoardSupply = (typeof BOARD_SUPPLIES)[number]
+export type SocketUse = (typeof SOCKET_USES)[number]
+export type BoardCircuit = z.infer<typeof CircuitSchema>
+export type CircuitKind = (typeof CIRCUIT_TYPES)[number]
+/** A switch, light outlet or socket: what a board feeds. */
+export type ElectricPoint = Exclude<Electrical, Board>
 export type Layer = z.infer<typeof LayerSchema>
 export type Calibration = z.infer<typeof CalibrationSchema>
 export type Crop = z.infer<typeof CropSchema>
@@ -388,7 +488,7 @@ export type Footing = NonNullable<Segment['footing']>
 export const LAYER_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f59e0b', '#14b8a6', '#ec4899']
 
 export function createLayer(id: string, name: string, color = LAYER_COLORS[0]): Layer {
-  return { id, name, color, visible: true, locked: false, vertices: {}, segments: {}, areas: {}, openings: {}, roofs: {}, furniture: {} }
+  return { id, name, color, visible: true, locked: false, vertices: {}, segments: {}, areas: {}, openings: {}, roofs: {}, furniture: {}, electrical: {} }
 }
 
 export function createPlan(): Plan {
@@ -403,10 +503,13 @@ export function createPlan(): Plan {
 
 export const segmentKind = (s: Segment): SegmentKind => s.kind ?? 'wall'
 
-/** One selectable item of a layer: a segment, a vertex, an area, an opening (door or window), a roof or a piece of furniture. */
+/**
+ * One selectable item of a layer: a segment, a vertex, an area, an opening (door or window), a roof, a piece of
+ * furniture or an electrical item (a board or a point).
+ */
 export interface Ref {
   layer: string
-  kind: 'segment' | 'vertex' | 'area' | 'opening' | 'roof' | 'furniture'
+  kind: 'segment' | 'vertex' | 'area' | 'opening' | 'roof' | 'furniture' | 'electrical'
   id: string
 }
 
@@ -414,7 +517,7 @@ export interface Ref {
 export function refExists(plan: Plan, r: Ref): boolean {
   const layer = findLayer(plan, r.layer)
   if (!layer) return false
-  const items = { segment: layer.segments, vertex: layer.vertices, area: layer.areas, opening: layer.openings, roof: layer.roofs, furniture: layer.furniture }[r.kind]
+  const items = { segment: layer.segments, vertex: layer.vertices, area: layer.areas, opening: layer.openings, roof: layer.roofs, furniture: layer.furniture, electrical: layer.electrical }[r.kind]
   return !!items[r.id]
 }
 
@@ -450,6 +553,13 @@ export function checkIntegrity(plan: Plan): string[] {
     for (const [id, f] of Object.entries(layer.furniture)) {
       if (f.kind === 'sink' && f.style === 'kitchen' && layer.furniture[f.counter]?.kind !== 'counter') {
         errors.push(`layers (${layer.id}).furniture.${id}: counter "${f.counter}" does not exist`)
+      }
+    }
+    for (const [id, e] of Object.entries(layer.electrical)) {
+      if (e.kind !== 'board' || !e.parent) continue
+      const parentLayer = plan.layers.find((l) => l.id === e.parent!.layer)
+      if (parentLayer?.electrical[e.parent.board]?.kind !== 'board') {
+        errors.push(`layers (${layer.id}).electrical.${id}: parent board "${e.parent.layer}:${e.parent.board}" does not exist`)
       }
     }
   }

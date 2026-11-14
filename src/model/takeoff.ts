@@ -11,6 +11,7 @@ import { eavesOf, growLights, pergolaRafters, roofPlanes, roofSummary, underside
 import { DOOR_HEAD, GATE_HEIGHT, houseSolids, isCovered, windowSill, type Solid, type SolidsSource } from './solids'
 import { layerWalls, wallHeight } from './walls'
 import { wallUses } from './wallUse'
+import { wallGraph, wiringPlan, WASTE as WIRE_WASTE, type BoardWiring } from './wiring'
 
 /**
  * The materials list: what the house needs to be built, worked out from the visible layers and their 3-D solids,
@@ -42,6 +43,7 @@ export const CHAPTERS = [
   'openings',
   'glazing',
   'metalwork',
+  'electricity',
   'pools',
   'fixtures',
   'garden',
@@ -71,6 +73,17 @@ export interface RowParams {
   /** A floor in the open rather than covered. */
   outdoor?: boolean
   mix?: Mix
+  /** A cable's section, mm² (electricity); `buried` for the three-core cable between buildings apart. */
+  elecSection?: number
+  elecRole?: 'buried'
+  /** A conduit's trade size (electricity), and where it runs: in walls and ceilings, in the floor, or buried (a pipe). */
+  elecConduit?: string
+  elecWay?: 'ceiling' | 'floor' | 'buried'
+  /** A breaker's, main breaker's or RCD's rating, A, and its poles (electricity). */
+  elecAmps?: number
+  elecPoles?: number
+  /** An enclosure's DIN modules (electricity). */
+  elecModules?: number
 }
 
 export interface TakeoffRow {
@@ -469,6 +482,13 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
     else add('foundations', 'fill', 'm³', top * (s.top - s.bottom), layer.name)
   }
 
+  // electrical boards (the Electricity tab): cable by section, conduit, boxes, breakers, and each board's own gear
+  const wiring = wiringPlan(plan, {
+    regions: (l) => source.faces(l).regions,
+    graph: (storey) => wallGraph(plan.layers.filter((l) => l.visible && storeyOf(l) === storey)),
+  })
+  for (const bw of wiring.boards) electricityRows(plan, bw, add)
+
   // what the mortars and concretes take
   const total = { cement: 0, lime: 0, sand: 0, gravel: 0 }
   for (const [m, volume] of mixes) {
@@ -555,4 +575,37 @@ function roofRows(
   const soffit = findMaterial(roof.soffit)
   const overhang = planArea - polygonArea(roof.outline)
   if (soffit && overhang > 0.01) add('ceilings', 'soffit.eaves', 'm²', overhang, where, { material: soffit.id })
+}
+
+/**
+ * A board's installation (the Electricity tab, worked out by wiringPlan): its circuits' cable by section and role,
+ * conduit, boxes, switches, sockets and a breaker each; its own main breaker, RCD and enclosure; an earth rod, for a
+ * board fed straight from the meter (a sub-board's earth comes with its feeder). Lengths take WASTE from wiring.ts.
+ */
+function electricityRows(plan: Plan, bw: BoardWiring, add: Add) {
+  const where = plan.layers.find((l) => l.id === bw.ref.layer)?.name ?? bw.board.name
+  for (const c of bw.circuits) {
+    const inConduit = c.length - c.buriedLength
+    // line, neutral and earth: one row per section (the earth's is usually the same as the line's, and merges with it)
+    add('electricity', 'elec.cable', 'm', 2 * inConduit * (1 + WIRE_WASTE), where, { elecSection: c.section })
+    add('electricity', 'elec.cable', 'm', inConduit * (1 + WIRE_WASTE), where, { elecSection: c.earth })
+    if (c.buriedLength > 0) add('electricity', 'elec.cable', 'm', c.buriedLength * (1 + WIRE_WASTE), where, { elecSection: c.section, elecRole: 'buried' })
+    add('electricity', 'elec.conduit', 'm', inConduit * (1 + WIRE_WASTE), where, { elecConduit: c.conduit, elecWay: c.plane })
+    if (c.buriedLength > 0 && c.buriedPipe) add('electricity', 'elec.conduit', 'm', c.buriedLength * (1 + WIRE_WASTE), where, { elecConduit: c.buriedPipe, elecWay: 'buried' })
+    add('electricity', 'elec.breaker', 'u', 1, where, { elecAmps: c.breaker, elecPoles: 2 })
+    // a sub-board feeder's one "point" is the sub-board itself: its own boxes are counted on its own board
+    if (c.type === 'subfeeder') continue
+    for (const p of c.points) {
+      const e = plan.layers.find((l) => l.id === p.layer)?.electrical[p.id]
+      if (!e || e.kind === 'board') continue
+      add('electricity', e.kind === 'light' && e.mount === 'ceiling' ? 'elec.box.ceiling' : 'elec.box.wall', 'u', 1, where)
+      if (e.kind === 'switch') add('electricity', 'elec.switch', 'u', 1, where)
+      if (e.kind === 'socket') add('electricity', e.use === 'special' ? 'elec.socket.special' : 'elec.socket.general', 'u', 1, where)
+    }
+  }
+  add('electricity', 'elec.mainbreaker', 'u', 1, where, { elecPoles: bw.poles, elecAmps: bw.mainBreaker })
+  add('electricity', 'elec.rcd', 'u', 1, where, { elecPoles: 4, elecAmps: bw.rcd })
+  // a sub-board in its parent's enclosure has none of its own (its modules are counted in its parent's)
+  if (bw.enclosure) add('electricity', 'elec.board', 'u', 1, where, { elecModules: bw.enclosure })
+  if (!bw.board.parent) add('electricity', 'elec.earth', 'u', 1, where)
 }

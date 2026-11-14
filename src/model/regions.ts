@@ -358,3 +358,6 @@ function centroid(pts: readonly Vec[]): Vec | null {
   }
   return Math.abs(a) < 1e-12 ? null : { x: x / (3 * a), y: y / (3 * a) }
 }
+
+/** Whether a region is under cover: walled in, or bounded by walls and open edges only (a gallery), not by outlines (a terrace, a lot). */
+export const isCovered = (region: Region): boolean => region.indoor || region.outline < 1e-9
