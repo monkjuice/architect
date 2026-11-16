@@ -267,6 +267,11 @@ kbd {
   background: var(--surface-2);
 }
 
+.library-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* door and window icons draw with the plan's opening styles, in the --layer colour */
 .library-icon {
   --layer: var(--text);
@@ -300,6 +305,22 @@ kbd {
 }
 
 /* a long name ends in an ellipsis rather than push its count out (the item's title has it whole) */
+/* the Plumbing tab's library: longer names, so each item gives them a line of their own */
+.service-item {
+  flex-wrap: wrap;
+}
+
+.service-item .library-name {
+  flex: 1 0 calc(100% - 40px);
+  white-space: normal;
+}
+
+.service-item .library-detail {
+  flex: 1 0 100%;
+  padding-left: 40px;
+  text-align: left;
+}
+
 .library-name {
   flex: 1;
   min-width: 0;
@@ -1200,6 +1221,480 @@ button.icon {
   margin-left: 22px;
   color: var(--text-faint);
   font-size: 11px;
+/* ---- plumbing plan: the floor fades under its pipes and equipment ----------------------------------------- */
+
+.canvas:is(.plumbing-mode, .hvac-mode) :is(.layer, .openings, .columns) {
+  opacity: 0.3;
+}
+
+.canvas:is(.plumbing-mode, .hvac-mode) .furnishings {
+  opacity: 0.5;
+}
+
+.plumbing,
+.hvac {
+  --cold: #38bdf8;
+  --hot: #f87171;
+  --drain: #c8965f;
+  --heat: #fbbf24;
+  --refrigerant: #a78bfa;
+  --duct: #9ca3af;
+  pointer-events: none;
+}
+
+.plumbing :is(path, circle),
+.hvac :is(path, circle) {
+  vector-effect: non-scaling-stroke;
+}
+
+.pipe.condensate {
+  stroke: var(--drain);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+/* ---- HVAC: heating amber, refrigerant violet, ducts grey; the plumbing that joins it faded --------------- */
+
+.pipe.heating {
+  stroke: var(--heat);
+}
+
+.pipe.radiant {
+  stroke: var(--heat);
+  stroke-dasharray: 6 3;
+}
+
+.pipe.refrigerant {
+  stroke: var(--refrigerant);
+  stroke-dasharray: 5 4;
+}
+
+.pipe.duct {
+  stroke: var(--duct);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.pipe.linked {
+  stroke: var(--cold);
+  stroke-width: 1.25;
+  stroke-dasharray: 3 3;
+  opacity: 0.5;
+}
+
+.pipe.linked.condensate {
+  stroke: var(--drain);
+}
+
+.duct-run.selected .pipe {
+  stroke: var(--selection);
+  stroke-width: 4;
+  stroke-dasharray: none;
+}
+
+.radiant-fill {
+  fill: rgba(251, 191, 36, 0.08);
+  stroke: none;
+}
+
+.radiant-loops {
+  fill: none;
+  stroke: var(--heat);
+  stroke-width: 0.75;
+  opacity: 0.45;
+}
+
+.radiant-floor.selected .radiant-fill {
+  fill: rgba(77, 163, 255, 0.12);
+}
+
+.room-load text {
+  fill: var(--text-muted);
+}
+
+.room-load .room-name {
+  fill: var(--text);
+  font-weight: 600;
+}
+
+.room-load .met {
+  fill: var(--ok);
+}
+
+.room-load .short,
+.room-load .stuffy {
+  fill: var(--warning);
+}
+
+.room-load .none {
+  fill: var(--text-faint);
+}
+
+.service.linked {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.hvac-rooms tbody tr {
+  cursor: pointer;
+}
+
+.hvac-rooms tbody tr:hover td {
+  background: var(--surface-2);
+}
+
+.hvac-rooms th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.hvac-rooms .warning {
+  color: var(--warning);
+}
+
+.hvac-rooms .muted {
+  color: var(--text-faint);
+}
+
+.linked-note {
+  color: var(--info);
+}
+
+.pipe {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.pipe.cold {
+  stroke: var(--cold);
+}
+
+.pipe.feed {
+  stroke: var(--cold);
+  stroke-width: 2.25;
+  stroke-dasharray: 8 4;
+}
+
+.pipe.hot {
+  stroke: var(--hot);
+}
+
+.pipe.heating {
+  stroke: var(--heat);
+}
+
+.pipe.size-25 {
+  stroke-width: 2.25;
+}
+
+.pipe.drain {
+  stroke: var(--drain);
+  stroke-dasharray: 6 3;
+}
+
+.pipe.drain.size-63 {
+  stroke-width: 2;
+}
+
+.pipe.drain.size-110 {
+  stroke-width: 3.5;
+  stroke-dasharray: none;
+}
+
+.pipe.selected {
+  stroke: var(--selection);
+  stroke-width: 4;
+  stroke-dasharray: none;
+}
+
+.plumbing text {
+  fill: var(--text-muted);
+}
+
+.water-point {
+  stroke: none;
+}
+
+.water-point.cold {
+  fill: var(--cold);
+}
+
+.water-point.hot {
+  fill: var(--hot);
+}
+
+.drain-point {
+  fill: var(--canvas-bg);
+  stroke: var(--drain);
+  stroke-width: 1.5;
+}
+
+.drain-point.main {
+  stroke-width: 2.5;
+}
+
+.trap,
+.chamber {
+  fill: rgba(200, 150, 95, 0.2);
+  stroke: var(--drain);
+  stroke-width: 1.5;
+}
+
+.chamber {
+  stroke-width: 2;
+}
+
+.vent {
+  fill: none;
+  stroke: var(--drain);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.riser circle,
+.riser path {
+  fill: var(--canvas-bg);
+  stroke: var(--cold);
+  stroke-width: 1.5;
+}
+
+.riser.hot circle,
+.riser.hot path {
+  stroke: var(--hot);
+}
+
+.riser.drain circle,
+.riser.drain path {
+  stroke: var(--drain);
+}
+
+.fall-note {
+  font-style: italic;
+}
+
+/* ---- the equipment itself: a symbol at its real size, with its name and rating under it ------------------- */
+
+.services {
+  --equipment: #e2e4ea;
+}
+
+.services :is(polygon, polyline, circle) {
+  vector-effect: non-scaling-stroke;
+}
+
+.service :is(polygon, polyline) {
+  fill: none;
+  stroke: var(--equipment);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.service .service-outline {
+  fill: rgba(226, 228, 234, 0.12);
+}
+
+.service .service-detail {
+  stroke-width: 1;
+}
+
+.service .service-soft {
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.service .service-heavy {
+  fill: var(--equipment);
+  stroke-width: 1.5;
+}
+
+/* each group in the colour of what it carries */
+.service:is(.mains-water, .well, .well-pump, .cistern, .tank, .pump, .filter, .manifold, .tap) {
+  --equipment: #38bdf8;
+}
+
+.service:is(.heater-gas, .heater-electric) {
+  --equipment: #f87171;
+}
+
+.service:is(.boiler, .heat-pump, .radiator, .underfloor-manifold) {
+  --equipment: #fbbf24;
+}
+
+.service:is(.split-indoor, .split-outdoor) {
+  --equipment: #a78bfa;
+}
+
+.service:is(.extractor, .range-hood) {
+  --equipment: #9ca3af;
+}
+
+.service:is(.floor-drain, .grease-trap, .chamber, .septic, .biodigestor, .soakaway, .sewer) {
+  --equipment: #c8965f;
+}
+
+.service.hot {
+  --equipment: #f87171;
+}
+
+.service.hovered :is(polygon, polyline) {
+  stroke: var(--hover);
+  stroke-width: 2;
+}
+
+.service.selected :is(polygon, polyline) {
+  stroke: var(--selection);
+  stroke-width: 2.5;
+}
+
+.service.preview {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.services.locked {
+  opacity: 0.6;
+}
+
+.service-label {
+  fill: var(--text-muted);
+  pointer-events: none;
+}
+
+.library-icon .service :is(polygon, polyline, circle) {
+  vector-effect: non-scaling-stroke;
+}
+
+.pipe-label rect {
+  fill: var(--label-bg);
+}
+
+.pipe-label.drain text {
+  fill: #c8965f;
+}
+
+.pipe-label:is(.cold, .feed) text {
+  fill: #38bdf8;
+}
+
+.pipe-label.hot text {
+  fill: #f87171;
+}
+
+.pipe-label.heating text {
+  fill: #fbbf24;
+}
+
+.plumbing-summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.plumbing-summary dt {
+  color: var(--text-muted);
+}
+
+.plumbing-summary dd {
+  margin: 0;
+}
+
+.plumbing-summary dd.warning {
+  color: var(--warning);
+}
+
+.plumbing-rooms td:first-child {
+  white-space: nowrap;
+  color: var(--text-muted);
+  vertical-align: top;
+}
+
+.plumbing-heading {
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+
+.pipe-legend {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.pipe-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pipe-legend svg {
+  width: 28px;
+  height: 8px;
+  flex: none;
+}
+
+.pipe-legend path {
+  fill: none;
+  stroke-width: 2;
+}
+
+.pipe-legend .cold {
+  stroke: #38bdf8;
+}
+
+.pipe-legend .feed {
+  stroke: #38bdf8;
+  stroke-dasharray: 7 4;
+  stroke-width: 3;
+}
+
+.pipe-legend .hot {
+  stroke: #f87171;
+}
+
+.pipe-legend .heating {
+  stroke: #fbbf24;
+}
+
+.pipe-legend .drain {
+  stroke: #c8965f;
+  stroke-dasharray: 5 3;
+}
+
+.pipe-legend .condensate {
+  stroke: #c8965f;
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.pipe-legend .radiant {
+  stroke: #fbbf24;
+  stroke-dasharray: 5 3;
+}
+
+.pipe-legend .refrigerant {
+  stroke: #a78bfa;
+  stroke-dasharray: 4 3;
+}
+
+.pipe-legend .duct {
+  stroke: #9ca3af;
+  stroke-width: 4;
+}
+
+.pipe-legend .linked {
+  stroke: #38bdf8;
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.pipe-legend .main {
+  stroke: #c8965f;
+  stroke-width: 3.5;
 }
 
 /* the floor below the one shown, to draw over */

@@ -3,7 +3,7 @@ import type { Vec } from '../../model/geometry'
 import { isStyleOf } from '../../model/openings'
 import { FURNITURE } from '../../model/furniture'
 import { findMaterial } from '../../model/materials'
-import { COLUMN_STYLES, findLayer, storeyOf, type ColumnStyle } from '../../model/plan'
+import { COLUMN_STYLES, findLayer, SERVICE_KINDS, storeyOf, type ColumnStyle, type ServiceKind } from '../../model/plan'
 import { pointKey } from '../../model/wiring'
 import {
   chooseTool,
@@ -20,17 +20,23 @@ import {
   MATERIAL_DRAG_TYPE,
   OPENING_DRAG_TYPE,
   planBounds,
+  SERVICE_DRAG_TYPE,
+  dropService,
 } from '../../state/actions'
 import { ColonnadeLayer } from './Columns'
 import { ElectricalLayer, WiringLayer } from './Electrical'
 import { FinishLayer, FinishPatterns } from './Finishes'
 import { FoundationLayer } from './Foundation'
 import { FurnitureLayer } from './Furniture'
-import { getFoundation, getWiring, storeyView } from '../../state/derived'
+import { getFoundation, getHvac, getPlumbing, getWiring, storeyView } from '../../state/derived'
 import { getPrefs, setPrefs, setSun, usePrefs } from '../../state/prefs'
 import { getStore, useEditor, type ToolId, type Viewport } from '../../state/store'
 import { Overlay } from './Overlay'
 import { OpeningLayer } from './Openings'
+import { findRun } from '../../model/routing'
+import { HvacLayer } from './Hvac'
+import { PlumbingLayer } from './Plumbing'
+import { ServiceLayer } from './Services'
 import { RoofLayer } from './Roofs'
 import { AreaFills, AreaLabels, BaseImageView, CalibrationMarks, Grid, LayerShapes, SelectionMarks } from './Scene'
 import { SunDial, SunShadows } from './Sun'
@@ -42,8 +48,10 @@ const SHORTCUTS: Record<string, ToolId> = { v: 'select', l: 'line', a: 'area', d
 const ROOF_SHORTCUTS: Record<string, ToolId> = { v: 'roof-select', r: 'roof', m: 'measure', h: 'pan' }
 const FOUNDATION_SHORTCUTS: Record<string, ToolId> = { v: 'foundation-select', m: 'measure', h: 'pan' }
 const ELECTRIC_SHORTCUTS: Record<string, ToolId> = { v: 'electric-select', b: 'board', s: 'switch', l: 'light', o: 'socket', m: 'measure', h: 'pan' }
+const PLUMBING_SHORTCUTS: Record<string, ToolId> = { v: 'plumbing-select', m: 'measure', h: 'pan' }
+const HVAC_SHORTCUTS: Record<string, ToolId> = { v: 'hvac-select', m: 'measure', h: 'pan' }
 
-type Mode = 'floor' | 'roof' | 'foundation' | 'electricity'
+type Mode = 'floor' | 'roof' | 'foundation' | 'electricity' | 'plumbing' | 'hvac'
 
 /** Each mode's single-key tools, and the tool Esc goes back to. */
 const MODE_KEYS: Record<Mode, { shortcuts: Record<string, ToolId>; home: ToolId }> = {
@@ -51,6 +59,8 @@ const MODE_KEYS: Record<Mode, { shortcuts: Record<string, ToolId>; home: ToolId 
   roof: { shortcuts: ROOF_SHORTCUTS, home: 'roof-select' },
   foundation: { shortcuts: FOUNDATION_SHORTCUTS, home: 'foundation-select' },
   electricity: { shortcuts: ELECTRIC_SHORTCUTS, home: 'electric-select' },
+  plumbing: { shortcuts: PLUMBING_SHORTCUTS, home: 'plumbing-select' },
+  hvac: { shortcuts: HVAC_SHORTCUTS, home: 'hvac-select' },
 }
 
 const isTyping = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')
@@ -59,7 +69,9 @@ const isTyping = (target: EventTarget | null) => !!(target as HTMLElement | null
  * The plan, drawn to scale with its tools. On the Floor tab it is the floor plan; on the Roof tab (`mode` roof)
  * the floor plan is faded under the roofs, which are what the tools there work on; on the Foundation tab (`mode`
  * foundation) the ground floor is faded under its foundation plan; on the Electricity tab (`mode` electricity) the
- * active floor is faded under its boards, points and cable runs.
+ * active floor is faded under its boards, points and cable runs. On the Plumbing and HVAC tabs (`mode` plumbing,
+ * hvac), the floor shown is faded, its fixtures with it, under the tab's pipes and equipment, with the other tab's
+ * equipment faded too.
  */
 export function Canvas({ mode = 'floor' }: { mode?: Mode }) {
   const roofMode = mode === 'roof'
@@ -71,6 +83,7 @@ export function Canvas({ mode = 'floor' }: { mode?: Mode }) {
   const toolId = useEditor((s) => s.tool)
   const storedView = useEditor((s) => s.view)
   const prompt = useEditor((s) => s.prompt)
+  const pipePick = useEditor((s) => s.pipePick)
   const prefs = usePrefs()
 
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -226,7 +239,7 @@ export function Canvas({ mode = 'floor' }: { mode?: Mode }) {
   }
 
   const onDragOver = (event: DragEvent) => {
-    if ([OPENING_DRAG_TYPE, COLONNADE_DRAG_TYPE, FURNITURE_DRAG_TYPE, MATERIAL_DRAG_TYPE].some((t) => event.dataTransfer.types.includes(t))) {
+    if ([OPENING_DRAG_TYPE, COLONNADE_DRAG_TYPE, FURNITURE_DRAG_TYPE, MATERIAL_DRAG_TYPE, SERVICE_DRAG_TYPE].some((t) => event.dataTransfer.types.includes(t))) {
       event.preventDefault()
       event.dataTransfer.dropEffect = 'copy'
       return
@@ -262,6 +275,12 @@ export function Canvas({ mode = 'floor' }: { mode?: Mode }) {
       dropMaterial(surface, materialId, at(), WALL_REACH_PX / view.zoom)
       return
     }
+    const service = event.dataTransfer.getData(SERVICE_DRAG_TYPE)
+    if (SERVICE_KINDS.includes(service as ServiceKind) && view && svgRef.current) {
+      event.preventDefault()
+      dropService(service as ServiceKind, at())
+      return
+    }
     const [piece, pieceStyle] = event.dataTransfer.getData(FURNITURE_DRAG_TYPE).split(':')
     const info = FURNITURE.find((i) => i.kind === piece && i.style === (pieceStyle || undefined))
     if (info && view && svgRef.current) {
@@ -279,12 +298,12 @@ export function Canvas({ mode = 'floor' }: { mode?: Mode }) {
   const showCalibration = floorMode && !!plan.image?.visible && (prefs.calibration || IMAGE_TOOLS.includes(toolId))
   // the welcome card shows on an empty plan until a drawing tool is picked; it lets clicks through to the canvas
   const empty = floorMode && !plan.image && plan.layers.every((l) => !Object.keys(l.segments).length) && (toolId === 'select' || toolId === 'pan')
-  const refIds = (kind: 'area' | 'opening' | 'roof' | 'furniture' | 'electrical', layer: string) =>
+  const refIds = (kind: 'area' | 'opening' | 'roof' | 'furniture' | 'electrical' | 'service', layer: string) =>
     selection
       .filter((r) => r.kind === kind && r.layer === layer)
       .map((r) => r.id)
       .join(' ')
-  const hovered = (kind: 'area' | 'opening' | 'roof' | 'furniture' | 'electrical', layer: string) =>
+  const hovered = (kind: 'area' | 'opening' | 'roof' | 'furniture' | 'electrical' | 'service', layer: string) =>
     overlay.hover?.kind === kind && overlay.hover.layer === layer ? overlay.hover.id : undefined
   const cursorStyle = panning ? 'grabbing' : spaceHeld || toolId === 'pan' ? 'grab' : tool.cursor()
   const scaleBar = view ? niceStep(90 / view.zoom).step : 0
@@ -413,6 +432,42 @@ export function Canvas({ mode = 'floor' }: { mode?: Mode }) {
               )}
             </>
           )}
+          {mode === 'plumbing' && (
+            <PlumbingLayer
+              plumbing={getPlumbing(plan)}
+              storey={storeyOf(floor.layers.find((l) => l.id === activeLayer))}
+              zoom={view.zoom}
+              show={prefs.pipes}
+              picked={pipePick?.tab === 'plumbing' ? findRun(getPlumbing(plan).runs, pipePick) : undefined}
+            />
+          )}
+          {mode === 'hvac' && (
+            <HvacLayer
+              hvac={getHvac(plan)}
+              plumbing={getPlumbing(plan)}
+              storey={storeyOf(floor.layers.find((l) => l.id === activeLayer))}
+              zoom={view.zoom}
+              show={prefs.hvac}
+              picked={pipePick?.tab === 'hvac' ? findRun(getHvac(plan).runs, pipePick) : undefined}
+              room={selection.length === 1 && selection[0].kind === 'area' ? `${selection[0].layer}:${selection[0].id}` : undefined}
+            />
+          )}
+          {(mode === 'plumbing' || mode === 'hvac') &&
+            floor.layers.map(
+              (layer) =>
+                layer.visible && (
+                  <ServiceLayer
+                    key={layer.id}
+                    layer={layer}
+                    tab={mode}
+                    linked={mode === 'plumbing' ? prefs.pipes.linked : prefs.hvac.linked}
+                    selected={refIds('service', layer.id)}
+                    hovered={hovered('service', layer.id)}
+                    zoom={view.zoom}
+                    labels={mode === 'plumbing' ? prefs.pipes.labels : prefs.hvac.labels}
+                  />
+                ),
+            )}
           {mode === 'foundation' && (
             <FoundationLayer
               foundation={getFoundation(plan)}

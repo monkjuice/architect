@@ -46,6 +46,34 @@ describe('plan files', () => {
     expect(parsed.ok && parsed.plan.layers[0].vertices.v1.x).toBe(1.2346)
   })
 
+  it('migrates version 1 service points without losing electrical items', () => {
+    const raw = JSON.parse(serializePlan(createPlan()))
+    raw.schemaVersion = 1
+    delete raw.layers[0].services
+    raw.layers[0].points = { p1: { kind: 'tap', at: { x: 1, y: 2 }, hot: true } }
+    raw.layers[0].electrical = { e1: { kind: 'light', mount: 'ceiling', at: { x: 3, y: 4 }, angle: 0 } }
+
+    const parsed = parsePlan(raw)
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+    expect(parsed.migratedFrom).toBe(1)
+    expect(parsed.plan.layers[0].services.p1).toMatchObject({ kind: 'tap', at: { x: 1, y: 2 }, hot: true })
+    expect(parsed.plan.layers[0].electrical.e1).toMatchObject({ kind: 'light', mount: 'ceiling', at: { x: 3, y: 4 } })
+  })
+
+  it('moves version 2 heating material into the HVAC settings', () => {
+    const raw = JSON.parse(serializePlan(createPlan()))
+    raw.schemaVersion = 2
+    raw.plumbing = { materials: { cold: 'copper', heating: 'ppr' } }
+
+    const parsed = parsePlan(raw)
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+    expect(parsed.migratedFrom).toBe(2)
+    expect(parsed.plan.plumbing?.materials).toEqual({ cold: 'copper' })
+    expect(parsed.plan.hvac?.materials?.heating).toBe('ppr')
+  })
+
   it('rejects other files, newer versions and broken references with a readable message', () => {
     expect(parsePlanText('{').ok).toBe(false)
     expect(parsePlan({ format: 'something-else' })).toEqual({ ok: false, errors: ['Not an Architect plan: expected "format": "architect/plan".'] })

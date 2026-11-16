@@ -15,11 +15,12 @@ import {
   type RoofType,
   type SegmentKind,
   type SocketUse,
+  type ServiceKind,
   type WindowStyle,
 } from '../model/plan'
 
 /** The tabs along the top, in order. */
-export type Tab = 'foundation' | 'floor' | 'roof' | 'elevations' | 'exterior' | 'interior' | 'plumbing' | 'electricity' | 'gas' | 'materials'
+export type Tab = 'foundation' | 'floor' | 'roof' | 'elevations' | 'exterior' | 'interior' | 'plumbing' | 'hvac' | 'electricity' | 'gas' | 'materials'
 
 export type ToolId =
   | 'select'
@@ -47,6 +48,10 @@ export type ToolId =
   | 'switch'
   | 'light'
   | 'socket'
+  | 'plumbing-select'
+  | 'hvac-select'
+  | 'service'
+  | 'radiant'
 
 export interface Notice {
   kind: 'info' | 'error'
@@ -135,6 +140,8 @@ export interface EditorState {
   columnStyle: ColumnStyle
   /** The piece the furniture tool puts down (picked in the library). */
   furniturePick: { kind: FurnitureKind; style?: string }
+  /** The equipment the Plumbing tab's library puts down (its Service tool). */
+  servicePick: ServiceKind
   /** The material the material tool puts on a wall's side or a floor (picked in the library's Walls or Floors). */
   materialPick: { id: string; surface: 'wall' | 'floor' }
   /** The type new roofs get (the Roof tab's toolbar). */
@@ -143,6 +150,12 @@ export interface EditorState {
   electricPick: ElectricPick
   /** The circuit of each kind new points go on (picked in the bar, the Circuits list, or by selecting a point on it). */
   circuitPick: CircuitPick
+  /**
+   * A pipe (or duct) picked on the Plumbing or HVAC tab (they are worked out, so they are not refs): the tab, its kind
+   * and place in that tab's runs, and the fixture, piece or room it ends at when it is the branch to one, to find it
+   * again after an edit.
+   */
+  pipePick?: { tab: 'plumbing' | 'hvac'; kind: string; index: number; to?: Ref }
   /** Zoom and pan; absent: the canvas fits the plan once and stores that fit (start, Fit, new plan or image). */
   view?: Viewport
   file: FileInfo
@@ -171,6 +184,7 @@ export class EditorStore {
       openingStyle: { door: 'single', window: 'sliding', gate: 'single', fireplace: 'masonry' },
       columnStyle: 'roman',
       furniturePick: { kind: 'counter' },
+      servicePick: 'tank',
       materialPick: { id: 'plaster-white', surface: 'wall' },
       roofType: 'gable',
       electricPick: { light: 'ceiling', socket: 'wall', use: 'general', supply: 'triphasic' },
@@ -249,7 +263,7 @@ export class EditorStore {
   }
 
   select(selection: Ref[]) {
-    this.update({ selection })
+    this.update(selection.length && this.state.pipePick ? { selection, pipePick: undefined } : { selection })
   }
 
   /** Makes `id` the active layer; moving to another floor keeps only what is selected on that floor. */

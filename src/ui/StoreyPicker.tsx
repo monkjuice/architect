@@ -4,8 +4,8 @@ import { addFloor, showStorey } from '../state/actions'
 import { useEditor } from '../state/store'
 import { Segmented } from './fields'
 
-/** The floor the canvas shows and draws on (the floor below shows faded under it), and a button to add one over the top. */
-export function StoreyPicker() {
+/** The floor the canvas shows and draws on (the floor below shows faded under it), and (unless `add` is false) a button to add one over the top. */
+export function StoreyPicker({ add = true }: { add?: boolean }) {
   const plan = useEditor((s) => s.plan)
   const activeLayer = useEditor((s) => s.activeLayer)
   const floors = storeys(plan)
@@ -20,9 +20,11 @@ export function StoreyPicker() {
           title="The floor shown and drawn on; the floor below shows faded under it"
         />
       )}
-      <button onClick={addFloor} disabled={floors[floors.length - 1] >= MAX_STOREY} title="A layer on a new floor over the top one: an upper storey, or a loft (set its level lower)">
-        + Floor
-      </button>
+      {add && (
+        <button onClick={addFloor} disabled={floors[floors.length - 1] >= MAX_STOREY} title="A layer on a new floor over the top one: an upper storey, or a loft (set its level lower)">
+          + Floor
+        </button>
+      )}
     </div>
   )
 }

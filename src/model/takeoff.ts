@@ -5,10 +5,12 @@ import { sideNormal, type WallSide } from './finishes'
 import { foundationPlan, PAD, PILE, RAFT, RING_BEAM, tieColumns, TIE_COLUMN } from './foundations'
 import { findMaterial } from './materials'
 import { placeOpening } from './openings'
-import { segmentKind, storeyOf, type Layer, type Plan, type Roof } from './plan'
+import { segmentKind, storeyOf, type FittingMaterial, type Layer, type PipeMaterial, type Plan, type Roof } from './plan'
 import { layerFaces, pointInPolygon, regionAt } from './regions'
 import { eavesOf, growLights, pergolaRafters, roofPlanes, roofSummary, underside } from './roofs'
 import { DOOR_HEAD, GATE_HEIGHT, houseSolids, isCovered, windowSill, type Solid, type SolidsSource } from './solids'
+import { hvacPlan, type HvacPlan } from './hvac'
+import { pipeLengths, plumbingPlan, TRENCH, type PlumbingPlan } from './plumbing'
 import { layerWalls, wallHeight } from './walls'
 import { wallUses } from './wallUse'
 import { wallGraph, wiringPlan, WASTE as WIRE_WASTE, type BoardWiring } from './wiring'
@@ -16,8 +18,8 @@ import { wallGraph, wiringPlan, WASTE as WIRE_WASTE, type BoardWiring } from './
 /**
  * The materials list: what the house needs to be built, worked out from the visible layers and their 3-D solids,
  * chapter by chapter in the order of an Argentine cómputo métrico (foundations, structure, masonry, damp-proofing,
- * plaster, sub-floors, floors, finishes, ceilings, roofing, doors and windows, glazing, metalwork, pools, fixtures,
- * garden), then the basic materials its mortars and concretes take.
+ * plaster, sub-floors, floors, finishes, ceilings, roofing, doors and windows, glazing, metalwork, pools, plumbing,
+ * fixtures, garden), then the basic materials its mortars and concretes take.
  *
  * What the plan draws is measured: wall sides net of their openings (gable ends included, from the solids), floors
  * inside the walls, roof surfaces, openings by size, columns, pools, fixtures. What lies behind it is assumed from
@@ -45,6 +47,8 @@ export const CHAPTERS = [
   'metalwork',
   'electricity',
   'pools',
+  'plumbing',
+  'hvac',
   'fixtures',
   'garden',
   'basic',
@@ -67,6 +71,11 @@ export interface RowParams {
   /** An opening's, a fixture's or a plant's style; for fixtures and plants, what it is. */
   style?: string
   kind?: string
+  /** A piece of service equipment's kind and what it is rated at (see services.ts). */
+  spec?: number
+  /** What a pipe is made of, and what a fixture's connections or trap are (see plumbing.ts). */
+  pipe?: PipeMaterial
+  fitting?: FittingMaterial
   /** An opening's or a stair's size, m. */
   w?: number
   h?: number
@@ -488,6 +497,10 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
     graph: (storey) => wallGraph(plan.layers.filter((l) => l.visible && storeyOf(l) === storey)),
   })
   for (const bw of wiring.boards) electricityRows(plan, bw, add)
+  // the water supply and the drains, as the Plumbing tab works them out (see plumbing.ts)
+  for (const r of plumbingRows(plumbingPlan(plan, source))) rows.set(`${r.chapter}|${r.key}|${r.unit}|${JSON.stringify(r.params)}`, r)
+  // the heating, cooling and ventilation, as the HVAC tab works them out (see hvac.ts)
+  for (const r of hvacRows(hvacPlan(plan, source))) rows.set(`${r.chapter}|${r.key}|${r.unit}|${JSON.stringify(r.params)}`, r)
 
   // what the mortars and concretes take
   const total = { cement: 0, lime: 0, sand: 0, gravel: 0 }
@@ -503,6 +516,67 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
   add('basic', 'hydrofuge', 'kg', hydrofuge)
 
   return [...rows.values()].sort((x, y) => CHAPTERS.indexOf(x.chapter) - CHAPTERS.indexOf(y.chapter))
+}
+
+/**
+ * The plumbing chapter of the list, from the plumbing plan alone (no solids), so the Plumbing tab can show it while
+ * a piece of equipment is dragged: pipe by kind and size, fittings and valves, each piece of equipment put down with
+ * what it is rated at and the room it stands in, the floor traps and the chambers worked out, and the trench for
+ * what is buried outside.
+ */
+export function plumbingRows(water: PlumbingPlan): TakeoffRow[] {
+  const rows = new Map<string, TakeoffRow>()
+  const add = (key: string, unit: Unit, quantity: number, where?: string, params: RowParams = {}) => {
+    if (!(quantity > 1e-9)) return
+    const id = `${key}|${unit}|${JSON.stringify(params)}`
+    let row = rows.get(id)
+    if (!row) rows.set(id, (row = { chapter: 'plumbing', key, params, quantity: 0, unit, where: [] }))
+    row.quantity += quantity
+    if (where && !row.where.includes(where)) row.where.push(where)
+  }
+  for (const { key, material, length } of pipeLengths(water)) add(key, 'm', length, undefined, { pipe: material })
+  add('water.fittings', 'u', water.fittings)
+  add('water.valve', 'u', water.valves)
+  // each fixture's own connections (hoses and angle valves, one per supply) and trap
+  for (const f of water.fixtures) {
+    add('fixture.connection', 'u', f.supplies, f.room || undefined, { fitting: f.connection })
+    add('fixture.valve', 'u', f.supplies, f.room || undefined)
+    if (f.trap) add('fixture.trap', 'u', 1, f.room || undefined, { fitting: f.trapMaterial })
+  }
+  // every piece put down, by kind and rating: "Water tank, 1100 l"
+  for (const e of water.equipment) add(`service.${e.kind}`, 'u', 1, e.room || undefined, e.spec === null ? { kind: e.kind } : { kind: e.kind, spec: e.spec })
+  for (const t of water.traps) if (!t.grease) add('drain.trap', 'u', 1, t.room || undefined)
+  add('drain.chamber', 'u', water.chambers.filter((c) => !c.own).length)
+  add('excavation.pipes', 'm³', water.runs.reduce((sum, r) => sum + r.outdoor, 0) * TRENCH.width * TRENCH.depth)
+  return [...rows.values()]
+}
+
+/**
+ * The HVAC chapter of the list, from the HVAC plan alone: each piece put down with its rating and room, the heating
+ * pipe (flow and return), the radiant floors (their area, loop pipe and insulation board), the refrigerant lines and
+ * the ducts.
+ */
+export function hvacRows(hvac: HvacPlan): TakeoffRow[] {
+  const rows = new Map<string, TakeoffRow>()
+  const add = (key: string, unit: Unit, quantity: number, where?: string, params: RowParams = {}) => {
+    if (!(quantity > 1e-9)) return
+    const id = `${key}|${unit}|${JSON.stringify(params)}`
+    let row = rows.get(id)
+    if (!row) rows.set(id, (row = { chapter: 'hvac', key, params, quantity: 0, unit, where: [] }))
+    row.quantity += quantity
+    if (where && !row.where.includes(where)) row.where.push(where)
+  }
+  for (const p of hvac.pieces) add(`service.${p.kind}`, 'u', 1, p.room || undefined, p.spec === null ? { kind: p.kind } : { kind: p.kind, spec: p.spec })
+  for (const r of hvac.runs) {
+    // a heating circuit is a flow and a return along the same route
+    if (r.kind === 'heating') add('heat.pipe', 'm', (r.length + r.rise) * 2, undefined, { pipe: r.material })
+    else if (r.kind === 'refrigerant') add('refrigerant.line', 'm', r.length + r.rise)
+    else if (r.kind === 'duct') add('duct', 'm', r.length, undefined, { w: r.size / 1000 })
+  }
+  for (const room of hvac.rooms) if (room.radiant) add('heat.underfloor', 'm²', room.floor, room.name)
+  add('radiant.pipe', 'm', hvac.radiant.pipe, undefined, { pipe: hvac.materials.heating })
+  add('radiant.board', 'm²', hvac.radiant.floor)
+  return [...rows.values()]
 }
 
 /** One roof: its slab or frame, covering, insulation, gutters and downpipes, eaves soffit, a glass roof's grow lights. */

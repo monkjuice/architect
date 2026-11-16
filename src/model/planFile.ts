@@ -4,12 +4,57 @@ import { checkIntegrity, PLAN_FORMAT, PlanSchema, SCHEMA_VERSION, type Plan } fr
 /** One step upgrades a raw plan object from schemaVersion N (its key) to N + 1. */
 export type Migration = (raw: Record<string, unknown>) => Record<string, unknown>
 
+/** The size the service points of version 1 (tap, drain, well, biodigestor) take as equipment, m. */
+const V1_POINTS: Record<string, { kind: string; size: [number, number] }> = {
+  tap: { kind: 'tap', size: [0.1, 0.1] },
+  drain: { kind: 'floor-drain', size: [0.2, 0.2] },
+  well: { kind: 'well', size: [0.8, 0.8] },
+  biodigestor: { kind: 'biodigestor', size: [1.2, 1.2] },
+}
+
 /**
- * Upgrade steps, keyed by the version they upgrade from. Version 1 is the first format, so there are none
- * yet. When the format changes: bump SCHEMA_VERSION, add the N → N + 1 step here, and add a test that loads
- * a version-N file.
+ * Upgrade steps, keyed by the version they upgrade from. When the format changes: bump SCHEMA_VERSION, add the
+ * N → N + 1 step here, and add a test that loads a version-N file.
+ *
+ * 1 → 2: the Plumbing tab's service points became equipment with a footprint (`layer.points` → `layer.services`,
+ * each at its catalogue size), and the machine room and water heater settings (`plan.plumbing`) gave way to the
+ * equipment put down on the plan, so they are dropped.
+ *
+ * 2 → 3: heating moved from the Plumbing tab to the HVAC tab, so its pipe material moves from
+ * `plan.plumbing.materials.heating` to `plan.hvac.materials.heating`.
  */
-export const MIGRATIONS: Readonly<Record<number, Migration>> = {}
+export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  1: (raw) => {
+    const { plumbing: _dropped, ...plan } = raw
+    const layers = Array.isArray(raw.layers) ? raw.layers : []
+    return {
+      ...plan,
+      layers: layers.map((layer) => {
+        if (!isRecord(layer)) return layer
+        const { points, ...rest } = layer
+        if (!isRecord(points)) return rest
+        const services: Record<string, unknown> = {}
+        for (const [id, point] of Object.entries(points)) {
+          if (!isRecord(point) || typeof point.kind !== 'string') continue
+          const info = V1_POINTS[point.kind]
+          if (info) services[id] = { kind: info.kind, at: point.at, angle: 0, width: info.size[0], depth: info.size[1], ...(point.hot ? { hot: true } : {}) }
+        }
+        return { ...rest, services }
+      }),
+    }
+  },
+  2: (raw) => {
+    const plumbing = isRecord(raw.plumbing) ? raw.plumbing : undefined
+    const materials = plumbing && isRecord(plumbing.materials) ? plumbing.materials : undefined
+    if (!plumbing || !materials || !('heating' in materials)) return raw
+    const { heating, ...water } = materials
+    const nextPlumbing = { ...plumbing, materials: water }
+    if (!Object.keys(water).length) delete (nextPlumbing as Record<string, unknown>).materials
+    const plan: Record<string, unknown> = { ...raw, plumbing: nextPlumbing, hvac: { materials: { heating } } }
+    if (!Object.keys(nextPlumbing).length) delete plan.plumbing
+    return plan
+  },
+}
 
 export type ParseResult = { ok: true; plan: Plan; migratedFrom?: number } | { ok: false; errors: string[] }
 
@@ -61,6 +106,7 @@ export function serializePlan(plan: Plan): string {
         return [id, 'route' in e && e.route ? { ...e, at, route: e.route.map((p) => ({ x: round(p.x), y: round(p.y) })) } : { ...e, at }]
       }),
     ),
+    services: Object.fromEntries(Object.entries(layer.services).map(([id, s]) => [id, { ...s, at: { x: round(s.at.x), y: round(s.at.y) } }])),
   }))
   return `${JSON.stringify({ ...clean, layers }, null, 2)}\n`
 }

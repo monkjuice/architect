@@ -1,6 +1,9 @@
 import { FOOTING, PAD, PILE, RAFT, RING_BEAM, TIE_COLUMN } from './foundations'
 import { furnitureInfo } from './furniture'
 import { findMaterial } from './materials'
+import { HVAC_SIZES, RADIANT } from './hvac'
+import { FITTINGS, SUPPLY, TRENCH } from './plumbing'
+import { serviceInfo, specLabel, tabOf } from './services'
 import { bought, rowCost, unitPrice } from './prices'
 import { BURIED_DEPTH } from './wiring'
 import type { FurnitureKind } from './plan'
@@ -57,6 +60,8 @@ export const CHAPTER_TITLES: Record<Chapter, Record<Lang, string>> = {
   metalwork: { en: 'Metalwork and timber', es: 'Herrería y maderas' },
   electricity: { en: 'Electrical installation', es: 'Instalación eléctrica' },
   pools: { en: 'Pools', es: 'Piletas' },
+  plumbing: { en: 'Plumbing', es: 'Instalación sanitaria' },
+  hvac: { en: 'HVAC: heating, cooling and ventilation', es: 'Climatización: calefacción, refrigeración y ventilación' },
   fixtures: { en: 'Fixtures', es: 'Artefactos y equipamiento' },
   garden: { en: 'Garden', es: 'Parquización' },
   basic: { en: 'Basic materials', es: 'Materiales básicos' },
@@ -428,6 +433,86 @@ const TEXT: Record<string, Record<Lang, [item: Words, basis: Words]>> = {
     en: [(p) => (p.material ? materialTitle(p.material, 'en') : 'Pool tile (lining not chosen)'), 'Its floor and walls, 10% for cuts'],
     es: [(p) => (p.material ? materialTitle(p.material, 'es') : 'Revestimiento de pileta (sin elegir)'), 'Fondo y paredes, 10 % de recortes'],
   },
+  'water.pipe25': {
+    en: [(p) => `Water pipe, ${pipeName(p.pipe, 'en')} Ø 25 mm`, `The stages of the supply, and mains feeding ${SUPPLY.mainPoints} points or more; along the Plumbing tab's routes, rises included`],
+    es: [(p) => `Caño de agua, ${pipeName(p.pipe, 'es')} Ø 25 mm`, `Entre las etapas del suministro y troncales que alimentan ${SUPPLY.mainPoints} puntos o más; según los recorridos de la pestaña Sanitaria, con subidas`],
+  },
+  'water.pipe20': {
+    en: [(p) => `Water pipe, ${pipeName(p.pipe, 'en')} Ø 20 mm`, "Branches to each water point, along the Plumbing tab's routes"],
+    es: [(p) => `Caño de agua, ${pipeName(p.pipe, 'es')} Ø 20 mm`, 'Ramales a cada punto de agua, según los recorridos de la pestaña Sanitaria'],
+  },
+  'water.fittings': {
+    en: ['Water pipe fittings (elbows, tees)', `${FITTINGS.point} per water point, one per bend and per tee`],
+    es: ['Accesorios de termofusión (codos, tes)', `${FITTINGS.point} por punto de agua, uno por codo y por te`],
+  },
+  'water.valve': {
+    en: ['Shut-off valve', 'One per room for its cold and for its hot water, one per stage of the supply and per water heater'],
+    es: ['Llave de paso', 'Una por local para el agua fría y otra para la caliente, una por etapa del suministro y por termotanque'],
+  },
+  'fixture.connection': {
+    en: [(p) => `Fixture connection, ${p.fitting === 'plastic' ? 'plastic' : 'braided metal'} hose`, "One per supply of each fixture, as chosen for it on the Plumbing tab (select the pipe to it)"],
+    es: [(p) => `Conexión flexible ${p.fitting === 'plastic' ? 'plástica' : 'metálica (malla)'}`, 'Una por entrada de agua de cada artefacto, según lo elegido en la pestaña Sanitaria'],
+  },
+  'fixture.valve': {
+    en: ['Angle stop valve at the fixture', 'One per supply of each fixture, so it can be worked on'],
+    es: ['Llave de paso angular en el artefacto', 'Una por entrada de agua de cada artefacto, para poder trabajarlo'],
+  },
+  'fixture.trap': {
+    en: [(p) => `Fixture trap (siphon), ${p.fitting === 'metal' ? 'chromed metal' : 'plastic'}`, 'One per fixture that drains, as chosen for it on the Plumbing tab; toilets have theirs built in'],
+    es: [(p) => `Sifón de artefacto, ${p.fitting === 'metal' ? 'metálico cromado' : 'plástico'}`, 'Uno por artefacto que desagota, según lo elegido en la pestaña Sanitaria; el inodoro lo trae incorporado'],
+  },
+  'heat.pipe': {
+    en: [(p) => `Heating pipe, ${pipeName(p.pipe, 'en')} Ø ${HVAC_SIZES.heating} mm (flow and return)`, "From the boiler or heat pump to each radiator and underfloor manifold, along the HVAC tab's routes, counted twice for the return"],
+    es: [(p) => `Caño de calefacción, ${pipeName(p.pipe, 'es')} Ø ${HVAC_SIZES.heating} mm (ida y retorno)`, 'De la caldera o bomba de calor a cada radiador y colector de piso radiante, según los recorridos de la pestaña Climatización, contado dos veces por el retorno'],
+  },
+  'heat.underfloor': {
+    en: ['Radiant floor (loops, board and manifold share)', (_, n) => `Each room marked with a radiant floor on the HVAC tab, ${n(RADIANT.output, 0)} kcal/h per m²`],
+    es: ['Piso radiante (cañería, placa y parte del colector)', (_, n) => `Cada local marcado con piso radiante en la pestaña Climatización, ${n(RADIANT.output, 0)} kcal/h por m²`],
+  },
+  'radiant.pipe': {
+    en: [(p) => `Radiant floor pipe, ${pipeName(p.pipe, 'en')} Ø ${HVAC_SIZES.loop} mm`, (_, n) => `Loops every ${n(RADIANT.spacing)} m, at most ${n(RADIANT.loop, 0)} m² each, and their leads to the manifold and back; in the radiant floor's price`],
+    es: [(p) => `Caño de piso radiante, ${pipeName(p.pipe, 'es')} Ø ${HVAC_SIZES.loop} mm`, (_, n) => `Circuitos cada ${n(RADIANT.spacing)} m, de ${n(RADIANT.loop, 0)} m² como máximo, y sus tramos al colector, ida y vuelta; incluido en el precio del piso radiante`],
+  },
+  'radiant.board': {
+    en: ['Insulating board under the radiant floor', "The radiant floors' area; in the radiant floor's price"],
+    es: ['Placa aislante bajo el piso radiante', 'Superficie de los pisos radiantes; incluida en el precio del piso radiante'],
+  },
+  'refrigerant.line': {
+    en: [(_, n) => `Refrigerant line set, copper, insulated (Ø ${n(HVAC_SIZES.refrigerant, 0)} mm)`, 'Between each indoor split unit and its outdoor unit'],
+    es: [(_, n) => `Cañería de refrigerante de cobre aislada (Ø ${n(HVAC_SIZES.refrigerant, 0)} mm)`, 'Entre cada unidad interior y su unidad exterior'],
+  },
+  duct: {
+    en: [(p, n) => `Ventilation duct Ø ${n(p.w! * 1000, 0)} mm`, 'From each extractor fan or range hood out through the nearest wall'],
+    es: [(p, n) => `Conducto de ventilación Ø ${n(p.w! * 1000, 0)} mm`, 'De cada extractor o campana hasta la pared exterior más cercana'],
+  },
+  'drain.condensate': {
+    en: [(p) => `Condensate drain, ${pipeName(p.pipe, 'en')} Ø 20 mm`, "From each of the HVAC tab's split units to the nearest floor trap, or outside"],
+    es: [(p) => `Desagüe de condensado, ${pipeName(p.pipe, 'es')} Ø 20 mm`, 'De cada equipo split de la pestaña Climatización a la pileta de patio más cercana, o al exterior'],
+  },
+  'drain.pipe110': {
+    en: [(p) => `Drain pipe, ${pipeName(p.pipe, 'en')} Ø 110 mm`, "The main: from the farthest toilet to its building's inspection chamber and on to where the waste ends"],
+    es: [(p) => `Caño de desagüe, ${pipeName(p.pipe, 'es')} Ø 110 mm`, 'Cañería principal: del inodoro más lejano a la cámara de inspección de su edificio y hasta el destino final'],
+  },
+  'drain.pipe63': {
+    en: [(p) => `Drain pipe, ${pipeName(p.pipe, 'en')} Ø 63 mm`, "Floor traps and floor drains to the main, and each building's vent up through its roof"],
+    es: [(p) => `Caño de desagüe, ${pipeName(p.pipe, 'es')} Ø 63 mm`, 'Piletas de patio y rejillas de piso a la principal, y la ventilación de cada edificio sobre su techo'],
+  },
+  'drain.pipe50': {
+    en: [(p) => `Drain pipe, ${pipeName(p.pipe, 'en')} Ø 50 mm`, 'Each fixture to its floor trap or the grease trap'],
+    es: [(p) => `Caño de desagüe, ${pipeName(p.pipe, 'es')} Ø 50 mm`, 'De cada artefacto a su pileta de patio o a la cámara interceptora'],
+  },
+  'drain.trap': {
+    en: ['Floor trap with grille', 'One per room with fixtures that drain into it, and one of its own for a kitchen sink and dishwasher'],
+    es: ['Pileta de patio con reja', 'Una por local con artefactos que desagotan en ella, y una propia para la pileta de cocina y el lavavajillas'],
+  },
+  'drain.chamber': {
+    en: ['Inspection chamber 60 × 60 cm', "Worked out outside each building whose main has no chamber put down; those put down are listed with the equipment"],
+    es: ['Cámara de inspección 60 × 60 cm', 'Calculada fuera de cada edificio cuya principal no tiene cámara colocada; las colocadas figuran con los equipos'],
+  },
+  'excavation.pipes': {
+    en: ['Trench for buried pipes', (_, n) => `Pipes outside the buildings, ${n(TRENCH.width)} × ${n(TRENCH.depth)} m`],
+    es: ['Zanja para cañerías enterradas', (_, n) => `Cañerías fuera de los edificios, ${n(TRENCH.width)} × ${n(TRENCH.depth)} m`],
+  },
   fireplace: {
     en: [(p) => (p.style === 'parrilla' ? 'Parrilla (built-in grill), brick' : 'Masonry fireplace'), 'Counted'],
     es: [(p) => (p.style === 'parrilla' ? 'Parrilla de ladrillo' : 'Hogar a leña de mampostería'), 'Por unidad'],
@@ -539,8 +624,55 @@ const TEXT: Record<string, Record<Lang, [item: Words, basis: Words]>> = {
   },
 }
 
+/** A pipe material in words, inside a row's name. */
+const PIPE_EN: Record<string, string> = { ppr: 'polypropylene (thermofusion)', pex: 'PEX', copper: 'copper', pvc: 'PVC', pp: 'polypropylene (silent)' }
+const PIPE_ES: Record<string, string> = { ppr: 'polipropileno (termofusión)', pex: 'PEX', copper: 'cobre', pvc: 'PVC', pp: 'polipropileno silencioso' }
+const pipeName = (pipe: string | undefined, lang: Lang): string => (lang === 'es' ? PIPE_ES : PIPE_EN)[pipe ?? ''] ?? (pipe ?? '')
+
+/** The equipment of the Plumbing tab in Spanish (see services.ts for the English titles). */
+const SERVICE_ES: Record<string, string> = {
+  'mains-water': 'Conexión a la red de agua',
+  well: 'Perforación (pozo de agua)',
+  'well-pump': 'Bomba sumergible de pozo',
+  cistern: 'Cisterna',
+  tank: 'Tanque de reserva',
+  pump: 'Bomba presurizadora',
+  filter: 'Filtro / ablandador',
+  manifold: 'Colector de agua',
+  tap: 'Canilla de servicio',
+  'heater-gas': 'Termotanque a gas',
+  'heater-electric': 'Termotanque eléctrico',
+  boiler: 'Caldera mural (dual)',
+  'heat-pump': 'Bomba de calor aire-agua',
+  radiator: 'Radiador',
+  'underfloor-manifold': 'Colector de piso radiante',
+  'split-indoor': 'Split (unidad interior)',
+  'split-outdoor': 'Split (unidad exterior)',
+  extractor: 'Extractor de aire',
+  'range-hood': 'Campana de cocina',
+  'floor-drain': 'Rejilla de piso',
+  'grease-trap': 'Cámara interceptora de grasa',
+  chamber: 'Cámara de inspección',
+  septic: 'Cámara séptica',
+  biodigestor: 'Biodigestor',
+  soakaway: 'Pozo absorbente',
+  sewer: 'Conexión a cloaca',
+}
+
+/** A piece of equipment's row: what it is and what it is rated at ("Water tank, 1100 l"). */
+function serviceText(kind: string, spec: number | undefined, lang: Lang): { item: string; basis: string } {
+  const info = serviceInfo(kind as Parameters<typeof serviceInfo>[0])
+  const title = (lang === 'es' && SERVICE_ES[kind]) || info?.title || kind
+  const rating = info?.spec && spec !== undefined ? `, ${specLabel(info, spec)}` : ''
+  return {
+    item: `${title}${rating}`,
+    basis: info && tabOf(info) === 'hvac' ? (lang === 'es' ? 'Colocado en la pestaña Climatización' : 'Put down on the HVAC tab') : lang === 'es' ? 'Colocado en la pestaña Sanitaria' : 'Put down on the Plumbing tab',
+  }
+}
+
 /** What a row is and how it was worked out, in a language. */
 export function rowText(row: TakeoffRow, lang: Lang): { item: string; basis: string } {
+  if (row.key.startsWith('service.')) return serviceText(row.params.kind ?? row.key.slice(8), row.params.spec, lang)
   const words = TEXT[row.key]?.[lang]
   if (!words) return { item: row.key, basis: '' }
   const n = (x: number, digits = 2) => formatNumber(x, digits, lang)

@@ -1,3 +1,4 @@
+import { serviceInfo, type ServiceInfo } from './services'
 import type { TakeoffRow } from './takeoff'
 
 /**
@@ -183,6 +184,25 @@ export const PRICES: Record<string, Price> = {
   'cooker': { ars: 789999, sold: 'Florencia 5558 \'Bigas\' gas cooker, 56 cm, 4 burners, Megatone $789.999', source: 'https://www.megatone.net/listado/electrodomesticos/cocinas-hornos/cocinas/' },
 }
 
+/**
+ * What prices each piece of the Plumbing and HVAC tabs' equipment (see services.ts); what is not here is priced on
+ * site (a well's drilling, a cistern, a soakaway, a mains or sewer connection, manifolds, filters, outdoor split
+ * units, extractors and hoods). An underfloor manifold is in the radiant floor's price per m² (`heat.underfloor`).
+ */
+const SERVICE_PRICES: Record<string, string> = {
+  tank: 'water.tank',
+  pump: 'water.pump',
+  'heater-gas': 'water.heater',
+  'heater-electric': 'water.heater.electric',
+  biodigestor: 'drain.septic',
+  chamber: 'drain.chamber',
+  'floor-drain': 'drain.trap',
+  boiler: 'heat.boiler',
+  radiator: 'heat.radiator',
+  'split-indoor': 'heat.split',
+  'heat-pump': 'heat.pump',
+}
+
 /** Rows priced by another row's price: the same thing used in two places. */
 const SAME: Record<string, string> = {
   'eps.wall': 'eps',
@@ -202,6 +222,10 @@ const SAME: Record<string, string> = {
 /** The key a row is priced by, from its key and parameters; null for rows that are work, not bought. */
 export function priceKey(row: TakeoffRow): string | null {
   const { key, params: p } = row
+  if (key.startsWith('service.')) return SERVICE_PRICES[p.kind ?? key.slice(8)] ?? null
+  // pipe prices were seen for polypropylene water pipe and PVC drains only
+  if (key.startsWith('water.pipe')) return p.pipe === 'ppr' ? key : null
+  if (key.startsWith('drain.pipe')) return p.pipe === 'pvc' ? key : null
   if (['floor', 'cladding', 'ceiling', 'soffit.eaves', 'roof.cover', 'garden.cover'].includes(key)) return p.material ? `material:${p.material}` : null
   if (key === 'pool.lining') return p.material ? `material:${p.material}` : 'pool.lining'
   if (key === 'door' || key === 'window' || key === 'gate') return `${key}:${p.style}`
@@ -222,13 +246,25 @@ export function priceKey(row: TakeoffRow): string | null {
 
 const CABLE_PRICE_SECTIONS: Record<number, string> = { 1.5: 'elec.cable15', 2.5: 'elec.cable25', 4: 'elec.cable4' }
 
-/** What one unit of a row costs (one door of its size), and the price it comes from; null when it has none. */
+/**
+ * What one unit of a row costs (one door of its size), and the price it comes from; null when it has none. A piece
+ * of equipment is priced at the size its price was seen in, scaled by what it is rated at: a 2200 l tank costs
+ * about twice a 1100 l one.
+ */
 export function unitPrice(row: TakeoffRow): { ars: number; price: Price } | null {
   const k = priceKey(row)
   const price = k ? PRICES[k] : undefined
   if (!price) return null
   const perOpening = row.key === 'door' || row.key === 'window' || row.key === 'gate'
-  return { ars: perOpening ? price.ars * row.params.w! * row.params.h! : price.ars, price }
+  if (perOpening) return { ars: price.ars * row.params.w! * row.params.h!, price }
+  return { ars: price.ars * serviceFactor(row), price }
+}
+
+/** How much bigger a piece of equipment is than the one the price was seen for; 1 for everything else. */
+function serviceFactor(row: TakeoffRow): number {
+  if (!row.key.startsWith('service.') || row.params.spec === undefined) return 1
+  const info: ServiceInfo | undefined = serviceInfo((row.params.kind ?? row.key.slice(8)) as Parameters<typeof serviceInfo>[0])
+  return info?.spec ? row.params.spec / info.spec.value : 1
 }
 
 /** How many of a row are bought: counts and bags whole. */

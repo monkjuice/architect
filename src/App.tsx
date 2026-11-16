@@ -9,6 +9,8 @@ import { ElevationsTab } from './ui/ElevationsTab'
 import { FoundationTab } from './ui/FoundationTab'
 import { ElectricityTab } from './ui/ElectricityTab'
 import { MaterialsTab } from './ui/MaterialsTab'
+import { HvacTab } from './ui/HvacTab'
+import { PlumbingTab } from './ui/PlumbingTab'
 import { FloorTab } from './ui/FloorTab'
 import { RoofTab } from './ui/RoofTab'
 import { PromptDialog } from './ui/PromptDialog'
@@ -30,6 +32,8 @@ export default function App() {
       {tab === 'roof' && <RoofTab />}
       {tab === 'elevations' && <ElevationsTab />}
       {tab === 'electricity' && <ElectricityTab />}
+      {tab === 'plumbing' && <PlumbingTab />}
+      {tab === 'hvac' && <HvacTab />}
       {tab === 'materials' && <MaterialsTab />}
       {tab === 'exterior' && (
         <Suspense fallback={<p className="tab-loading">Loading the 3-D view…</p>}>

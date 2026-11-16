@@ -1,8 +1,10 @@
 import { add, closestOnSegment, dist, EPS, lerp, mul, sub, type Vec } from './geometry'
 import { band, clipFace, frustumFaces, norm, prismFaces, profileFaces, ring, smoothSides, v3, type Face, type Vec3 } from './faces'
 import { COLUMNS, GLAZED_BASE, heldByWall, layerColonnades } from './colonnades'
-import { placeFurniture } from './furniture'
+import { corners, placeFurniture } from './furniture'
 import { furnitureParts } from './furniture3d'
+import { placeService, serviceInfo } from './services'
+import { serviceParts } from './services3d'
 import { sideNormal, wallSide, type WallSide } from './finishes'
 import { frontOf, heightOf } from './electrical'
 import { findMaterial } from './materials'
@@ -47,6 +49,7 @@ import { EXTERIOR_WALL, INTERIOR_WALL, layerWalls, WALL_HEIGHT, wallHeight, type
  * - a pergola's rafters and a glass roof's glazing bars, under their sheet, and a glass roof's grow lights;
  * - fireplaces against their walls, with a chimney up through the roof over them;
  * - furniture and fixtures where they stand (see furniture3d.ts);
+ * - the Plumbing and HVAC tabs' equipment where it is fitted, a water tank on the roof over it (see services3d.ts);
  * - a raised ground floor's plinth and steps, and an upper floor's slab and railings (see storeys.ts).
  *
  * Only visible layers are built, as for the plan's shadows and totals.
@@ -99,6 +102,7 @@ export type SolidKind =
   | 'furniture'
   | 'railing'
   | 'electrical'
+  | 'service'
 
 /**
  * What a solid is made of: walls that face outside and the structure are `facade`, walls between rooms `interior`;
@@ -136,6 +140,7 @@ export type SolidMaterial =
   | 'light'
   | 'lamp'
   | 'device'
+  | 'plastic'
 
 export type { Face, Vec3 } from './faces'
 
@@ -150,6 +155,8 @@ export interface Solid {
   finish?: string
   /** An opening it needs in the ground (and in a lot's lawn): a pool's rim. */
   hole?: Vec[]
+  /** It stands on a roof (a water tank): a view without the roofs leaves it out too. */
+  onRoof?: true
   /** The plan item it is part of: a wall or an open edge, a door, window or gate, an area or a roof. */
   ref: Ref
 }
@@ -833,6 +840,24 @@ function layerSolids(layer: Layer, lift: number, source: SolidsSource, out: Soli
     for (const part of furnitureParts(f, pl, storey.rise)) {
       const s = solid('furniture', part.faces, part.material, ref('furniture', id))
       if (part.finish) s.finish = part.finish
+      out.push(s)
+    }
+  }
+
+  // the Plumbing and HVAC tabs' equipment; a water tank stands on the roof over it, at its highest under the tank
+  for (const [id, service] of Object.entries(layer.services)) {
+    const pl = placeService(service)
+    let roofTop: number | undefined
+    if (serviceInfo(service.kind).role === 'tank') {
+      const roof = over(service.at) ?? highest(high, service.at)
+      if (roof && raftersOf(roof.type) === null) {
+        const planes = roofPlanes(roof)
+        roofTop = Math.max(...corners(pl).map((c) => underside(roof, planes, c))) + roofThickness(roof)
+      }
+    }
+    for (const part of serviceParts(service, pl, roofTop)) {
+      const s = solid('service', part.faces, part.material, ref('service', id))
+      if (roofTop !== undefined) s.onRoof = true
       out.push(s)
     }
   }

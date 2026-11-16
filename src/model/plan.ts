@@ -30,6 +30,10 @@ import { z } from 'zod'
  * Roofs are outlines drawn over a layer's plan (the Roof tab), each with a type and slope (see roofs.ts). They do
  * not follow the walls: they are drawn to cover them.
  *
+ * Plumbing and thermomechanical equipment (where the water comes from, is kept, pushed, heated and where the waste
+ * goes) is put down by hand on the Plumbing tab, like furniture; the fixtures' own water and drain points and the
+ * pipes between everything are worked out from them (see plumbing.ts).
+ *
  * Each layer is on a floor (a storey): the ground floor, or one above it, standing on a slab at its level (see
  * storeys.ts). The canvas shows one floor at a time, over the floor below.
  *
@@ -42,7 +46,7 @@ import { z } from 'zod'
 export const PLAN_FORMAT = 'architect/plan'
 
 /** Current schema version. Bump it and add a step to `MIGRATIONS` whenever the format changes. */
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 3
 
 const Num = z.number()
 const Positive = z.number().positive()
@@ -97,6 +101,8 @@ export const AreaSchema = z.strictObject({
   lot: z.literal(true).optional(),
   /** A pool's depth, m: its floor (its lining) sinks this far into the ground, under water 0.1 m below its rim. */
   depth: z.number().positive().max(5).optional(),
+  /** Heated by a radiant floor (the HVAC tab): loops of pipe in its screed, fed from an underfloor manifold. */
+  radiant: z.literal(true).optional(),
 })
 
 export const DOOR_STYLES = ['single', 'double', 'sliding'] as const
@@ -252,6 +258,55 @@ export const FurnitureSchema = z.discriminatedUnion('kind', [
   StairSchema,
 ])
 
+/**
+ * The equipment put down on the Plumbing and HVAC tabs: where the water comes from and is kept, what pushes and
+ * heats it and where the waste goes (plumbing); what heats, cools and ventilates the rooms (HVAC). Each stands at a point,
+ * turned, with its own footprint, like furniture; what it is rated at (litres held, heat given, water moved) follows
+ * its size, and setting the rating resizes it (see services.ts). What the pipes do with them is worked out, never
+ * stored (see plumbing.ts).
+ */
+export const SERVICE_KINDS = [
+  'mains-water',
+  'well',
+  'well-pump',
+  'cistern',
+  'tank',
+  'pump',
+  'filter',
+  'manifold',
+  'tap',
+  'heater-gas',
+  'heater-electric',
+  'boiler',
+  'heat-pump',
+  'radiator',
+  'underfloor-manifold',
+  'split-indoor',
+  'split-outdoor',
+  'extractor',
+  'range-hood',
+  'floor-drain',
+  'grease-trap',
+  'chamber',
+  'septic',
+  'biodigestor',
+  'soakaway',
+  'sewer',
+] as const
+
+export const ServiceSchema = z.strictObject({
+  kind: z.enum(SERVICE_KINDS),
+  /** Its centre on the plan, m. */
+  at: VecSchema,
+  /** Turned clockwise on screen, in degrees; at 0 its back is up the sheet. */
+  angle: Num,
+  /** Across its front and from its back to its front, m; its rating follows them. */
+  width: Positive,
+  depth: Positive,
+  /** A tap with hot water as well as cold. */
+  hot: z.literal(true).optional(),
+})
+
 export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip', 'pergola', 'glass'] as const
 
 export const RoofSchema = z.strictObject({
@@ -383,6 +438,8 @@ export const LayerSchema = z.strictObject({
   furniture: z.record(z.string(), FurnitureSchema).default({}),
   /** Electrical boards, switches, light outlets and sockets (the Electricity tab). Files from before them lack it. */
   electrical: z.record(z.string(), ElectricalSchema).default({}),
+  /** Plumbing and thermomechanical equipment put down by hand (see ServiceSchema). Files from before it lack it. */
+  services: z.record(z.string(), ServiceSchema).default({}),
   /**
    * Its floor level above the ground, m: everything on it stands that high. On the ground floor (up to 3 m) on a
    * plinth under its rooms and galleries, with steps down to the ground outside its doors to the outside and along
@@ -433,6 +490,35 @@ export const FOUNDATION_SYSTEMS = ['strip', 'piles', 'raft'] as const
 
 export const FoundationSchema = z.strictObject({ system: z.enum(FOUNDATION_SYSTEMS) })
 
+/** What pipes are made of: polypropylene (thermofusion), PEX and copper for water and heating; PVC and silent polypropylene for drains. */
+export const PIPE_MATERIALS = ['ppr', 'pex', 'copper', 'pvc', 'pp'] as const
+/** What a fixture's connections (its hoses and angle valves) and its trap are made of. */
+export const FITTING_MATERIALS = ['metal', 'plastic'] as const
+
+/**
+ * The plumbing's choices (the Plumbing tab): what each network's pipes are made of (absent: polypropylene for water,
+ * PVC for drains), and per fixture (keyed "layer:id" of the furniture) what its connections and trap are made of
+ * (absent: metal connections, plastic traps). The pipes themselves are worked out, never stored.
+ */
+export const PlumbingSchema = z.strictObject({
+  materials: z
+    .strictObject({
+      cold: z.enum(['ppr', 'pex', 'copper']).optional(),
+      hot: z.enum(['ppr', 'pex', 'copper']).optional(),
+      drain: z.enum(['pvc', 'pp']).optional(),
+    })
+    .optional(),
+  fixtures: z.record(z.string(), z.strictObject({ connection: z.enum(FITTING_MATERIALS).optional(), trap: z.enum(FITTING_MATERIALS).optional() })).optional(),
+})
+
+/**
+ * The HVAC's choices (the HVAC tab): what the heating circuits are made of (absent: PEX). Its equipment is in
+ * `layer.services` and its radiant floors on the areas; what they need is worked out (see hvac.ts).
+ */
+export const HvacSchema = z.strictObject({
+  materials: z.strictObject({ heating: z.enum(['pex', 'copper', 'ppr']).optional() }).optional(),
+})
+
 /** Buenos Aires, north straight up: plans from before sites start here. */
 export const DEFAULT_SITE = { north: 0, latitude: -34.6, longitude: -58.4, utcOffset: -3 } as const
 
@@ -443,6 +529,10 @@ export const PlanSchema = z.strictObject({
   site: SiteSchema.default({ ...DEFAULT_SITE }),
   /** Its foundation (the Foundation tab); absent: strip footings. */
   foundation: FoundationSchema.optional(),
+  /** The plumbing's materials (the Plumbing tab); absent: the usual ones. */
+  plumbing: PlumbingSchema.optional(),
+  /** The HVAC's materials (the HVAC tab); absent: the usual ones. */
+  hvac: HvacSchema.optional(),
   image: BaseImageSchema.optional(),
   layers: z.array(LayerSchema).min(1),
 })
@@ -483,12 +573,21 @@ export type Plan = z.infer<typeof PlanSchema>
 export type Site = z.infer<typeof SiteSchema>
 export type FoundationSystem = (typeof FOUNDATION_SYSTEMS)[number]
 export type Footing = NonNullable<Segment['footing']>
+export type Service = z.infer<typeof ServiceSchema>
+export type PlumbingSettings = z.infer<typeof PlumbingSchema>
+export type PipeNetwork = keyof NonNullable<PlumbingSettings['materials']>
+export type PipeMaterial = (typeof PIPE_MATERIALS)[number]
+export type FittingMaterial = (typeof FITTING_MATERIALS)[number]
+export type FixturePlumbing = NonNullable<PlumbingSettings['fixtures']>[string]
+export type HvacSettings = z.infer<typeof HvacSchema>
+export type HeatingMaterial = NonNullable<NonNullable<HvacSettings['materials']>['heating']>
+export type ServiceKind = (typeof SERVICE_KINDS)[number]
 
 /** Distinct, saturated colours that read on white paper and on the dark canvas alike. */
 export const LAYER_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f59e0b', '#14b8a6', '#ec4899']
 
 export function createLayer(id: string, name: string, color = LAYER_COLORS[0]): Layer {
-  return { id, name, color, visible: true, locked: false, vertices: {}, segments: {}, areas: {}, openings: {}, roofs: {}, furniture: {}, electrical: {} }
+  return { id, name, color, visible: true, locked: false, vertices: {}, segments: {}, areas: {}, openings: {}, roofs: {}, furniture: {}, electrical: {}, services: {} }
 }
 
 export function createPlan(): Plan {
@@ -505,11 +604,11 @@ export const segmentKind = (s: Segment): SegmentKind => s.kind ?? 'wall'
 
 /**
  * One selectable item of a layer: a segment, a vertex, an area, an opening (door or window), a roof, a piece of
- * furniture or an electrical item (a board or a point).
+ * furniture, an electrical item (a board or a point), or a piece of service equipment.
  */
 export interface Ref {
   layer: string
-  kind: 'segment' | 'vertex' | 'area' | 'opening' | 'roof' | 'furniture' | 'electrical'
+  kind: 'segment' | 'vertex' | 'area' | 'opening' | 'roof' | 'furniture' | 'electrical' | 'service'
   id: string
 }
 
@@ -517,7 +616,16 @@ export interface Ref {
 export function refExists(plan: Plan, r: Ref): boolean {
   const layer = findLayer(plan, r.layer)
   if (!layer) return false
-  const items = { segment: layer.segments, vertex: layer.vertices, area: layer.areas, opening: layer.openings, roof: layer.roofs, furniture: layer.furniture, electrical: layer.electrical }[r.kind]
+  const items = {
+    segment: layer.segments,
+    vertex: layer.vertices,
+    area: layer.areas,
+    opening: layer.openings,
+    roof: layer.roofs,
+    furniture: layer.furniture,
+    electrical: layer.electrical,
+    service: layer.services,
+  }[r.kind]
   return !!items[r.id]
 }
 

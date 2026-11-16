@@ -5,6 +5,7 @@ import {
   findLayer,
   isEditable,
   LAYER_COLORS,
+  refExists,
   segmentKind,
   type Area,
   type Board,
@@ -12,6 +13,11 @@ import {
   type Colonnade,
   type CircuitKind,
   type Electrical,
+  type FixturePlumbing,
+  type HeatingMaterial,
+  type PipeMaterial,
+  type PipeNetwork,
+  type PlumbingSettings,
   type FoundationSystem,
   type Furniture,
   type Layer,
@@ -20,6 +26,7 @@ import {
   type Plan,
   type Ref,
   type Roof,
+  type Service,
   type Segment,
   type SegmentKind,
   type Site,
@@ -38,7 +45,7 @@ import type { Snap } from './snap'
 
 const ON_POINT = 1e-6
 
-/** A copy of `layer` whose vertex, segment, area, opening and roof maps may be written to. */
+/** A copy of `layer` whose vertex, segment, area, opening, roof, furniture and service maps may be written to. */
 export function draftLayer(layer: Layer): Layer {
   return {
     ...layer,
@@ -48,6 +55,7 @@ export function draftLayer(layer: Layer): Layer {
     openings: { ...layer.openings },
     roofs: { ...layer.roofs },
     furniture: { ...layer.furniture },
+    services: { ...layer.services },
   }
 }
 
@@ -283,6 +291,7 @@ export function deleteItems(plan: Plan, refs: readonly Ref[]): Plan {
         else if (ref.kind === 'opening') delete d.openings[ref.id]
         else if (ref.kind === 'roof') delete d.roofs[ref.id]
         else if (ref.kind === 'furniture') delete d.furniture[ref.id]
+        else if (ref.kind === 'service') delete d.services[ref.id]
         else for (const id of segmentsAt(d, ref.id)) delete d.segments[id]
       }
       removeOrphans(d)
@@ -290,7 +299,15 @@ export function deleteItems(plan: Plan, refs: readonly Ref[]): Plan {
       pruneFurniture(d)
     })
   }
-  return next
+  return pruneFixturePlumbing(next)
+}
+
+/** Drops the plumbing choices of fixtures that are gone. */
+function pruneFixturePlumbing(plan: Plan): Plan {
+  const fixtures = plan.plumbing?.fixtures
+  if (!fixtures) return plan
+  const kept = Object.fromEntries(Object.entries(fixtures).filter(([key]) => refExists(plan, { layer: key.slice(0, key.indexOf(':')), kind: 'furniture', id: key.slice(key.indexOf(':') + 1) })))
+  return Object.keys(kept).length === Object.keys(fixtures).length ? plan : withPlumbing(plan, { ...plan.plumbing, fixtures: kept })
 }
 
 /** Makes segments walls, open edges or outlines; the same plan when they already are. */
@@ -895,6 +912,127 @@ function detachChildren(plan: Plan, parent: { layer: string; id: string }, grand
         next = updateElectrical(next, layer.id, id, { ...e, parent: { ...grandparent } })
       } else next = updateElectrical(next, layer.id, id, { ...e, parent: undefined, areas: [] })
     }
+  }
+  return next
+}
+
+// ---- the HVAC's choices
+
+/** Gives the areas among `refs` a radiant floor, or takes it off; the same plan when nothing changes. */
+export function setAreaRadiant(plan: Plan, refs: readonly Ref[], radiant: boolean): Plan {
+  let next = plan
+  for (const layerId of new Set(refs.filter((r) => r.kind === 'area').map((r) => r.layer))) {
+    next = withAreas(next, layerId, (areas) => {
+      let changed = false
+      for (const ref of refs) {
+        const a = ref.layer === layerId && ref.kind === 'area' ? areas[ref.id] : undefined
+        if (!a || !!a.radiant === radiant) continue
+        const copy = { ...a }
+        if (radiant) copy.radiant = true
+        else delete copy.radiant
+        areas[ref.id] = copy
+        changed = true
+      }
+      return changed
+    })
+  }
+  return next
+}
+
+/** Sets what the heating circuits are made of; undefined goes back to the usual (PEX). */
+export function setHeatingMaterial(plan: Plan, material: HeatingMaterial | undefined): Plan {
+  if (plan.hvac?.materials?.heating === material) return plan
+  if (material === undefined) {
+    const { hvac: _, ...rest } = plan
+    return rest
+  }
+  return { ...plan, hvac: { ...plan.hvac, materials: { heating: material } } }
+}
+
+// ---- the plumbing's choices: plan-level, dropped when nothing is chosen
+
+function withPlumbing(plan: Plan, next: PlumbingSettings): Plan {
+  const materials = next.materials && Object.values(next.materials).some((m) => m !== undefined) ? next.materials : undefined
+  const fixtures = next.fixtures && Object.keys(next.fixtures).length ? next.fixtures : undefined
+  if (!materials && !fixtures) {
+    if (!plan.plumbing) return plan
+    const { plumbing: _, ...rest } = plan
+    return rest
+  }
+  return { ...plan, plumbing: { ...(materials ? { materials } : {}), ...(fixtures ? { fixtures } : {}) } }
+}
+
+/** Sets what a network's pipes are made of; undefined goes back to the usual material. The same plan when nothing changes. */
+export function setPipeMaterial(plan: Plan, network: PipeNetwork, material: PipeMaterial | undefined): Plan {
+  if ((plan.plumbing?.materials?.[network] ?? undefined) === material) return plan
+  const materials = { ...plan.plumbing?.materials } as Record<PipeNetwork, PipeMaterial | undefined>
+  if (material === undefined) delete materials[network]
+  else materials[network] = material
+  return withPlumbing(plan, { ...plan.plumbing, materials: materials as PlumbingSettings['materials'] })
+}
+
+/** Sets what a fixture's connections or trap are made of (undefined: the usual); the fixture is a furniture ref. */
+export function setFixturePlumbing(plan: Plan, ref: Ref, patch: Partial<FixturePlumbing>): Plan {
+  const key = `${ref.layer}:${ref.id}`
+  const was = plan.plumbing?.fixtures?.[key] ?? {}
+  const next: FixturePlumbing = { ...was }
+  for (const k of ['connection', 'trap'] as const) {
+    if (!(k in patch)) continue
+    if (patch[k] === undefined) delete next[k]
+    else next[k] = patch[k]
+  }
+  if (next.connection === was.connection && next.trap === was.trap) return plan
+  const fixtures = { ...plan.plumbing?.fixtures }
+  if (next.connection === undefined && next.trap === undefined) delete fixtures[key]
+  else fixtures[key] = next
+  return withPlumbing(plan, { ...plan.plumbing, fixtures })
+}
+
+// ---- service equipment: it only touches a layer's service map
+
+function withServices(plan: Plan, layerId: string, change: (services: Record<string, Service>) => boolean | void): Plan {
+  const layer = findLayer(plan, layerId)
+  if (!layer) return plan
+  const services = { ...layer.services }
+  return change(services) === false ? plan : replaceLayer(plan, { ...layer, services })
+}
+
+/** Puts a piece of equipment (a tank, a pump, a heater, a biodigestor…) on a layer. */
+export function addService(plan: Plan, layerId: string, service: Service): { plan: Plan; id: string } | null {
+  if (!findLayer(plan, layerId)) return null
+  let id = ''
+  const next = withServices(plan, layerId, (services) => {
+    id = nextId('q', services)
+    services[id] = service
+  })
+  return { plan: next, id }
+}
+
+/** Replaces a piece of equipment (moved, turned, resized, its hot water changed); the same plan when nothing changes. */
+export function updateService(plan: Plan, layerId: string, id: string, service: Service): Plan {
+  return withServices(plan, layerId, (services) => {
+    const old = services[id]
+    if (!old || JSON.stringify(old) === JSON.stringify(service)) return false
+    services[id] = service
+  })
+}
+
+/** Moves equipment by `delta` from where it stood in `from` (the plan before a drag). */
+export function moveServices(plan: Plan, from: Plan, refs: readonly Ref[], delta: Vec): Plan {
+  let next = plan
+  for (const ref of refs) {
+    const s = ref.kind === 'service' ? findLayer(from, ref.layer)?.services[ref.id] : undefined
+    if (s) next = updateService(next, ref.layer, ref.id, { ...s, at: { x: s.at.x + delta.x, y: s.at.y + delta.y } })
+  }
+  return next
+}
+
+/** Turns equipment a quarter turn clockwise (or by `degrees`) where it stands. */
+export function turnServices(plan: Plan, refs: readonly Ref[], degrees = 90): Plan {
+  let next = plan
+  for (const ref of refs) {
+    const s = ref.kind === 'service' ? findLayer(next, ref.layer)?.services[ref.id] : undefined
+    if (s) next = updateService(next, ref.layer, ref.id, { ...s, angle: (((s.angle + degrees) % 360) + 360) % 360 })
   }
   return next
 }

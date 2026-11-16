@@ -35,7 +35,9 @@ actions. Every tab works on the same plan, with one undo history and one file:
 | **Materials** | What the house needs to be built, with quantities (see [Materials list](#materials-list)). |
 | **Foundation** | The foundation plan, worked out from the ground floor's walls and columns (see [Foundation](#foundation)). |
 | **Electricity** | Each layer's electrical plan: boards, switches, light outlets and sockets, with the circuits, cables and their runs worked out from them (see [Electricity](#electricity)). |
-| Interior, Plumbing, Gas | Not built yet: shown, disabled. |
+| **Plumbing** | The water supply, the hot water and the drains, worked out from the fixtures and the equipment put down (see [Plumbing](#plumbing)). |
+| **HVAC** | Heating, cooling and ventilation: boilers, heat pumps, radiators, radiant floors, split units, extractors, and each room's loads (see [HVAC](#hvac)). |
+| Interior, Gas | Not built yet: shown, disabled. |
 
 ## Workflow
 
@@ -425,6 +427,123 @@ to another. Click a cable run to pick the point it feeds, then drag a stretch of
 run it another way; *Route along the walls* goes back to the worked-out way. The boards, switches, lights and
 sockets also stand in the Exterior tab and the elevations, at their heights. These are usual sizes, not a signed
 design: a registered electrician sets the real one.
+## Plumbing
+
+The **Plumbing** tab is the water supply, the hot water and the drains, drawn over the floor shown (faded, its
+fixtures with it). Heating, cooling and ventilation are the [HVAC](#hvac) tab's: their pieces show faded here, joined
+to the plumbing where they need it. Nothing about the house is assumed: the pipes are worked out from the fixtures on the Floor
+tab and from the equipment you put down here, so a house on the mains, one with a well and a tank on a tower, one
+with a cistern and a pressure pump, one on the sewer and one with a biodigestor are all drawn the same way.
+
+### The library
+
+The left column lists every piece, in three groups. Click one and click where it goes, or drag it onto the plan;
+pieces that stand against a wall back up to the nearest one (*Snap*, or `Alt` while placing). Each item shows how
+many the visible layers hold and what a new one is rated at. What is drilled, buried or on the ground outside (the
+mains and sewer connections, the well and its pump, the cistern, the grease trap, chambers, septic tank,
+biodigestor and soakaway) goes on the ground floor only: upstairs it is greyed out, and one found there is flagged.
+
+| Group | Pieces |
+|---|---|
+| **Water supply** | Mains water, well, well pump, cistern, water tank, pressure pump, filter / softener, manifold, tap. |
+| **Hot water** | Gas and electric water heaters. (A combi boiler is the HVAC tab's; it makes hot water for the plumbing too.) |
+| **Drains & waste** | Floor drain, grease trap, inspection chamber, septic tank, biodigestor, soakaway, sewer connection. |
+
+### What is worked out from it
+
+- **Water** runs through whatever stages are on the plan, in this order: a source (mains or well) → well pump →
+  cistern → tanks → pressure pump → filter → manifold. The last of them feeds every fixture that takes cold water,
+  and the water heaters. Mains Ø25 (a pipe feeding three points or more), branches Ø20. Several tanks (or cisterns)
+  are linked one to the next — the nearest to the stage before is fed and the rest hang off it — and all count in
+  the reserve.
+- **Hot water** comes from the water heaters put down, and from any boiler on the HVAC tab, each fed with cold water,
+  each feeding the fixtures nearest it. Sinks, bathtubs, showers and bidets take hot water; toilets, washers and dishwashers cold only; an
+  outdoor sink only when it stands in an indoor room (a laundry).
+- **The HVAC's pieces** meet the plumbing where they need it: a boiler is fed cold water and makes hot water, a
+  heat pump is filled from the cold water, a split unit's condensate runs (Ø20) to the nearest floor trap, or out
+  through the nearest wall. The Plumbing section's *HVAC* line says which; their own pipes are the HVAC tab's.
+- **Drains**: each fixture but a toilet drains (Ø50) into its room's floor trap; a kitchen sink and a dishwasher
+  always get a trap of their own (never the bathroom's), or go through a grease trap when there is one. Every
+  fixture also has its own trap (siphon) and, per supply, a flexible connection with an angle valve, so it can be
+  worked on. The traps, toilets and floor drains run into the building's main (Ø110
+  once a toilet is on it), which leaves each building at an inspection chamber — one you put down near it, or one
+  worked out outside the wall facing the waste — and runs on to the nearest sewer connection, septic tank or
+  biodigestor, whose treated water goes to a soakaway. Each building's main is vented through its roof, and the
+  longest drain, falling 2 %, says how deep it arrives.
+- **Pipes** are routed square to the walls (the house may be turned on the plan), each branch teeing off the
+  nearest pipe already laid: a suggestion to cost and check the installation, not an installer's design. The supply
+  is dashed blue, cold water blue, hot water red (drawn beside the cold), drains brown (the main solid and heavier,
+  a condensate line thin and dotted), each with its size. Horizontal runs are laid on the ground floor
+  and rise to a floor above (a circle crossed marks where).
+
+### Moving and resizing
+
+*Select* (`V`) picks a piece (`Shift` adds, or drag a box round several), drags it to another place (it backs up to
+a wall where that suits it), `R` turns it and `Del` removes it. Hovering a pipe, a fixture's point, a floor trap or
+a chamber says what it is.
+
+The **Selection** section changes the selected piece, like the Floor tab's: its type (a gas heater for an electric
+one, a septic tank for a biodigestor), its size, how it is turned, and **what it is rated at** — the litres a tank
+or heater holds, the heat a boiler, heat pump or radiator gives, the water a pump moves, the circuits a manifold
+runs. Size and rating are one and the same: resizing a piece re-rates it (rounded to the sizes it is sold in), and
+typing a rating resizes it. A radiator's output follows its length; a tank's litres its footprint.
+
+### Pipes and materials
+
+Click a pipe to pick it: the Selection section says what it is and where it runs, and sets what its whole network
+is made of — a house runs one material per network: polypropylene (thermofusion), PEX or copper for the cold and the
+hot water, PVC or silent polypropylene for the drains (also in the Plumbing section's *Pipes*); the heating's is set
+on the HVAC tab.
+When the pipe is the branch to a fixture, it also sets that fixture's own plumbing: its connections (braided metal
+or plastic hoses) and its trap (chromed metal or plastic). Prices were seen for polypropylene water pipe and PVC
+drains; the other materials and the fixtures' fittings are counted and priced on site.
+
+### What it tells you
+
+The **Plumbing** section sums up the installation (the water's way through the plan, the reserve against a day's
+use, the hot water, the heating, the cooling, the waste), lists each room's fixtures and what it all takes with its
+price, the same rows as the Materials tab's plumbing chapter. It warns when something is missing or wrong: nothing
+supplying the water, a well with no pump, hot-water fixtures with no heater, a reserve or a heater or a treatment
+too small for the people the house is for (counted from its beds, 200 l a person a day), radiators with nothing to
+feed them, more indoor split units than outdoor ones, drains ending nowhere, no soakaway after a septic tank or
+biodigestor, a well within 15 m of either, a piece that belongs outdoors standing inside a building, or a drain
+arriving more than 1.2 m deep. *Show* hides each kind of pipe, the sizes, the labels or the HVAC's pieces.
+
+## HVAC
+
+The **HVAC** tab is the heating, the cooling and the ventilation, laid out as the Plumbing tab is: its library on
+the left (*Heating*: boiler, heat pump, radiator, underfloor manifold; *Cooling*: split indoor and outdoor units;
+*Ventilation*: extractor fan, range hood), the floor shown faded under what it works out, and its Selection, HVAC,
+Show and Layers sections on the right. The plumbing's pieces show faded, with the pipes that join them to the HVAC.
+
+- **Heating**: the boilers and heat pumps feed the radiators and underfloor manifolds through flow and return pipes
+  (Ø20, drawn as two amber lines) routed square to the walls. *Radiant floor* (in the bar) marks a room's floor as
+  heated — click a named room, click again to take it off: its loops (every 0.20 m, at most 15 m² each, 60 kcal/h
+  per m²) are hatched in it, with their lead to the nearest underfloor manifold on its floor.
+- **Cooling**: each indoor split unit is joined by refrigerant lines (violet) to the nearest outdoor unit; an outdoor
+  unit can serve several up to its rating. Split units heat as well as cool, so they count for both.
+- **Ventilation**: each extractor fan and range hood is ducted (grey) to the nearest outside wall.
+- **Loads**: each room wants about 40 kcal/h of heat and 50 frig/h of cooling per m³ of it (its floor inside the
+  walls times its walls' height). Rooms big enough on screen show what they have against what they want (green when
+  met, amber when short); the HVAC section lists every room (click one to select it). A bathroom, toilet or laundry
+  with no window needs an extractor. Two areas drawn in one outline (a wall between them not closed) are counted as
+  one room, and said so.
+- **Links**: a boiler also makes the house's hot water and a heat pump is filled with water — the Plumbing tab
+  feeds them; a split's condensate drains into the Plumbing tab's traps; most pieces need a suitably rated point and
+  circuit on the Electricity tab. Each piece's Selection says which.
+
+*Select* (`V`) picks a piece, a pipe, line or duct, or a room: a piece's size and rating as on the Plumbing tab; a
+heating pipe's material (PEX, copper or polypropylene, for every heating pipe and radiant loop); a room's volume,
+loads, what heats and cools it, its radiant floor and its ventilation. `Del` removes pieces only, never a room.
+The section warns about what is missing or wrong: emitters with nothing to feed them, radiant rooms with no
+manifold, a manifold with fewer circuits than loops, sources giving less than the emitters want, rooms short of heat
+or cooling, indoor units with no or too small an outdoor unit, wet rooms with no window or extractor. Its rows are
+the Materials tab's HVAC chapter: each piece with its rating, heating pipe (counted twice, flow and return), the
+radiant floors (priced per m²), their loop pipe and board, refrigerant lines and ducts.
+
+Equipment goes on the active layer, and shows in 3-D on the [Exterior](#exterior) tab and on the elevations. The well's drilling and pump, a cistern, a soakaway and the mains and sewer
+connections are counted but priced on site; the rest is priced from the catalogue, scaled by what each piece is
+rated at.
 
 ## Roof
 
@@ -500,9 +619,16 @@ across tabs):
 - the Electricity tab's boards, switches, light outlets and sockets, on their walls, ceilings and floors at their
   heights: white plates and boxes with a grey rocker, socket face or breaker window, light fixtures glowing, floor
   sockets as metal lids, floor lights flush in the ground or on their post (look in with *Roof* off or *Up to*, and zoom towards a wall).
+- the Plumbing and HVAC tabs' equipment at its real size, where it is fitted: a water tank on the roof over it on a
+  concrete base (on a steel tower where no roof is), water heaters and outdoor units on the ground (a gas heater
+  with its flue, an outdoor unit with its fan), a boiler, a split unit, an extractor and manifolds on the wall at
+  their usual heights, radiators low on the wall, a range hood over the cooker, a tap on its post, a well's head and
+  its pump, a meter box; of what is buried (a cistern, a septic tank or biodigestor, chambers, a soakaway, the sewer)
+  only what shows at ground level, lids and a biodigestor's neck.
 
 Its toolbar has the camera (*Aerial*, *Top* as the plan, and the four facades by the plan's north), *Roof* to hide
-the roofs and look into the rooms, *Up to* (with upper floors) to hide the floors over the one picked and look into
+the roofs and look into the rooms (a tank on a roof goes with them), *Equipment* to hide the plumbing and HVAC
+equipment, *Up to* (with upper floors) to hide the floors over the one picked and look into
 it from above (remembered per browser), the sun's season and time (the same as the Floor tab's Sun section, with its site and
 cloudiness) and *Save image* (a PNG at twice the screen resolution). Drag to orbit, right-drag to pan, wheel to
 zoom: towards what is under the cursor, 15% of the way per notch but at least 0.40 m, so it keeps going close up
@@ -517,6 +643,7 @@ checkboxes leave out the street or a neighbour's lot), in the chapters of an Arg
 earthworks and foundations, concrete structure, masonry, damp-proofing and insulation, plaster and paint, sub-floors
 and screeds, floors and skirting, wall finishes, ceilings, roofing, doors and windows, glazing, metalwork and timber,
 electrical installation, pools, fixtures, garden, and the basic materials. Each row has its quantity and unit, its unit price and cost,
+pools, plumbing, HVAC, fixtures, garden, and the basic materials. Each row has its quantity and unit, its unit price and cost,
 where it is used and how it was worked out. *Language* shows it in English or Spanish (Argentine building terms,
 numbers as 1.234,5); the choice is kept per browser. *Save CSV* downloads it for a spreadsheet, in the language
 shown (in Spanish with semicolons and decimal commas, as a spreadsheet set to Argentina reads it).
@@ -532,6 +659,10 @@ shown (in Spanish with semicolons and decimal commas, as a spreadsheet set to Ar
   buried pipe; only light corrugated 3/4" has a local price), boxes, switches, sockets and breakers, and its main breaker, RCD and
   enclosure (a sub-board in its parent's enclosure adds its breakers there, with no box of its own); one earth rod per board fed straight from the meter (a sub-board's comes with its feeder) (see
   [Electricity](#electricity)).
+- **From the Plumbing tab**: water and drain pipe by size and material along its routes, fittings, valves, each
+  fixture's connections and trap, every piece of equipment put down with what it is rated at and the room it stands
+  in, the floor traps and chambers worked out, and the trench for what is buried outside (see [Plumbing](#plumbing)).
+- **From the HVAC tab**: its equipment, heating pipe, radiant floors, refrigerant lines and ducts (see [HVAC](#hvac)).
 - **Assumed** behind them, by what each wall separates and how thick it is: a wall between a room and the outside
   (an indoor space counts when it is named or has a roof or a floor over it) is an insulated double wall when 25 cm
   or more (12 cm solid brick, cavity, 5 cm EPS, vapour barrier, 8 cm hollow brick), else 18 or 12 cm hollow brick;
@@ -551,7 +682,7 @@ shown (in Spanish with semicolons and decimal commas, as a spreadsheet set to Ar
   rate of the day the prices were seen.
 
 The build-ups, rates and dosages are constants at the top of `src/model/takeoff.ts` (the foundation's in
-`src/model/foundations.ts`), the words in `src/model/takeoffText.ts` and the prices in `src/model/prices.ts`. A
+`src/model/foundations.ts`, the plumbing's in `src/model/plumbing.ts`), the words in `src/model/takeoffText.ts` and the prices in `src/model/prices.ts`. A
 structural design will change the concrete. Prices go stale quickly: update them with their date.
 
 ## Tools and keys
@@ -571,8 +702,10 @@ structural design will change the concrete. Prices go stale quickly: update them
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo (`Ctrl+Shift+Z` also redoes). |
 | `Ctrl+S` / `Ctrl+Shift+S` / `Ctrl+O` | Save / save as / open. |
 
-These keys work on the Floor tab; on the Roof tab `V`, `R`, `M` and `H` pick its tools, and on the Electricity
-tab `V`, `B`, `S`, `L`, `O`, `M` and `H`. The Selection panel shows a line's length (edit it to resize the line: the end with fewer other lines on it
+These keys work on the Floor tab; on the Roof tab `V`, `R`, `M` and `H` pick its tools; on the Electricity tab
+`V`, `B`, `S`, `L`, `O`, `M` and `H`; and on the Plumbing and HVAC tabs `V`, `M` and `H`, with `R` to turn and the
+library to arm the Place tool (see [Plumbing](#plumbing), [HVAC](#hvac)). The Selection panel shows a line's length
+(edit it to resize the line: the end with fewer other lines on it
 moves), its angle and type (wall, open edge or outline), a wall's thickness and height and the material of each
 side, for several lines their total length and, when they form one closed outline, its area, and for an area its
 name, floor area, floor material and boundary. A click on a thick wall's face picks it, not only on its centreline.
@@ -583,6 +716,10 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
 
 - `site`: `north` (degrees clockwise from straight up on the plan), `latitude`, `longitude` and `utcOffset`, for
   the sun.
+- `plumbing` (optional): `materials` (`cold`, `hot`: `ppr`, `pex` or `copper`; `drain`: `pvc` or `pp`; absent:
+  polypropylene and PVC) and `fixtures` (keyed `layer:id` of a fixture → `connection` and `trap`, `metal` or
+  `plastic`; absent: metal connections, plastic traps).
+- `hvac` (optional): `materials.heating` (`pex`, `copper` or `ppr`; absent: PEX).
 - `image`: the photo as a data URL, its placement (`cx`, `cy`, `rotation`, `scale` in meters per pixel), crop,
   opacity and the known lengths used to calibrate it.
 - `layers`: each with an optional `level` (its floor level in m) and `storey` (its floor, 1 to 3; absent for the
@@ -591,8 +728,8 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   meters when set (without them it is automatic and 2.70 m), and an open edge's `colonnade` (`{style, spacing}`,
   `style` `roman`, `metal`, `timber` or `glazed`, `spacing` the most its columns stand apart in m), and a wall's `finish` (`{left,
   right}`, the material ids of its two sides looking from `a` to `b`, either left out when unfinished)), `areas`
-  (id → `{name, at, floor, lot}`, `at` being a point inside the area, `floor` its floor's material id when set,
-  `lot: true` for the land of a lot) and
+  (id → `{name, at, floor, lot, radiant}`, `at` being a point inside the area, `floor` its floor's material id when
+  set, `lot: true` for the land of a lot, `radiant: true` for a room heated by a radiant floor) and
   `openings` (id → `{kind, style, segment, offset, width, hinge, swing}`: `kind` is `door` (styles `single`,
   `double`, `sliding`), `window` (`fixed`, `sliding`, `double-hung`, `awning`, `casement`), `gate`
   (`single`, `double`, `sliding`) or `fireplace` (`masonry`); `offset` is the centre's distance from the segment's `a` end, `hinge` the
@@ -614,9 +751,18 @@ A plan is one JSON file with the base image embedded, so it is self-contained:
   board's `name`, `supply` (`biphasic`, `triphasic`), `layers` (a main board's), `areas` (`{layer, area}`, a
   sub-board's), `circuits` (id → `{type, name, layer}`, `type` `lighting`, `sockets` or `special`, in the order
   they were added), `parent` (`{layer, board}`, a sub-board's) and `integrated: true` for a sub-board in its
-  parent's enclosure). Material ids are those of the catalogue in
+  parent's enclosure), and `services` (id → `{kind, at, angle, width,
+  depth}`, the plumbing and thermomechanical equipment put down on the Plumbing tab: `kind` is one of
+  `mains-water`, `well`, `well-pump`, `cistern`, `tank`, `pump`, `filter`, `manifold`, `tap` (with `hot: true` for
+  hot water too), `heater-gas`, `heater-electric`, `boiler`, `heat-pump`, `radiator`, `underfloor-manifold`,
+  `split-indoor`, `split-outdoor`, `extractor`, `range-hood`, `floor-drain`, `grease-trap`, `chamber`, `septic`,
+  `biodigestor`, `soakaway` or `sewer`; what each is rated at follows its size; the Plumbing tab lists some, the HVAC
+  tab the rest). Material ids are those of the catalogue in
   `src/model/materials.ts`; one it does not know is kept but drawn plain. Files saved before areas, openings,
-  styles, wall thicknesses, roofs, furniture, materials or the electrical plan existed open unchanged (older openings read as single doors and fixed windows, older walls as automatic).
+  styles, wall thicknesses, roofs, furniture, materials, electrical items or service equipment existed open
+  unchanged (older openings read as single doors and fixed windows, older walls as automatic, the service points of
+  the first Plumbing tab become equipment of their catalogue size, and a heating material saved with the plumbing
+  moves to `hvac`).
 
 In Chrome and Edge *Save* writes back to the file you opened; elsewhere it downloads. The latest state is also
 autosaved in the browser (IndexedDB), so a reload never loses work. Loading validates the file and reports the
@@ -632,9 +778,13 @@ changes.
   `colonnades.ts` (column styles and where columns stand), `furniture.ts` (the furniture catalogue, where pieces
   stand and snap, their plan symbols), `furniture3d.ts` (furniture in 3-D), `materials.ts` (the materials
   catalogue, which suit which surfaces, outdoors or in), `finishes.ts` (a wall's two sides, what each faces),
-  `faces.ts` (the flat faces solids are made of), `takeoff.ts` (the materials list and its build-ups), `foundations.ts` (the foundation plan), `wallUse.ts`
-  (what each wall separates), `electrical.ts` (boards and points, where they go), `wiring.ts` (circuits, cable
-  runs and sizes), `takeoffText.ts` (its words in English and Spanish),
+  `faces.ts` (the flat faces solids are made of), `takeoff.ts` (the materials list and its build-ups),
+  `foundations.ts` (the foundation plan), `wallUse.ts` (what each wall separates), `electrical.ts` (boards and
+  points, where they go), `wiring.ts` (circuits, cable runs and sizes), `services.ts`
+  (the catalogue of the Plumbing and HVAC tabs' equipment, its ratings, links and plan symbols), `routing.ts` (pipes
+  and ducts routed square to the walls, the buildings, picking a run), `plumbing.ts` (the plumbing plan: the
+  fixtures' points, the pipe routes, sizes and checks), `services3d.ts` (the equipment in 3-D), `hvac.ts` (the HVAC plan: circuits, radiant floors, lines,
+  ducts, room loads and checks), `takeoffText.ts` (the materials list's words in English and Spanish),
   `prices.ts` (local prices),
   `sun.ts` (sun position, sunrise and sunset, shadows), `roofs.ts` (roof slopes, faces, eaves and the house's
   outline), `solids.ts` (the house in 3-D as solids of flat faces), `elevations.ts` (the facades from the
@@ -647,8 +797,11 @@ changes.
   events and returns overlay data the canvas draws.
 - `src/ui/panels/`: the Library (left) and View, Base plan, Layers, Selection, Areas and Sun (right).
   `src/ui/TopBar.tsx` is the tab row; `FloorTab.tsx`, `RoofTab.tsx` (with `canvas/Roofs.tsx` and
-  `panels/RoofPanel.tsx`), `ElectricityTab.tsx` (with `canvas/Electrical.tsx` and `panels/ElectricityPanel.tsx`)
-  and `ElevationsTab.tsx` lay out those tabs.
+  `panels/RoofPanel.tsx`), `FoundationTab.tsx`, `ElectricityTab.tsx` (with `canvas/Electrical.tsx` and
+  `panels/ElectricityPanel.tsx`), `PlumbingTab.tsx` and `HvacTab.tsx` (with `canvas/Plumbing.tsx` and
+  `canvas/Hvac.tsx` for what each works out, `canvas/Services.tsx` for the equipment of both, and the
+  `ServiceLibraryPanel`, `ServicePanel`, `PlumbingPanel` and `HvacPanel` sections) and `ElevationsTab.tsx` lay out
+  those tabs.
 - `src/ui/exterior/ExteriorTab.tsx` and `src/render/`: the Exterior tab and its three.js engine (lights from the
   sun, shadows, camera presets), house meshes and `textures.ts` (brick, wood, lawn and checkered textures and
   their relief, painted on canvases once a session), adapted from the Forge H1 planner's render tab and loaded on

@@ -10,7 +10,8 @@ const TABS: { id: Tab; title: string; ready?: boolean }[] = [
   { id: 'elevations', title: 'Elevations', ready: true },
   { id: 'exterior', title: 'Exterior', ready: true },
   { id: 'interior', title: 'Interior' },
-  { id: 'plumbing', title: 'Plumbing' },
+  { id: 'plumbing', title: 'Plumbing', ready: true },
+  { id: 'hvac', title: 'HVAC', ready: true },
   { id: 'electricity', title: 'Electricity', ready: true },
   { id: 'gas', title: 'Gas' },
   { id: 'materials', title: 'Materials', ready: true },
@@ -18,7 +19,8 @@ const TABS: { id: Tab; title: string; ready?: boolean }[] = [
 
 /**
  * The first row of the bar: the file, the tabs, undo and saving, which every tab shares. Each tab draws its own
- * actions in the row under it (see FloorTab, RoofTab, ElevationsTab, ExteriorTab, ElectricityTab and MaterialsTab).
+ * actions in the row under it (see FloorTab, RoofTab, FoundationTab, PlumbingTab, HvacTab, ElevationsTab,
+ * ExteriorTab, ElectricityTab and MaterialsTab).
  */
 export function TopBar() {
   const store = getStore()

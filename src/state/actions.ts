@@ -1,6 +1,6 @@
 import { createBaseImage, imageToWorld, visibleCorners } from '../model/baseImage'
 import { newColonnade } from '../model/colonnades'
-import { addCircuit, addElectrical, addFurniture, addOpening, addRoof, deleteItems, moveCircuit, setAreaFloor, setBoardAreas, setBoardLayers, setBoardParent, setColonnade, setPointCircuit, setWallFinish, updateLayer, updateRoof } from '../model/edit'
+import { addCircuit, addElectrical, addFurniture, addOpening, addRoof, addService, deleteItems, moveCircuit, setAreaFloor, setAreaRadiant, setBoardAreas, setBoardLayers, setBoardParent, setColonnade, setPointCircuit, setWallFinish, updateLayer, updateRoof } from '../model/edit'
 import { boardAndDescendants, boardCovers, boardFeeding, boardFor, boardKey, boardOfArea, boardOfPoint, boardsOf, roomAt, ELECTRIC_REACH_M, electricFor, electricTarget, nextBoardName, probeOf, type ElectricTarget } from '../model/electrical'
 import { CIRCUIT_RULES, circuitKindOf, type Circuit } from '../model/wiring'
 import { faceLine, finishProblem, sideOf, wallSide, type WallSide } from '../model/finishes'
@@ -31,9 +31,11 @@ import {
   type OpeningStyle,
   type Plan,
   type Ref,
+  type ServiceKind,
 } from '../model/plan'
 import { parsePlanText, serializePlan } from '../model/planFile'
 import { fitRoof, galleryRoof, GALLERY_PITCH, newRoof, offsetPolygon, unionOutlines } from '../model/roofs'
+import { serviceInfo, serviceTarget, tabOf } from '../model/services'
 import { isCovered } from '../model/solids'
 import { addStorey, levelOf, MAX_STOREY, storeyLevel, storeyName } from '../model/storeys'
 import { EXTERIOR_WALL, WALL_HEIGHT, wallHeight } from '../model/walls'
@@ -64,24 +66,102 @@ export const FOUNDATION_TOOLS: readonly ToolId[] = ['foundation-select']
 /** The Electricity tab's tools, besides Measure and Pan; each but the first puts down the kind it is named after. */
 export const ELECTRIC_TOOLS: readonly ToolId[] = ['electric-select', 'board', 'switch', 'light', 'socket']
 
-/**
- * Opens a tab. The floor plan, the roof plan, the foundation plan and the electrical plan have tools of their own and
- * select their own things, so moving between them picks the right tool and keeps only what that tab can select.
- */
+/** The Plumbing tab's tools, besides Measure and Pan: select, and put down the equipment picked in its library. */
+export const PLUMBING_TOOLS: readonly ToolId[] = ['plumbing-select', 'service']
+/** The HVAC tab's tools, besides Measure and Pan: select, put down the equipment picked in its library, mark radiant floors. */
+export const HVAC_TOOLS: readonly ToolId[] = ['hvac-select', 'service', 'radiant']
+
+/** Opens a tab, choosing its plan tool and retaining only the things that tab can select. */
 export function openTab(tab: Tab) {
   const store = getStore()
   const { tool, selection } = store.getState()
   const patch: Partial<EditorState> = { tab }
-  const anywhere = tool === 'measure' || tool === 'pan'
+  const kept = (t: ToolId) => t === 'measure' || t === 'pan'
   if (tab === 'roof' && !ROOF_TOOLS.includes(tool)) patch.tool = 'roof-select'
-  if (tab === 'floor' && (ROOF_TOOLS.includes(tool) || FOUNDATION_TOOLS.includes(tool) || ELECTRIC_TOOLS.includes(tool))) patch.tool = 'select'
-  if (tab === 'foundation' && !FOUNDATION_TOOLS.includes(tool) && !anywhere) patch.tool = 'foundation-select'
-  if (tab === 'electricity' && !ELECTRIC_TOOLS.includes(tool) && !anywhere) patch.tool = 'electric-select'
-  if (tab === 'roof' || tab === 'floor' || tab === 'foundation' || tab === 'electricity') {
-    const keep = selection.filter((r) => (tab === 'roof' ? r.kind === 'roof' : tab === 'electricity' ? r.kind === 'electrical' : r.kind !== 'roof' && r.kind !== 'electrical'))
+  if (tab === 'floor' && (ROOF_TOOLS.includes(tool) || FOUNDATION_TOOLS.includes(tool) || ELECTRIC_TOOLS.includes(tool) || PLUMBING_TOOLS.includes(tool) || HVAC_TOOLS.includes(tool))) patch.tool = 'select'
+  if (tab === 'foundation' && !FOUNDATION_TOOLS.includes(tool) && !kept(tool)) patch.tool = 'foundation-select'
+  if (tab === 'electricity' && !ELECTRIC_TOOLS.includes(tool) && !kept(tool)) patch.tool = 'electric-select'
+  if (tab === 'plumbing' && !PLUMBING_TOOLS.includes(tool) && !kept(tool)) patch.tool = 'plumbing-select'
+  if (tab === 'hvac' && !HVAC_TOOLS.includes(tool) && !kept(tool)) patch.tool = 'hvac-select'
+  // the Place tool puts down the library's pick: moving between the two tabs that have one, it starts from Select
+  if ((tab === 'plumbing' || tab === 'hvac') && tool === 'service' && store.getState().tab !== tab) patch.tool = tab === 'hvac' ? 'hvac-select' : 'plumbing-select'
+  if (store.getState().pipePick && store.getState().pipePick!.tab !== tab) patch.pipePick = undefined
+  if (['roof', 'floor', 'foundation', 'electricity', 'plumbing', 'hvac'].includes(tab)) {
+    const { plan } = store.getState()
+    // each plan selects its own things: roofs on Roof, electrical points on Electricity, a tab's equipment on its
+    // service tab (and rooms on HVAC), and the rest on Floor and Foundation
+    const own = (r: Ref) => {
+      if (r.kind === 'roof') return tab === 'roof'
+      if (r.kind === 'electrical') return tab === 'electricity'
+      if (r.kind === 'service') {
+        const s = findLayer(plan, r.layer)?.services[r.id]
+        return !!s && tabOf(serviceInfo(s.kind)) === tab
+      }
+      if (r.kind === 'area') return tab === 'floor' || tab === 'foundation' || tab === 'hvac'
+      return tab === 'floor' || tab === 'foundation'
+    }
+    const keep = selection.filter(own)
     if (keep.length !== selection.length) patch.selection = keep
   }
   store.update(patch)
+}
+
+export const SERVICE_DRAG_TYPE = 'application/x-architect-service'
+
+/**
+ * A piece of equipment of `kind` put down at `p` on the active layer, at its catalogue size, backed up to a wall
+ * where that suits it, and selected; refused on a hidden or locked layer.
+ */
+export function placeService(kind: ServiceKind, p: Vec, snap = true) {
+  const store = getStore()
+  const layer = drawableLayer()
+  if (!layer) return
+  const info = serviceInfo(kind)
+  if (info.ground && storeyOf(layer)) {
+    return store.notify({ kind: 'error', text: `A ${info.title.toLowerCase()} can only be on the ground floor: show the ground floor (Floor) and put it down there.` })
+  }
+  const { plan, activeLayer } = store.getState()
+  const target = serviceTarget(storeyView(plan, activeLayer), p, {
+    kind,
+    width: info.width,
+    depth: info.depth,
+    angle: 0,
+    layer: layer.id,
+    reach: FURNITURE_REACH_M,
+    snap: snap && getPrefs().snap,
+    thickness: hostThickness,
+  })
+  const at = target ?? { layer: layer.id, at: p, angle: 0 }
+  const result = addService(plan, layer.id, { kind, at: at.at, angle: at.angle, width: info.width, depth: info.depth })
+  if (!result) return
+  store.edit(() => result.plan)
+  store.select([{ layer: layer.id, kind: 'service', id: result.id }])
+}
+
+/** A piece of equipment dragged from the Plumbing or HVAC tab's library onto the plan. */
+export function dropService(kind: ServiceKind, p: Vec) {
+  placeService(kind, p)
+}
+
+/**
+ * Gives the room under `p` (on the floor shown) a radiant floor, or takes it off, and selects it: only a named indoor
+ * room takes one. Says why when there is none.
+ */
+export function toggleRadiant(p: Vec) {
+  const store = getStore()
+  const { plan, activeLayer } = store.getState()
+  const view = storeyView(plan, activeLayer)
+  for (const layer of [...view.layers].reverse()) {
+    if (!isEditable(layer)) continue
+    const placed = getPlacedAreas(layer).find((a) => a.region && pointInPolygon(p, a.region.outer) && !a.region.holes.some((h) => pointInPolygon(p, h)))
+    if (!placed) continue
+    if (placed.area.lot || !placed.region!.indoor) return store.notify({ kind: 'error', text: `${placed.area.name || 'That area'} is not an indoor room: a radiant floor goes in a room walled off from the outside.` })
+    const ref = { layer: layer.id, kind: 'area' as const, id: placed.id }
+    store.edit((pl) => setAreaRadiant(pl, [ref], !placed.area.radiant))
+    store.select([ref])
+    return
+  }
+  store.notify({ kind: 'error', text: 'Click inside a named room: name it with Area on the Floor tab first.' })
 }
 
 /** The active layer, when it can be drawn on; otherwise says why not. */

@@ -3,6 +3,7 @@ import { regionPath } from './areas'
 import { ElectricSymbol } from './Electrical'
 import { FurnitureSymbol } from './Furniture'
 import { OpeningSymbol } from './Openings'
+import { ServiceSymbol } from './Services'
 import { SegmentLabel } from './Scene'
 import { electricSize } from './symbols'
 import type { OverlayData } from './tools/types'
@@ -38,6 +39,7 @@ export function Overlay({ data, zoom, thick }: { data: OverlayData; zoom: number
       )}
       {data.furniture && <FurnitureSymbol item={data.furniture.item} placed={data.furniture.placed} className={data.furniture.problem ? 'preview problem' : 'preview'} />}
       {data.electrical && <ElectricSymbol item={data.electrical.item} s={electricSize(zoom)} className={data.electrical.problem ? 'preview problem' : 'preview'} />}
+      {data.service && <ServiceSymbol kind={data.service.kind} placed={data.service.placed} className="preview" />}
       {data.snap && <SnapMarker snap={data.snap} px={px} />}
       {data.tag && <Tag x={data.tag.p.x + 14 * px} y={data.tag.p.y + 14 * px} text={data.tag.text} className={data.tag.style ?? ''} px={px} />}
     </g>

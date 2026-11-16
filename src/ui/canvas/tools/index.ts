@@ -11,6 +11,9 @@ import { createNorthTool } from './north'
 import { createLineTool } from './line'
 import { createMeasureTool } from './measure'
 import { createOpeningTool } from './opening'
+import { createRadiantTool } from './radiant'
+import { createServicesSelectTool } from './servicesSelect'
+import { createServiceTool } from './service'
 import { createRoofTool } from './roof'
 import { createRoofSelectTool } from './roofSelect'
 import { createSelectTool } from './select'
@@ -44,6 +47,10 @@ export function createTools(ctx: ToolContext): Record<ToolId, Tool> {
     switch: createElectricTool(ctx, 'switch'),
     light: createElectricTool(ctx, 'light'),
     socket: createElectricTool(ctx, 'socket'),
+    'plumbing-select': createServicesSelectTool(ctx, 'plumbing'),
+    'hvac-select': createServicesSelectTool(ctx, 'hvac'),
+    service: createServiceTool(ctx),
+    radiant: createRadiantTool(ctx),
   }
 }
 
@@ -143,5 +150,23 @@ export const TOOL_INFO: Record<ToolId, { title: string; key?: string; hint: stri
     title: 'Socket',
     key: 'O',
     hint: 'Click a wall, or for a floor socket in a room or outdoors (fed underground); it goes on the circuit picked in the bar, or a new one you name (a special socket asks each time)',
+  },
+  'plumbing-select': {
+    title: 'Select',
+    key: 'V',
+    hint: 'Click a piece of equipment (Shift: add, or drag a box round several) · drag to move it · R: turn · Del: delete · its size and rating are in the Selection section · hover a pipe or a fixture to see what it is',
+  },
+  'hvac-select': {
+    title: 'Select',
+    key: 'V',
+    hint: 'Click a piece of equipment (Shift: add, or drag a box round several) · drag to move it · R: turn · Del: delete · click a pipe or a duct to pick it, a room to see its loads · hover anything to see what it is',
+  },
+  radiant: {
+    title: 'Radiant floor',
+    hint: "Click a named room to give it a radiant floor, fed from the nearest underfloor manifold on its floor · click it again to take it off",
+  },
+  service: {
+    title: 'Place',
+    hint: 'Click where the piece picked in the library goes; it backs up to the nearest wall where that suits it · Alt: no snap · Esc: back to Select',
   },
 }

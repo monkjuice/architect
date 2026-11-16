@@ -38,6 +38,7 @@ const FILL: Record<SolidMaterial, string> = {
   light: '#f2a6dc',
   lamp: '#fbe7b8',
   device: '#7d8287',
+  plastic: '#5a6167',
 }
 const INK = '#2a2a2d'
 

@@ -40,6 +40,8 @@ const PALETTE: Record<SolidMaterial, THREE.MeshStandardMaterialParameters> = {
   lamp: { color: '#fff6e0', emissive: '#ffd58a', emissiveIntensity: 1.1, roughness: 0.3 },
   // a switch's rocker, a socket's face, a board's breaker window
   device: { color: '#5f6469', roughness: 0.4, metalness: 0.1 },
+  // polyethylene water tanks, a biodigestor's neck: dark grey, matte
+  plastic: { color: '#4b5257', roughness: 0.75 },
 }
 
 export const GRASS = '#6d8f4e'

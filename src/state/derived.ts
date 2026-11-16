@@ -2,6 +2,8 @@ import { boundsOf, type Vec } from '../model/geometry'
 import { findLayer, storeyOf, type Area, type Layer, type Plan } from '../model/plan'
 import { labelPoint, layerFaces, regionAt, regionLabel, type LayerFaces, type Region } from '../model/regions'
 import { foundationPlan, type FoundationPlan } from '../model/foundations'
+import { hvacPlan, type HvacPlan } from '../model/hvac'
+import { plumbingPlan, type PlumbingPlan } from '../model/plumbing'
 import { houseSolids, type Solid } from '../model/solids'
 import { materialsList, type TakeoffRow } from '../model/takeoff'
 import { INTERIOR_WALL, layerWalls, type LayerWalls } from '../model/walls'
@@ -195,4 +197,22 @@ export function getWiring(plan: Plan): Wiring {
   let w = wiringCache.get(plan)
   if (!w) wiringCache.set(plan, (w = wiringPlan(plan, { regions: getRegions, graph: (storey) => storeyGraph(plan, storey) })))
   return w
+}
+
+const plumbingCache = new WeakMap<Plan, PlumbingPlan>()
+
+/** The plumbing plan for the Plumbing tab, from the visible layers. */
+export function getPlumbing(plan: Plan): PlumbingPlan {
+  let p = plumbingCache.get(plan)
+  if (!p) plumbingCache.set(plan, (p = plumbingPlan(plan, { faces: getFaces, walls: getWalls })))
+  return p
+}
+
+const hvacCache = new WeakMap<Plan, HvacPlan>()
+
+/** The HVAC plan for the HVAC tab, from the visible layers. */
+export function getHvac(plan: Plan): HvacPlan {
+  let h = hvacCache.get(plan)
+  if (!h) hvacCache.set(plan, (h = hvacPlan(plan, { faces: getFaces, walls: getWalls })))
+  return h
 }
