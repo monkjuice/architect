@@ -1,10 +1,10 @@
 ---
 title: "Services: decisions for the coming tabs"
 type: decision
-summary: "Foundation first, then Electricity, Plumbing and Gas on one shared base; the ground-floor Guardador (Casa Principal layer) is the machine room with the electrical board on its outside wall; the lots get natural gas and three-phase power but no mains water or sewer (a well with a pump, a biodigestor); heating to be compared by price before choosing; points suggested from rooms and fixtures, then edited; 46 installation and heating prices already in PRICES. Not built yet."
+summary: "Foundation, Electricity, Plumbing and HVAC now share one plan; service equipment and links are placed explicitly, routes and quantities are derived, power requirements link to authored electrical circuits, and Gas remains pending."
 tags: [decision, services, electricity, plumbing, gas, heating, tabs, prices]
 sources: []
-updated: 2026-11-08
+updated: 2026-11-16
 ---
 
 # Services: decisions for the coming tabs
@@ -12,9 +12,8 @@ updated: 2026-11-08
 ## Context
 
 On 2026-11-08 the user asked to "get started with the plumbing, gas, electricity and foundation tabs". Asked about
-the order, they chose "Foundation, then services": the [Foundation tab](foundation-tab.md) was built first
-(`aaa70c1`), and Electricity, Plumbing and Gas come next on one shared base. As of 2026-11-08 **none of the services
-tabs is built**; what follows are the user's answers to guide them.
+the order, they chose "Foundation, then services": the [Foundation tab](foundation-tab.md) was built first. Electricity,
+[Plumbing](plumbing-tab.md) and [HVAC](hvac-tab.md) now work on the same plan; Gas remains pending.
 
 ## Decisions
 
@@ -30,7 +29,15 @@ tabs is built**; what follows are the user's answers to guide them.
 - **Points** (lights, outlets, water, drain and gas points) are to be suggested from the rooms and fixtures, and then
   edited by hand. This is the same pattern as the foundation plan, worked out from the walls with sizes set by hand.
 
+## Implementation update
+
+- Plumbing and HVAC share explicitly placed [service equipment](service-equipment-and-links.md), while their routes
+  are derived by the [generic service router](service-routing.md).
+- Equipment power requirements point to the [Electricity tab](electricity-tab.md); the app does not create points or
+  circuits automatically.
+- HVAC loads are planning estimates, and neither the machine room nor a heating system is guessed.
+
 ## Prices
 
-46 installation and heating prices (electrical, water, drain, gas, heating, a gas cooker) are in `PRICES` since
-`e94bb35`. No takeoff row uses them yet ([Local prices](local-prices.md)).
+Installation and heating prices in `PRICES` now feed the Electricity, Plumbing and HVAC Materials rows where a local
+price matches the derived item. Gas prices remain staged for the future Gas tab ([Local prices](local-prices.md)).
