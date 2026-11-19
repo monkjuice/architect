@@ -14,6 +14,7 @@ import { createOpeningTool } from './opening'
 import { createRadiantTool } from './radiant'
 import { createServicesSelectTool } from './servicesSelect'
 import { createServiceTool } from './service'
+import { createMepSelectTool } from './mepSelect'
 import { createRoofTool } from './roof'
 import { createRoofSelectTool } from './roofSelect'
 import { createSelectTool } from './select'
@@ -49,6 +50,8 @@ export function createTools(ctx: ToolContext): Record<ToolId, Tool> {
     socket: createElectricTool(ctx, 'socket'),
     'plumbing-select': createServicesSelectTool(ctx, 'plumbing'),
     'hvac-select': createServicesSelectTool(ctx, 'hvac'),
+    'gas-select': createServicesSelectTool(ctx, 'gas'),
+    'mep-select': createMepSelectTool(ctx),
     service: createServiceTool(ctx),
     radiant: createRadiantTool(ctx),
   }
@@ -160,6 +163,16 @@ export const TOOL_INFO: Record<ToolId, { title: string; key?: string; hint: stri
     title: 'Select',
     key: 'V',
     hint: 'Click a piece of equipment (Shift: add, or drag a box round several) · drag to move it · R: turn · Del: delete · click a pipe or a duct to pick it, a room to see its loads · hover anything to see what it is',
+  },
+  'gas-select': {
+    title: 'Select',
+    key: 'V',
+    hint: 'Click gas equipment, a cooker or a pipe · drag equipment or a pipe stretch · R: turn · Del: delete · hover to inspect',
+  },
+  'mep-select': {
+    title: 'Inspect',
+    key: 'V',
+    hint: 'Hover a line, clash or wall crossing to inspect it · edit each installation on its own tab',
   },
   radiant: {
     title: 'Radiant floor',

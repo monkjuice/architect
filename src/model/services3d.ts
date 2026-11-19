@@ -214,6 +214,29 @@ export function serviceParts(s: Service, pl: Placement, roofTop?: number): Servi
       lid()
       cover(0.6)
       break
+    case 'gas-meter':
+      put(box(-hw, -hd, hw, hd), 0, info.height, 'slab')
+      put(box(-hw + 0.04, hd, hw - 0.04, hd + 0.01), info.height - 0.45, info.height - 0.05, 'metal')
+      break
+    case 'gas-cylinders': {
+      put(box(-hw, -hd, hw, hd), 0, info.height, 'slab')
+      const n = Math.max(1, Math.round(pl.width / 0.5))
+      const w = pl.width / n
+      for (let i = 0; i < n; i++) put(box(-hw + i * w + 0.03, hd, -hw + (i + 1) * w - 0.03, hd + 0.01), 0.1, info.height - 0.1, 'metal')
+      break
+    }
+    case 'gas-valve':
+      put(box(-hw, -hd, hw, hd), -0.2, 0.03, 'slab')
+      put(box(-hw + 0.03, -hd + 0.03, hw - 0.03, hd - 0.03), 0.03, 0.04, 'metal')
+      break
+    case 'gas-outlet':
+      post(0, 0, 0.015, 0, info.height, 'metal')
+      put(box(-0.05, -0.01, 0.05, 0.01), info.height - 0.1, info.height - 0.08, 'plastic')
+      break
+    case 'gas-heater':
+      put(box(-hw, -hd, hw, hd), MOUNT.radiator, MOUNT.radiator + info.height, 'ceramic')
+      put(box(-hw + 0.04, hd, hw - 0.04, hd + 0.005), MOUNT.radiator + 0.08, MOUNT.radiator + info.height * 0.55, 'soot')
+      break
   }
   return parts
 }

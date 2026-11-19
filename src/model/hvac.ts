@@ -1,13 +1,13 @@
 import { dist, type Vec } from './geometry'
 import type { Placement } from './furniture'
 import { placeFurniture } from './furniture'
-import { segmentKind, storeyOf, type HeatingMaterial, type Layer, type Plan, type Ref, type Service, type ServiceKind } from './plan'
+import { storeyOf, type HeatingMaterial, type Plan, type Ref, type Service, type ServiceKind } from './plan'
 import { layerFaces, regionAt, regionLabel, type Region } from './regions'
-import { pathLength, router } from './routing'
-import { placeService, serviceInfo, specOf, specText, tabOf, type ServiceInfo } from './services'
+import { clearPath, clearTree, downstream, obstaclesOf, pathLength, routeKey, router } from './routing'
+import { placeService, portOf, serviceInfo, specOf, specText, tabOf, type ServiceInfo } from './services'
 import type { SolidsSource } from './solids'
 import { levelOf } from './storeys'
-import { layerWalls, WALL_HEIGHT, wallHeight } from './walls'
+import { layerWalls, roomHeight } from './walls'
 
 /**
  * The HVAC plan (the HVAC tab): heating, cooling and ventilation, worked out on every edit from the pieces put down
@@ -52,6 +52,8 @@ export interface HvacRun {
   material?: HeatingMaterial
   /** The piece or room it is the branch to. */
   to?: Ref
+  /** On a main, the radiators and manifolds it leads to, for moving it by hand (see movedRoutes). */
+  ends?: Ref[]
   path: Vec[]
   storey: number
   length: number
@@ -130,6 +132,8 @@ export interface HvacPlan {
     power: number
     /** What the Plumbing tab gives it: the boilers it takes hot water from, what it fills, what drains into it. */
     plumbing: { dhw: HvacPiece[]; fill: HvacPiece[]; condensate: HvacPiece[] }
+    /** The pieces that burn the Gas tab's gas: a boiler, gas heaters. */
+    gas: HvacPiece[]
   }
   problems: string[]
   notes: string[]
@@ -139,28 +143,28 @@ const direct: SolidsSource = { faces: layerFaces, walls: (layer) => layerWalls(l
 
 const nearestTo = <T extends { at: Vec }>(list: readonly T[], p: Vec): T | undefined => [...list].sort((a, b) => dist(a.at, p) - dist(b.at, p))[0]
 
-/** What a piece gives off as heat, kcal/h: a radiator's rating, a heat-and-cool split's (frigorías ≈ kcal). */
-const heatOf = (p: HvacPiece): number => (p.kind === 'radiator' || p.kind === 'split-indoor' ? (p.spec ?? 0) : 0)
+/** What a piece gives off as heat, kcal/h: a radiator's or a gas heater's rating, a heat-and-cool split's (frigorías ≈ kcal). */
+const heatOf = (p: HvacPiece): number => (p.kind === 'radiator' || p.kind === 'split-indoor' || p.kind === 'gas-heater' ? (p.spec ?? 0) : 0)
 
-/** A room's height: the mean of its walls', or the usual one. */
-function roomHeight(layer: Layer, region: Region): number {
-  const heights = region.wallIds.flatMap((id) => {
-    const s = layer.segments[id]
-    return s && segmentKind(s) === 'wall' ? [wallHeight(s)] : []
-  })
-  return heights.length ? heights.reduce((a, b) => a + b, 0) / heights.length : WALL_HEIGHT
-}
-
-export function hvacPlan(plan: Plan, source: SolidsSource = direct): HvacPlan {
-  const { frame, route, square, outside } = router(plan, source)
+/**
+ * `avoid`: the other installations' pipes the heating keeps clear of where it would run along one (the Plumbing tab's
+ * water and condensate; see routing.ts, clearPath, and derived.ts), so the MEP tab finds them apart.
+ */
+export function hvacPlan(plan: Plan, source: SolidsSource = direct, avoid: readonly { path: readonly Vec[]; size: number; storey: number }[] = []): HvacPlan {
+  const { frame, route, square, outside, buildingAt, guided } = router(plan, source)
+  const inside = (p: Vec) => buildingAt(p) >= 0
+  const obstacles = obstaclesOf(avoid, inside)
   const materials = { heating: plan.hvac?.materials?.heating ?? USUAL_HEATING }
   const runs: HvacRun[] = []
-  const addRun = (kind: HvacRunKind, size: number, path: Vec[], storey: number, rise = 0, to?: Ref) => {
+  const addRun = (kind: HvacRunKind, size: number, path: Vec[], storey: number, rise = 0, to?: Ref, ends?: Ref[]) => {
     const length = pathLength(path)
     if (length < 1e-6 && rise < 1e-6) return
     const material = kind === 'heating' || kind === 'radiant' ? materials.heating : undefined
-    runs.push({ kind, size, ...(material ? { material } : {}), ...(to ? { to } : {}), path, storey, length, rise })
+    runs.push({ kind, size, ...(material ? { material } : {}), ...(to ? { to } : {}), ...(ends?.length ? { ends } : {}), path, storey, length, rise })
   }
+  // the routes set by hand on this tab, by run kind and what the run leads to (routing.ts, routeKey)
+  const routes = plan.hvac?.routes ?? {}
+  const guide = (kind: HvacRunKind, ref?: Ref) => (ref ? routes[routeKey(kind, ref)] : undefined)
 
   // ---- the rooms and the pieces in them
   const pieces: HvacPiece[] = []
@@ -246,7 +250,7 @@ export function hvacPlan(plan: Plan, source: SolidsSource = direct): HvacPlan {
       room.heat += heatOf(piece)
       if (s.kind === 'split-indoor') room.cool += piece.spec ?? 0
       if (s.kind === 'extractor') room.extractor = true
-      if (s.kind === 'radiator' || s.kind === 'split-indoor') room.emitters.push(`${info.title.toLowerCase()} ${piece.specText}`)
+      if (s.kind === 'radiator' || s.kind === 'split-indoor' || s.kind === 'gas-heater') room.emitters.push(`${info.title.toLowerCase()} ${piece.specText}`)
     }
   }
 
@@ -258,14 +262,20 @@ export function hvacPlan(plan: Plan, source: SolidsSource = direct): HvacPlan {
   const sources = ofKind('boiler', 'heat-pump')
   const emitters = ofKind('radiator', 'underfloor-manifold')
   if (sources.length && emitters.length) {
-    const tree = route(
-      sources.map((s) => s.at),
+    // from each source's heating connection (portOf), apart from its water and gas; kept clear of the water but where
+    // it leads to a route set by hand
+    const guides = emitters.map((e) => guide('heating', e.ref))
+    const routed = route(
+      sources.map((s) => portOf(s.service, 'heating')),
       emitters.map((e) => e.at),
+      guides,
     )
-    tree.edges.forEach((e) => {
+    const below = downstream(routed)
+    const tree = clearTree(routed, () => HVAC_SIZES.heating / 2000, 0, obstacles, frame, inside, (i) => below[i].some((t) => guides[t]))
+    tree.edges.forEach((e, i) => {
       const n = tree.nodes[e.to]
       const t = n.target >= 0 ? emitters[n.target] : null
-      addRun('heating', HVAC_SIZES.heating, e.path, 0, t && t.storey ? t.level : 0, t?.ref)
+      addRun('heating', HVAC_SIZES.heating, e.path, 0, t && t.storey ? t.level : 0, t?.ref, below[i].map((k) => emitters[k].ref))
     })
   }
   const manifolds = ofKind('underfloor-manifold')
@@ -278,7 +288,8 @@ export function hvacPlan(plan: Plan, source: SolidsSource = direct): HvacPlan {
     radiantPipe += room.floor / RADIANT.spacing
     if (!manifold) continue
     loopsOn.set(manifold, (loopsOn.get(manifold) ?? 0) + room.loops)
-    const lead = square(manifold.at, room.at)
+    const own = guide('radiant', room.ref)
+    const lead = own ? guided(manifold.at, room.at, own) : clearPath(square(manifold.at, room.at), HVAC_SIZES.loop / 2000, room.storey, obstacles, frame, inside)
     addRun('radiant', HVAC_SIZES.loop, lead, room.storey, 0, room.ref)
     // each loop runs from the manifold to the room and back
     radiantPipe += pathLength(lead) * 2 * room.loops
@@ -292,13 +303,13 @@ export function hvacPlan(plan: Plan, source: SolidsSource = direct): HvacPlan {
     const pair = nearestTo(outdoorUnits, unit.at)
     if (!pair) continue
     served.set(pair, (served.get(pair) ?? 0) + (unit.spec ?? 0))
-    addRun('refrigerant', HVAC_SIZES.refrigerant, square(unit.at, pair.at), unit.storey, Math.abs(unit.level - pair.level), unit.ref)
+    addRun('refrigerant', HVAC_SIZES.refrigerant, guided(unit.at, pair.at, guide('refrigerant', unit.ref)), unit.storey, Math.abs(unit.level - pair.level), unit.ref)
   }
 
   // ---- ventilation: each extractor and hood ducted out through the nearest wall
   for (const fan of ofKind('extractor', 'range-hood')) {
     const out = outside(fan.at)
-    if (out) addRun('duct', fan.kind === 'range-hood' ? HVAC_SIZES.hood : HVAC_SIZES.extractor, square(fan.at, out), fan.storey, 0, fan.ref)
+    if (out) addRun('duct', fan.kind === 'range-hood' ? HVAC_SIZES.hood : HVAC_SIZES.extractor, guided(fan.at, out, guide('duct', fan.ref)), fan.storey, 0, fan.ref)
   }
 
   // ---- what it comes to, and what to check
@@ -325,6 +336,7 @@ export function hvacPlan(plan: Plan, source: SolidsSource = direct): HvacPlan {
       fill: pieces.filter((p) => p.info.links?.fill && !p.info.links.dhw),
       condensate: pieces.filter((p) => p.info.links?.condensate),
     },
+    gas: pieces.filter((p) => p.info.links?.gas),
   }
   const say = (list: string[], text: string) => list.push(text)
   const round = (x: number) => Math.round(x / 10) * 10
@@ -338,6 +350,7 @@ export function hvacPlan(plan: Plan, source: SolidsSource = direct): HvacPlan {
   if (short.length) say(problems, `Short of heat: ${short.map((r) => `${r.name} (${round(r.heat)} of ${round(r.heatNeed)} kcal/h)`).join(', ')}. Widen a radiator, add one, or give it a radiant floor.`)
   const warm = cooled.filter((r) => r.cool < r.coolNeed * 0.9)
   if (warm.length) say(problems, `Short of cooling: ${warm.map((r) => `${r.name} (${round(r.cool)} of ${round(r.coolNeed)} frig/h)`).join(', ')}. Choose a bigger split.`)
+  for (const b of ofKind('boiler')) if (!inside(b.at)) say(problems, `A boiler stands outside${b.room ? ` by ${b.room}` : ''}: it hangs inside, on a wall, its flue out through it. Move it in, onto the inside of an outside wall.`)
   if (indoor.length && !outdoorUnits.length) say(problems, 'The split units have no outdoor unit: put one down outside.')
   for (const [unit, load] of served) {
     if (load > (unit.spec ?? 0)) say(problems, `An outdoor unit of ${unit.specText} serves ${load} frig/h of indoor units: choose a bigger one, or add another.`)
@@ -349,9 +362,10 @@ export function hvacPlan(plan: Plan, source: SolidsSource = direct): HvacPlan {
   if (summary.plumbing.dhw.length) say(notes, 'The boiler also makes the house’s hot water: the Plumbing tab feeds it cold water and pipes its hot water.')
   if (summary.plumbing.fill.length) say(notes, `The Plumbing tab fills ${summary.plumbing.fill.length} piece${summary.plumbing.fill.length > 1 ? 's' : ''} from its cold water.`)
   if (summary.plumbing.condensate.length) say(notes, `The split units' condensate drains into the Plumbing tab's traps, or outside.`)
+  if (summary.gas.length) say(notes, `The Gas tab pipes gas to ${summary.gas.map((p) => p.info.title.toLowerCase()).join(', ')}.`)
   if (summary.power) say(notes, `${summary.power} HVAC piece${summary.power > 1 ? 's need' : ' needs'} an electrical supply: add suitably rated points and circuits on the Electricity tab.`)
   for (const room of shared) say(notes, `${room.name} share one outline: their loads are counted together. Close the wall between them on the Floor tab.`)
-  if (!pieces.length && !radiantRooms.length) say(notes, 'Nothing yet: put a boiler or heat pump and radiators down, mark rooms with a radiant floor, add split units and extractors from the library.')
+  if (!pieces.length && !radiantRooms.length) say(notes, 'Nothing yet: put a boiler or heat pump and radiators down, mark rooms with a radiant floor, or gas heaters; add split units and extractors from the library.')
 
   return {
     frame,

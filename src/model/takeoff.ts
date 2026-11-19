@@ -5,12 +5,14 @@ import { sideNormal, type WallSide } from './finishes'
 import { foundationPlan, PAD, PILE, RAFT, RING_BEAM, tieColumns, TIE_COLUMN } from './foundations'
 import { findMaterial } from './materials'
 import { placeOpening } from './openings'
-import { segmentKind, storeyOf, type FittingMaterial, type Layer, type PipeMaterial, type Plan, type Roof } from './plan'
+import { segmentKind, storeyOf, type FittingMaterial, type GasMaterial, type Layer, type PipeMaterial, type Plan, type Roof } from './plan'
 import { layerFaces, pointInPolygon, regionAt } from './regions'
 import { eavesOf, growLights, pergolaRafters, roofPlanes, roofSummary, underside } from './roofs'
 import { DOOR_HEAD, GATE_HEIGHT, houseSolids, isCovered, windowSill, type Solid, type SolidsSource } from './solids'
+import { GAS_TRENCH, gasPlan, type GasPlan } from './gas'
 import { hvacPlan, type HvacPlan } from './hvac'
 import { pipeLengths, plumbingPlan, TRENCH, type PlumbingPlan } from './plumbing'
+import { inTheScreed } from './routing'
 import { layerWalls, wallHeight } from './walls'
 import { wallUses } from './wallUse'
 import { wallGraph, wiringPlan, WASTE as WIRE_WASTE, type BoardWiring } from './wiring'
@@ -48,6 +50,7 @@ export const CHAPTERS = [
   'electricity',
   'pools',
   'plumbing',
+  'gas',
   'hvac',
   'fixtures',
   'garden',
@@ -76,6 +79,9 @@ export interface RowParams {
   /** What a pipe is made of, and what a fixture's connections or trap are (see plumbing.ts). */
   pipe?: PipeMaterial
   fitting?: FittingMaterial
+  /** What a gas pipe is made of, and its nominal size, DN. */
+  gasPipe?: GasMaterial
+  gasSize?: number
   /** An opening's or a stair's size, m. */
   w?: number
   h?: number
@@ -497,10 +503,13 @@ export function materialsList(plan: Plan, solids: readonly Solid[] = houseSolids
     graph: (storey) => wallGraph(plan.layers.filter((l) => l.visible && storeyOf(l) === storey)),
   })
   for (const bw of wiring.boards) electricityRows(plan, bw, add)
-  // the water supply and the drains, as the Plumbing tab works them out (see plumbing.ts)
-  for (const r of plumbingRows(plumbingPlan(plan, source))) rows.set(`${r.chapter}|${r.key}|${r.unit}|${JSON.stringify(r.params)}`, r)
-  // the heating, cooling and ventilation, as the HVAC tab works them out (see hvac.ts)
-  for (const r of hvacRows(hvacPlan(plan, source))) rows.set(`${r.chapter}|${r.key}|${r.unit}|${JSON.stringify(r.params)}`, r)
+  // Each discipline stays clear of the routes already laid in the same screed.
+  const water = plumbingPlan(plan, source)
+  const hvac = hvacPlan(plan, source, inTheScreed(water.runs))
+  const gas = gasPlan(plan, source, [...inTheScreed(water.runs), ...inTheScreed(hvac.runs)])
+  for (const r of plumbingRows(water)) rows.set(`${r.chapter}|${r.key}|${r.unit}|${JSON.stringify(r.params)}`, r)
+  for (const r of gasRows(gas)) rows.set(`${r.chapter}|${r.key}|${r.unit}|${JSON.stringify(r.params)}`, r)
+  for (const r of hvacRows(hvac)) rows.set(`${r.chapter}|${r.key}|${r.unit}|${JSON.stringify(r.params)}`, r)
 
   // what the mortars and concretes take
   const total = { cement: 0, lime: 0, sand: 0, gravel: 0 }
@@ -548,6 +557,37 @@ export function plumbingRows(water: PlumbingPlan): TakeoffRow[] {
   for (const t of water.traps) if (!t.grease) add('drain.trap', 'u', 1, t.room || undefined)
   add('drain.chamber', 'u', water.chambers.filter((c) => !c.own).length)
   add('excavation.pipes', 'm³', water.runs.reduce((sum, r) => sum + r.outdoor, 0) * TRENCH.width * TRENCH.depth)
+  return [...rows.values()]
+}
+
+/** The preliminary Gas-tab quantity takeoff. Appliances remain owned by the tabs where they were placed. */
+export function gasRows(gas: GasPlan): TakeoffRow[] {
+  const rows = new Map<string, TakeoffRow>()
+  const add = (key: string, unit: Unit, quantity: number, where?: string, params: RowParams = {}) => {
+    if (!(quantity > 1e-9)) return
+    const id = `${key}|${unit}|${JSON.stringify(params)}`
+    let row = rows.get(id)
+    if (!row) rows.set(id, (row = { chapter: 'gas', key, params, quantity: 0, unit, where: [] }))
+    row.quantity += quantity
+    if (where && !row.where.includes(where)) row.where.push(where)
+  }
+  for (const run of gas.runs) {
+    add('gas.pipe', 'm', run.outdoor, undefined, { gasPipe: gas.materials.outside, gasSize: run.size })
+    add('gas.pipe', 'm', run.length - run.outdoor + run.rise, undefined, { gasPipe: gas.materials.inside, gasSize: run.size })
+  }
+  add('gas.sleeve', 'u', gas.entries.length)
+  add('gas.fittings', 'u', gas.fittings)
+  add('gas.valve', 'u', gas.valves)
+  for (const piece of gas.pieces) add(`service.${piece.kind}`, 'u', 1, piece.room || undefined, piece.spec === null ? { kind: piece.kind } : { kind: piece.kind, spec: piece.spec })
+  for (const vent of gas.vents) add('gas.vent', 'u', vent.count, vent.room || undefined)
+  for (const exhaust of gas.flues) {
+    if (exhaust.kind === 'balanced-wall') add('gas.terminal', 'u', 1, exhaust.room || undefined)
+    else {
+      add('gas.flue', 'm', exhaust.length, exhaust.room || undefined)
+      add('gas.cap', 'u', 1, exhaust.room || undefined)
+    }
+  }
+  add('excavation.gas', 'm³', gas.runs.reduce((sum, run) => sum + run.outdoor, 0) * GAS_TRENCH.width * GAS_TRENCH.depth)
   return [...rows.values()]
 }
 

@@ -1223,11 +1223,11 @@ button.icon {
   font-size: 11px;
 /* ---- plumbing plan: the floor fades under its pipes and equipment ----------------------------------------- */
 
-.canvas:is(.plumbing-mode, .hvac-mode) :is(.layer, .openings, .columns) {
+.canvas:is(.plumbing-mode, .hvac-mode, .gas-mode) :is(.layer, .openings, .columns) {
   opacity: 0.3;
 }
 
-.canvas:is(.plumbing-mode, .hvac-mode) .furnishings {
+.canvas:is(.plumbing-mode, .hvac-mode, .gas-mode) .furnishings {
   opacity: 0.5;
 }
 
@@ -1518,7 +1518,7 @@ button.icon {
   --equipment: #f87171;
 }
 
-.service:is(.boiler, .heat-pump, .radiator, .underfloor-manifold) {
+.service:is(.boiler, .heat-pump, .radiator, .underfloor-manifold, .gas-heater) {
   --equipment: #fbbf24;
 }
 
@@ -1532,6 +1532,10 @@ button.icon {
 
 .service:is(.floor-drain, .grease-trap, .chamber, .septic, .biodigestor, .soakaway, .sewer) {
   --equipment: #c8965f;
+}
+
+.service:is(.gas-meter, .gas-cylinders, .gas-outlet, .gas-valve) {
+  --equipment: #facc15;
 }
 
 .service.hot {
@@ -2798,3 +2802,101 @@ button.icon {
   flex-direction: column;
   gap: 4px;
 }
+
+/* ---- gas coordination ------------------------------------------------------------------------------- */
+
+.gas-plan {
+  --gas: #facc15;
+  pointer-events: none;
+}
+
+.gas-plan :is(path, circle) {
+  vector-effect: non-scaling-stroke;
+}
+
+.pipe.gas { stroke: var(--gas); }
+.pipe.gas.size-20 { stroke-width: 2.25; }
+.pipe.gas:is(.size-25, .size-32) { stroke-width: 3; }
+.pipe.gas:is(.size-40, .size-50) { stroke-width: 4; }
+.pipe.gas.selected { stroke: var(--selection); }
+
+.gas-appliance {
+  fill: rgba(250, 204, 21, 0.1);
+  stroke: var(--gas);
+  stroke-width: 1.5;
+}
+
+.gas-appliance.electric {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-dasharray: 4 3;
+}
+
+.gas-appliance.selected { stroke: var(--selection); stroke-width: 2.5; }
+.gas-point { fill: var(--gas); stroke: none; }
+.gas-vent { fill: var(--canvas-bg); stroke: #9ca3af; stroke-width: 1.25; }
+.gas-flue circle { fill: none; stroke: #9ca3af; stroke-width: 1.5; }
+.gas-entry path { fill: none; stroke: var(--gas); stroke-width: 4; stroke-linecap: round; }
+.gas-entry circle { fill: var(--canvas-bg); stroke: var(--gas); stroke-width: 2; }
+.gas-valve-mark { fill: var(--gas); stroke: var(--canvas-bg); stroke-width: 0.75; }
+.pipe.gas.linked { stroke-dasharray: 3 3; opacity: 0.5; }
+.riser.gas :is(circle, path) { stroke: var(--gas); }
+.pipe-label.gas text { fill: #facc15; }
+
+.gas-appliances th { text-align: left; font-weight: 500; color: var(--text-muted); }
+.gas-appliances tbody tr { cursor: pointer; }
+.gas-appliances tbody tr:hover td { background: var(--surface-2); }
+.gas-appliances tr.muted td { color: var(--text-faint); }
+.gas-appliances select { font-size: 11px; }
+
+.pipe-legend .gas { stroke: #facc15; }
+.pipe-legend .gas-outline { fill: rgba(250, 204, 21, 0.1); stroke: #facc15; }
+.pipe-legend .gas-electric { stroke: var(--text-faint); stroke-dasharray: 4 3; }
+.pipe-legend .gas-entry { stroke: #facc15; }
+.pipe-legend .gas-valve-mark { fill: #facc15; stroke: none; }
+.pipe-legend .gas-vent { stroke: #9ca3af; }
+
+/* ---- combined MEP coordination --------------------------------------------------------------------- */
+
+.canvas.mep-mode :is(.layer, .openings, .columns) { opacity: 0.3; }
+.canvas.mep-mode .furnishings { opacity: 0.35; }
+.canvas.mep-mode .wiring .circuit { stroke: #34d399 !important; fill: #34d399 !important; }
+.canvas.mep-mode .electric { --electric: #34d399; }
+.canvas.mep-mode .hvac { --heat: #fb923c; }
+.mep-marks { pointer-events: none; }
+.mep-marks :is(rect, circle) { vector-effect: non-scaling-stroke; }
+.mep-sleeve { fill: var(--canvas-bg); stroke: #e7e5e4; stroke-width: 1.5; }
+.mep-sleeve.below { stroke-dasharray: 2 2; }
+.mep-clash circle { fill: rgba(239, 68, 68, 0.15); stroke: #ef4444; stroke-width: 2; }
+.mep-clash text { fill: #ef4444; font-weight: 700; }
+
+.mep-main { grid-template-columns: minmax(0, 1fr) 320px; }
+.mep-host {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas-bg);
+}
+.mep-host > :is(.canvas-wrap, .mep-details) { flex: 1; min-height: 0; }
+.mep-host .exterior-host { position: absolute; inset: 0; }
+
+.mep-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 0; list-style: none; font-size: 11px; color: var(--text-muted); }
+.mep-legend li { display: flex; align-items: center; gap: 6px; }
+.mep-legend i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; }
+.mep-totals td:first-child { white-space: nowrap; }
+.mep-clashes { margin: 4px 0 0; padding: 0; list-style: none; max-height: 260px; overflow: auto; }
+.mep-clashes li { cursor: pointer; padding: 3px 0; font-size: 12px; color: var(--text-muted); }
+.mep-clashes li:hover { color: var(--text); }
+.mep-clashes b { color: #ef4444; margin-right: 6px; }
+
+.mep-details { overflow: auto; padding: 16px 20px 40px; display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 18px; align-content: start; }
+.mep-detail { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.mep-detail h3 { margin: 0 0 2px; font-size: 14px; }
+.mep-detail svg { display: block; width: 100%; height: auto; margin: 8px 0; background: #f7f5f0; border-radius: 6px; }
+.mep-detail ul { margin: 6px 0 8px; padding-left: 18px; font-size: 12px; color: var(--text-muted); }
+.mep-detail .button-row { display: flex; gap: 8px; }
+.gas-switch { margin: 4px 0 6px; padding: 0; list-style: none; font-size: 12px; }
+.gas-switch li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; }

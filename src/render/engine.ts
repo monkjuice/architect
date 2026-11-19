@@ -30,8 +30,29 @@ export interface CameraPose {
   target: THREE.Vector3
 }
 
+/**
+ * The MEP tab's way of showing the house (`createExteriorEngine`'s `xray`): the building faded to a ghost so what runs
+ * in its walls and floors shows, what `keep` says solid (the equipment), and the ground see-through, with the camera
+ * free to go under it, to see what is buried.
+ */
+export interface XRay {
+  /** How opaque the building is, 0–1. */
+  ghost: number
+  /** How opaque the ground is, 0–1. */
+  ground: number
+  /** Solid kinds drawn solid, not ghosted. */
+  keep: readonly string[]
+  /** The ground's colour (plain, no lawn), and the background's, in place of the sky. */
+  groundColor: string
+  background: string
+}
+
 export interface ExteriorEngine {
   show(solids: readonly Solid[]): void
+  /** Something drawn with the house (the MEP tab's lines), replacing what was there; null for nothing. */
+  overlay(object: THREE.Object3D | null): void
+  /** Looks at a point (plan x, y and height z), from `distance` away, above and to the south-west of it. */
+  focus(at: { x: number; y: number; z: number }, distance?: number): void
   light(site: Site, sun: SunSetting): void
   view(preset: CameraPreset, site: Site): void
   /** Where the camera is; undefined until a first view has been framed. */
@@ -46,7 +67,7 @@ const BEARINGS: Record<'north' | 'east' | 'south' | 'west', number> = { north: 0
 
 const SKY = { day: new THREE.Color('#9fc3e4'), dusk: new THREE.Color('#e7b98f'), night: new THREE.Color('#141a26') }
 
-export function createExteriorEngine(host: HTMLElement, start?: CameraPose): ExteriorEngine {
+export function createExteriorEngine(host: HTMLElement, start?: CameraPose, xray?: XRay): ExteriorEngine {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.toneMapping = THREE.ACESFilmicToneMapping
@@ -81,9 +102,13 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
   const groundMaterial = new THREE.MeshStandardMaterial(
     groundMaps.length ? { color: '#ffffff', map: groundMaps[0], normalMap: groundMaps[1] ?? null, roughness: 1 } : { color: GRASS, roughness: 1 },
   )
+  if (xray) Object.assign(groundMaterial, { transparent: true, opacity: xray.ground, depthWrite: false, map: null, normalMap: null, color: new THREE.Color(xray.groundColor) })
   const ground = new THREE.Mesh(groundGeometry, groundMaterial)
   ground.receiveShadow = true
+  // under the ground seen through it, the buried lines draw over it
+  if (xray) ground.renderOrder = 1
   scene.add(ground)
+  let extra: THREE.Object3D | null = null
 
   const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 3000)
   const controls = new OrbitControls(camera, renderer.domElement)
@@ -91,8 +116,8 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
   controls.dampingFactor = 0.2
   controls.minDistance = 0.5
   controls.maxDistance = 600
-  // stay above the ground
-  controls.maxPolarAngle = Math.PI / 2 - 0.02
+  // stay above the ground (x-ray: go under it too, to see what is buried)
+  controls.maxPolarAngle = xray ? Math.PI - 0.02 : Math.PI / 2 - 0.02
   controls.screenSpacePanning = true
   // the wheel is ours (see zoom): the controls' own zoom crawls to a stop as it nears the point it orbits
   controls.enableZoom = false
@@ -132,7 +157,7 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
       camera.position.sub(toward).multiplyScalar(k).add(toward)
       controls.target.sub(toward).multiplyScalar(k).add(toward)
     }
-    camera.position.y = Math.max(camera.position.y, 0.3)
+    camera.position.y = Math.max(camera.position.y, xray ? -20 : 0.3)
     keepAhead()
     controls.update()
     request()
@@ -222,6 +247,7 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
       model?.root.removeFromParent()
       model?.dispose()
       model = buildHouse(solids)
+      if (xray) ghost(model.root, xray)
       scene.add(model.root)
       const size = model.box.getSize(new THREE.Vector3())
       const center = model.box.getCenter(new THREE.Vector3())
@@ -256,10 +282,26 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
       sun.shadow.intensity = 0.35 + 0.65 * clear
       sky.intensity = 0.15 + 0.75 * THREE.MathUtils.clamp((pos.altitude + 6) / 16, 0, 1)
       background.copy(SKY.night).lerp(SKY.dusk, THREE.MathUtils.clamp((pos.altitude + 6) / 8, 0, 1)).lerp(SKY.day, day)
+      if (xray) background.set(xray.background)
       aim()
       request()
     },
     view,
+    overlay(object) {
+      extra?.removeFromParent()
+      extra = object
+      if (object) scene.add(object)
+      request()
+    },
+    focus(at, distance = 6) {
+      pending = undefined
+      const target = new THREE.Vector3(at.x, at.z, at.y)
+      const direction = new THREE.Vector3(-0.7, 0.55, 0.9).normalize()
+      controls.target.copy(target)
+      camera.position.copy(target).addScaledVector(direction, distance)
+      controls.update()
+      request()
+    },
     pose: () => (pending ? undefined : { position: camera.position.clone(), target: controls.target.clone() }),
     async snapshot(scale = 2) {
       const ratio = renderer.getPixelRatio()
@@ -286,6 +328,27 @@ export function createExteriorEngine(host: HTMLElement, start?: CameraPose): Ext
       renderer.domElement.remove()
     },
   }
+}
+
+/** The building faded to a ghost (its own materials, which are the model's), but for the kinds kept solid. */
+function ghost(root: THREE.Object3D, xray: XRay) {
+  const faded = new Map<THREE.Material, THREE.Material>()
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh
+    if (!mesh.isMesh || xray.keep.includes(mesh.userData.kind as string)) return
+    const m = mesh.material as THREE.MeshStandardMaterial
+    let f = faded.get(m)
+    if (!f) {
+      // a copy, so a material shared with a kept solid stays solid there; the model disposes only its own
+      f = m.clone()
+      Object.assign(f, { transparent: true, opacity: Math.min(m.opacity, xray.ghost), depthWrite: false })
+      faded.set(m, f)
+      mesh.userData.ghost = true
+    }
+    mesh.material = f
+    mesh.castShadow = false
+  })
+  root.userData.ghosts = [...faded.values()]
 }
 
 /** The closest distance along `direction` at which the whole box stays in frame. */

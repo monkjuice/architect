@@ -37,7 +37,9 @@ actions. Every tab works on the same plan, with one undo history and one file:
 | **Electricity** | Each layer's electrical plan: boards, switches, light outlets and sockets, with the circuits, cables and their runs worked out from them (see [Electricity](#electricity)). |
 | **Plumbing** | The water supply, the hot water and the drains, worked out from the fixtures and the equipment put down (see [Plumbing](#plumbing)). |
 | **HVAC** | Heating, cooling and ventilation: boilers, heat pumps, radiators, radiant floors, split units, extractors, and each room's loads (see [HVAC](#hvac)). |
-| Interior, Gas | Not built yet: shown, disabled. |
+| **Gas** | Preliminary gas routing, sizing, combustion-air and exhaust coordination, with quantities and explicit professional-review warnings (see [Gas](#gas)). |
+| **MEP** | Read-only coordination of electricity, plumbing, HVAC and gas in plan, 3-D and construction-detail views (see [MEP coordination](#mep-coordination)). |
+| Interior | Not built yet: shown, disabled. |
 
 ## Workflow
 
@@ -545,6 +547,25 @@ Equipment goes on the active layer, and shows in 3-D on the [Exterior](#exterior
 connections are counted but priced on site; the rest is priced from the catalogue, scaled by what each piece is
 rated at.
 
+## Gas
+
+The **Gas** tab coordinates a natural-gas meter or LPG cylinder cabinet with cookers, gas water heaters, boilers,
+balanced-flue room heaters and spare outlets. It derives a route, preliminary Renouard low-pressure sizes, valves,
+wall sleeves, indicative permanent-vent locations and combustion-exhaust terminals. Pipe stretches can be dragged
+and retained as manual routes; material and routing choices are saved in the plan and included in the Materials list.
+
+This is deliberately not a construction design. The tab always states that a *gasista matriculado* must verify
+appliance nameplates, certified pipe data, ventilation free area, exhaust clearances and the complete route, then
+submit and sign the installation for distributor approval. Multiple supplies are not combined automatically, and
+LPG capacity assumes half the cylinder battery active at a conservative cold-weather rate.
+
+## MEP coordination
+
+The **MEP** tab combines the derived Electricity, Plumbing, HVAC and Gas systems without becoming a second editor.
+Its plan view overlays the disciplines and marks sleeves and clashes; the 3-D view places every run at its actual
+height, including continuously sloped drains and buried trenches; Details shows the recurring construction
+conditions. Use the system toggles to isolate a discipline, then edit it on its own tab.
+
 ## Roof
 
 The **Roof** tab is the roof plan: the floor plan faded, and the roofs over it. A roof is an outline (what it
@@ -642,8 +663,7 @@ The **Materials** tab lists what the house needs to be built, worked out from th
 checkboxes leave out the street or a neighbour's lot), in the chapters of an Argentine *cómputo métrico*:
 earthworks and foundations, concrete structure, masonry, damp-proofing and insulation, plaster and paint, sub-floors
 and screeds, floors and skirting, wall finishes, ceilings, roofing, doors and windows, glazing, metalwork and timber,
-electrical installation, pools, fixtures, garden, and the basic materials. Each row has its quantity and unit, its unit price and cost,
-pools, plumbing, HVAC, fixtures, garden, and the basic materials. Each row has its quantity and unit, its unit price and cost,
+electrical installation, pools, plumbing, gas, HVAC, fixtures, garden, and the basic materials. Each row has its quantity and unit, its unit price and cost,
 where it is used and how it was worked out. *Language* shows it in English or Spanish (Argentine building terms,
 numbers as 1.234,5); the choice is kept per browser. *Save CSV* downloads it for a spreadsheet, in the language
 shown (in Spanish with semicolons and decimal commas, as a spreadsheet set to Argentina reads it).
@@ -662,6 +682,8 @@ shown (in Spanish with semicolons and decimal commas, as a spreadsheet set to Ar
 - **From the Plumbing tab**: water and drain pipe by size and material along its routes, fittings, valves, each
   fixture's connections and trap, every piece of equipment put down with what it is rated at and the room it stands
   in, the floor traps and chambers worked out, and the trench for what is buried outside (see [Plumbing](#plumbing)).
+- **From the Gas tab**: pipe by material and preliminary size, fittings, valves, wall sleeves, supply equipment,
+  indicative vents and exhaust terminals, and buried-route excavation (see [Gas](#gas)).
 - **From the HVAC tab**: its equipment, heating pipe, radiant floors, refrigerant lines and ducts (see [HVAC](#hvac)).
 - **Assumed** behind them, by what each wall separates and how thick it is: a wall between a room and the outside
   (an indoor space counts when it is named or has a roof or a floor over it) is an insulated double wall when 25 cm

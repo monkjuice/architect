@@ -20,7 +20,7 @@ import {
 } from '../model/plan'
 
 /** The tabs along the top, in order. */
-export type Tab = 'foundation' | 'floor' | 'roof' | 'elevations' | 'exterior' | 'interior' | 'plumbing' | 'hvac' | 'electricity' | 'gas' | 'materials'
+export type Tab = 'foundation' | 'floor' | 'roof' | 'elevations' | 'exterior' | 'interior' | 'plumbing' | 'hvac' | 'electricity' | 'gas' | 'mep' | 'materials'
 
 export type ToolId =
   | 'select'
@@ -50,6 +50,8 @@ export type ToolId =
   | 'socket'
   | 'plumbing-select'
   | 'hvac-select'
+  | 'gas-select'
+  | 'mep-select'
   | 'service'
   | 'radiant'
 
@@ -155,7 +157,7 @@ export interface EditorState {
    * and place in that tab's runs, and the fixture, piece or room it ends at when it is the branch to one, to find it
    * again after an edit.
    */
-  pipePick?: { tab: 'plumbing' | 'hvac'; kind: string; index: number; to?: Ref }
+  pipePick?: { tab: 'plumbing' | 'hvac' | 'gas'; kind: string; index: number; stretch?: number; to?: Ref }
   /** Zoom and pan; absent: the canvas fits the plan once and stores that fit (start, Fit, new plan or image). */
   view?: Viewport
   file: FileInfo

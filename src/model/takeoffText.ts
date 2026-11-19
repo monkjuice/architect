@@ -1,9 +1,10 @@
 import { FOOTING, PAD, PILE, RAFT, RING_BEAM, TIE_COLUMN } from './foundations'
 import { furnitureInfo } from './furniture'
 import { findMaterial } from './materials'
+import { DROP, FLUE, GAS_FITTINGS, GAS_SIZES, GAS_TRENCH, VENTS_PER_ROOM } from './gas'
 import { HVAC_SIZES, RADIANT } from './hvac'
 import { FITTINGS, SUPPLY, TRENCH } from './plumbing'
-import { serviceInfo, specLabel, tabOf } from './services'
+import { serviceInfo, specLabel, tabOf, type ServiceTab } from './services'
 import { bought, rowCost, unitPrice } from './prices'
 import { BURIED_DEPTH } from './wiring'
 import type { FurnitureKind } from './plan'
@@ -61,6 +62,7 @@ export const CHAPTER_TITLES: Record<Chapter, Record<Lang, string>> = {
   electricity: { en: 'Electrical installation', es: 'Instalación eléctrica' },
   pools: { en: 'Pools', es: 'Piletas' },
   plumbing: { en: 'Plumbing', es: 'Instalación sanitaria' },
+  gas: { en: 'Gas installation', es: 'Instalación de gas' },
   hvac: { en: 'HVAC: heating, cooling and ventilation', es: 'Climatización: calefacción, refrigeración y ventilación' },
   fixtures: { en: 'Fixtures', es: 'Artefactos y equipamiento' },
   garden: { en: 'Garden', es: 'Parquización' },
@@ -513,6 +515,39 @@ const TEXT: Record<string, Record<Lang, [item: Words, basis: Words]>> = {
     en: ['Trench for buried pipes', (_, n) => `Pipes outside the buildings, ${n(TRENCH.width)} × ${n(TRENCH.depth)} m`],
     es: ['Zanja para cañerías enterradas', (_, n) => `Cañerías fuera de los edificios, ${n(TRENCH.width)} × ${n(TRENCH.depth)} m`],
   },
+  'gas.pipe': {
+    en: [(p) => gasPipeName(p, 'en'), (_, n) => `Preliminary Gas-tab route, rises included; sized for about ${n(DROP, 0)} mm water-column loss and subject to registered-installer verification`],
+    es: [(p) => gasPipeName(p, 'es'), (_, n) => `Recorrido preliminar de la pestaña Gas, con subidas; dimensionado para unos ${n(DROP, 0)} mm de columna de agua y sujeto a verificación por instalador matriculado`],
+  },
+  'gas.sleeve': {
+    en: ['Sleeve at an exterior-wall gas-pipe crossing', 'One at each derived building entry; final position and seal require professional approval'],
+    es: ['Vaina en el paso de gas por muro exterior', 'Una por ingreso calculado al edificio; posición y sellado sujetos a aprobación profesional'],
+  },
+  'gas.fittings': {
+    en: ['Gas-pipe fittings', `${GAS_FITTINGS.point} per appliance plus derived bends and tees`],
+    es: ['Accesorios para gas', `${GAS_FITTINGS.point} por artefacto más codos y tes calculados`],
+  },
+  'gas.valve': {
+    en: ['Gas shut-off valve', 'One per appliance plus the derived main or sectional valves'],
+    es: ['Llave de paso para gas', 'Una por artefacto más las llaves generales o seccionales calculadas'],
+  },
+  'gas.vent': {
+    en: ['Indicative permanent-vent location', `${VENTS_PER_ROOM} markers per room requiring combustion air; free area and placement must be set by a registered gas installer`],
+    es: ['Ubicación indicativa de ventilación permanente', `${VENTS_PER_ROOM} marcas por local que requiere aire de combustión; sección libre y ubicación a definir por gasista matriculado`],
+  },
+  'gas.flue': {
+    en: [`Indicative open-flue duct, nominal Ø ${FLUE.size} mm`, 'Length and terminal position must follow the approved appliance and site-specific gas design'],
+    es: [`Conducto indicativo de tiro natural, nominal Ø ${FLUE.size} mm`, 'Longitud y remate sujetos al artefacto aprobado y al proyecto de gas del sitio'],
+  },
+  'gas.cap': { en: ['Indicative open-flue terminal', 'One per vertical open flue'], es: ['Remate indicativo de tiro natural', 'Uno por conducto vertical de tiro natural'] },
+  'gas.terminal': {
+    en: ['Balanced-flue wall terminal', 'One per sealed appliance; final clearance from openings requires professional verification'],
+    es: ['Terminal mural de tiro balanceado', 'Uno por artefacto estanco; separaciones a aberturas sujetas a verificación profesional'],
+  },
+  'excavation.gas': {
+    en: ['Preliminary trench for buried gas pipe', (_, n) => `${n(GAS_TRENCH.width)} × ${n(GAS_TRENCH.depth)} m along derived outdoor routes; depth and protection require approval`],
+    es: ['Zanja preliminar para gas enterrado', (_, n) => `${n(GAS_TRENCH.width)} × ${n(GAS_TRENCH.depth)} m en recorridos exteriores calculados; profundidad y protección sujetas a aprobación`],
+  },
   fireplace: {
     en: [(p) => (p.style === 'parrilla' ? 'Parrilla (built-in grill), brick' : 'Masonry fireplace'), 'Counted'],
     es: [(p) => (p.style === 'parrilla' ? 'Parrilla de ladrillo' : 'Hogar a leña de mampostería'), 'Por unidad'],
@@ -629,6 +664,13 @@ const PIPE_EN: Record<string, string> = { ppr: 'polypropylene (thermofusion)', p
 const PIPE_ES: Record<string, string> = { ppr: 'polipropileno (termofusión)', pex: 'PEX', copper: 'cobre', pvc: 'PVC', pp: 'polipropileno silencioso' }
 const pipeName = (pipe: string | undefined, lang: Lang): string => (lang === 'es' ? PIPE_ES : PIPE_EN)[pipe ?? ''] ?? (pipe ?? '')
 
+function gasPipeName(p: RowParams, lang: Lang): string {
+  const size = GAS_SIZES.find((candidate) => candidate.dn === p.gasSize)
+  if (p.gasPipe === 'steel') return lang === 'es' ? `Caño de acero con epoxi para gas ${size?.inch ?? ''}` : `Epoxy-coated steel gas pipe ${size?.inch ?? ''}`
+  if (p.gasPipe === 'pe') return lang === 'es' ? `Caño de polietileno para gas enterrado Ø ${size?.od ?? ''} mm` : `Buried polyethylene gas pipe Ø ${size?.od ?? ''} mm`
+  return lang === 'es' ? `Sistema multicapa aprobado para gas Ø ${size?.od ?? ''} mm` : `Approved multilayer gas system Ø ${size?.od ?? ''} mm`
+}
+
 /** The equipment of the Plumbing tab in Spanish (see services.ts for the English titles). */
 const SERVICE_ES: Record<string, string> = {
   'mains-water': 'Conexión a la red de agua',
@@ -657,6 +699,17 @@ const SERVICE_ES: Record<string, string> = {
   biodigestor: 'Biodigestor',
   soakaway: 'Pozo absorbente',
   sewer: 'Conexión a cloaca',
+  'gas-heater': 'Calefactor de tiro balanceado',
+  'gas-meter': 'Gabinete de medidor y regulador de gas natural',
+  'gas-cylinders': 'Gabinete para cilindros de gas envasado',
+  'gas-outlet': 'Boca de gas con llave',
+  'gas-valve': 'Llave de corte seccional para gas',
+}
+
+const PUT_DOWN: Record<ServiceTab, Record<Lang, string>> = {
+  plumbing: { en: 'Put down on the Plumbing tab', es: 'Colocado en la pestaña Sanitaria' },
+  hvac: { en: 'Put down on the HVAC tab', es: 'Colocado en la pestaña Climatización' },
+  gas: { en: 'Put down on the Gas tab', es: 'Colocado en la pestaña Gas' },
 }
 
 /** A piece of equipment's row: what it is and what it is rated at ("Water tank, 1100 l"). */
@@ -666,7 +719,7 @@ function serviceText(kind: string, spec: number | undefined, lang: Lang): { item
   const rating = info?.spec && spec !== undefined ? `, ${specLabel(info, spec)}` : ''
   return {
     item: `${title}${rating}`,
-    basis: info && tabOf(info) === 'hvac' ? (lang === 'es' ? 'Colocado en la pestaña Climatización' : 'Put down on the HVAC tab') : lang === 'es' ? 'Colocado en la pestaña Sanitaria' : 'Put down on the Plumbing tab',
+    basis: PUT_DOWN[info ? tabOf(info) : 'plumbing'][lang],
   }
 }
 

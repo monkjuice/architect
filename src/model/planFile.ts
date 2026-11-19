@@ -22,6 +22,9 @@ const V1_POINTS: Record<string, { kind: string; size: [number, number] }> = {
  *
  * 2 → 3: heating moved from the Plumbing tab to the HVAC tab, so its pipe material moves from
  * `plan.plumbing.materials.heating` to `plan.hvac.materials.heating`.
+ *
+ * 3 → 4: Gas settings and optional manual routes were added. Both fields are optional, so old plans need no
+ * data transformation beyond advancing the version.
  */
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   1: (raw) => {
@@ -54,6 +57,7 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     if (!Object.keys(nextPlumbing).length) delete plan.plumbing
     return plan
   },
+  3: (raw) => raw,
 }
 
 export type ParseResult = { ok: true; plan: Plan; migratedFrom?: number } | { ok: false; errors: string[] }

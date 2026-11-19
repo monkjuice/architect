@@ -185,7 +185,7 @@ export const PRICES: Record<string, Price> = {
 }
 
 /**
- * What prices each piece of the Plumbing and HVAC tabs' equipment (see services.ts); what is not here is priced on
+ * What prices each piece of the Plumbing, HVAC and Gas tabs' equipment (see services.ts); what is not here is priced on
  * site (a well's drilling, a cistern, a soakaway, a mains or sewer connection, manifolds, filters, outdoor split
  * units, extractors and hoods). An underfloor manifold is in the radiant floor's price per m² (`heat.underfloor`).
  */
@@ -201,6 +201,10 @@ const SERVICE_PRICES: Record<string, string> = {
   radiator: 'heat.radiator',
   'split-indoor': 'heat.split',
   'heat-pump': 'heat.pump',
+  'gas-heater': 'heat.heater',
+  'gas-meter': 'gas.meterbox',
+  'gas-cylinders': 'gas.bottled',
+  'gas-valve': 'gas.valve',
 }
 
 /** Rows priced by another row's price: the same thing used in two places. */
@@ -226,6 +230,8 @@ export function priceKey(row: TakeoffRow): string | null {
   // pipe prices were seen for polypropylene water pipe and PVC drains only
   if (key.startsWith('water.pipe')) return p.pipe === 'ppr' ? key : null
   if (key.startsWith('drain.pipe')) return p.pipe === 'pvc' ? key : null
+  // The local reference price is for the certified multilayer DN15 product only.
+  if (key === 'gas.pipe') return p.gasPipe === 'pe-al-pe' && p.gasSize === 15 ? 'gas.pipe' : null
   if (['floor', 'cladding', 'ceiling', 'soffit.eaves', 'roof.cover', 'garden.cover'].includes(key)) return p.material ? `material:${p.material}` : null
   if (key === 'pool.lining') return p.material ? `material:${p.material}` : 'pool.lining'
   if (key === 'door' || key === 'window' || key === 'gate') return `${key}:${p.style}`

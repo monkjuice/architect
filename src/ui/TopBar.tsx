@@ -13,7 +13,8 @@ const TABS: { id: Tab; title: string; ready?: boolean }[] = [
   { id: 'plumbing', title: 'Plumbing', ready: true },
   { id: 'hvac', title: 'HVAC', ready: true },
   { id: 'electricity', title: 'Electricity', ready: true },
-  { id: 'gas', title: 'Gas' },
+  { id: 'gas', title: 'Gas', ready: true },
+  { id: 'mep', title: 'MEP', ready: true },
   { id: 'materials', title: 'Materials', ready: true },
 ]
 

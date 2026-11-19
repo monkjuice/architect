@@ -74,6 +74,15 @@ describe('plan files', () => {
     expect(parsed.plan.hvac?.materials?.heating).toBe('ppr')
   })
 
+  it('opens version 3 plans from before Gas and manual routes were added', () => {
+    const raw = JSON.parse(serializePlan(createPlan()))
+    raw.schemaVersion = 3
+
+    const parsed = parsePlan(raw)
+    expect(parsed.ok).toBe(true)
+    if (parsed.ok) expect(parsed.migratedFrom).toBe(3)
+  })
+
   it('rejects other files, newer versions and broken references with a readable message', () => {
     expect(parsePlanText('{').ok).toBe(false)
     expect(parsePlan({ format: 'something-else' })).toEqual({ ok: false, errors: ['Not an Architect plan: expected "format": "architect/plan".'] })

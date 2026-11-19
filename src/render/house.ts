@@ -103,6 +103,7 @@ export function buildHouse(solids: readonly Solid[]): HouseModel {
       mesh.castShadow = solid.material !== 'glass'
       mesh.receiveShadow = solid.kind !== 'roof'
       mesh.userData.ref = solid.ref
+      mesh.userData.kind = solid.kind
       root.add(mesh)
     }
   }
@@ -115,6 +116,7 @@ export function buildHouse(solids: readonly Solid[]): HouseModel {
     holes: [...new Set(solids.flatMap((s) => (s.hole ? [s.hole] : [])))],
     dispose() {
       for (const g of geometries) g.dispose()
+      for (const material of (root.userData.ghosts as THREE.Material[] | undefined) ?? []) material.dispose()
       // textures stay: they are painted once a session (textures.ts)
       for (const m of materials.values()) m.dispose()
     },

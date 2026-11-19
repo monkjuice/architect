@@ -39,6 +39,8 @@ export interface Prefs {
   /** What the Plumbing tab's plan shows (see PipePrefs). */
   pipes: PipePrefs
   hvac: HvacPrefs
+  gas: GasPrefs
+  mep: MepPrefs
 }
 
 /** The Plumbing tab's Show section: which pipes are drawn, their sizes, the equipment's labels, and the HVAC's pieces it serves. */
@@ -68,6 +70,31 @@ export interface HvacPrefs {
 }
 
 const HVAC_DEFAULTS: HvacPrefs = { heating: true, cooling: true, ventilation: true, loads: true, sizes: true, labels: true, linked: true }
+
+/** The Gas tab's Show section. */
+export interface GasPrefs {
+  pipes: boolean
+  sizes: boolean
+  vents: boolean
+  labels: boolean
+}
+
+const GAS_DEFAULTS: GasPrefs = { pipes: true, sizes: true, vents: true, labels: true }
+
+/** The combined MEP coordination view. */
+export interface MepPrefs {
+  electricity: boolean
+  water: boolean
+  drains: boolean
+  hvac: boolean
+  gas: boolean
+  equipment: boolean
+  clashes: boolean
+  trenches: boolean
+  view: 'plan' | '3d' | 'details'
+}
+
+const MEP_DEFAULTS: MepPrefs = { electricity: true, water: true, drains: true, hvac: true, gas: true, equipment: true, clashes: true, trenches: true, view: 'plan' }
 
 /** The sun as the user plays with it: a view setting, so it is per browser and not in the plan. */
 export interface SunPrefs {
@@ -103,6 +130,8 @@ const DEFAULTS: Prefs = {
   language: 'en',
   pipes: PIPE_DEFAULTS,
   hvac: HVAC_DEFAULTS,
+  gas: GAS_DEFAULTS,
+  mep: MEP_DEFAULTS,
 }
 
 let prefs: Prefs = load()
@@ -138,6 +167,8 @@ function load(): Prefs {
       language: LANGUAGES.includes(stored.language as Lang) ? (stored.language as Lang) : DEFAULTS.language,
       pipes: loadPipes(stored.pipes),
       hvac: loadHvac(stored.hvac),
+      gas: loadGas(stored.gas),
+      mep: loadMep(stored.mep),
     }
   } catch {
     return DEFAULTS
@@ -164,6 +195,27 @@ function loadPipes(stored: Partial<PipePrefs> | undefined): PipePrefs {
 function loadHvac(stored: Partial<HvacPrefs> | undefined): HvacPrefs {
   const flag = (key: keyof HvacPrefs) => (typeof stored?.[key] === 'boolean' ? stored[key] : HVAC_DEFAULTS[key])
   return { heating: flag('heating'), cooling: flag('cooling'), ventilation: flag('ventilation'), loads: flag('loads'), sizes: flag('sizes'), labels: flag('labels'), linked: flag('linked') }
+}
+
+function loadGas(stored: Partial<GasPrefs> | undefined): GasPrefs {
+  const flag = (key: keyof GasPrefs) => (typeof stored?.[key] === 'boolean' ? stored[key] : GAS_DEFAULTS[key])
+  return { pipes: flag('pipes'), sizes: flag('sizes'), vents: flag('vents'), labels: flag('labels') }
+}
+
+function loadMep(stored: Partial<MepPrefs> | undefined): MepPrefs {
+  const flag = (key: Exclude<keyof MepPrefs, 'view'>) => (typeof stored?.[key] === 'boolean' ? stored[key] : MEP_DEFAULTS[key])
+  const view = stored?.view === '3d' || stored?.view === 'details' ? stored.view : 'plan'
+  return {
+    electricity: flag('electricity'),
+    water: flag('water'),
+    drains: flag('drains'),
+    hvac: flag('hvac'),
+    gas: flag('gas'),
+    equipment: flag('equipment'),
+    clashes: flag('clashes'),
+    trenches: flag('trenches'),
+    view,
+  }
 }
 
 export function setSun(patch: Partial<SunPrefs>) {

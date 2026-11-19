@@ -46,7 +46,7 @@ import { z } from 'zod'
 export const PLAN_FORMAT = 'architect/plan'
 
 /** Current schema version. Bump it and add a step to `MIGRATIONS` whenever the format changes. */
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 const Num = z.number()
 const Positive = z.number().positive()
@@ -259,8 +259,9 @@ export const FurnitureSchema = z.discriminatedUnion('kind', [
 ])
 
 /**
- * The equipment put down on the Plumbing and HVAC tabs: where the water comes from and is kept, what pushes and
- * heats it and where the waste goes (plumbing); what heats, cools and ventilates the rooms (HVAC). Each stands at a point,
+ * The equipment put down on the Plumbing, HVAC and Gas tabs: where the water comes from and is kept, what pushes and
+ * heats it and where the waste goes (plumbing); what heats, cools and ventilates the rooms (HVAC); and where gas
+ * enters, is isolated and terminates (Gas). Each stands at a point,
  * turned, with its own footprint, like furniture; what it is rated at (litres held, heat given, water moved) follows
  * its size, and setting the rating resizes it (see services.ts). What the pipes do with them is worked out, never
  * stored (see plumbing.ts).
@@ -292,6 +293,11 @@ export const SERVICE_KINDS = [
   'biodigestor',
   'soakaway',
   'sewer',
+  'gas-heater',
+  'gas-meter',
+  'gas-cylinders',
+  'gas-outlet',
+  'gas-valve',
 ] as const
 
 export const ServiceSchema = z.strictObject({
@@ -305,6 +311,8 @@ export const ServiceSchema = z.strictObject({
   depth: Positive,
   /** A tap with hot water as well as cold. */
   hot: z.literal(true).optional(),
+  /** Future connected load reserved downstream of a sectional gas valve, kcal/h. */
+  reserve: z.number().positive().max(500000).optional(),
 })
 
 export const ROOF_TYPES = ['flat', 'shed', 'gable', 'hip', 'pergola', 'glass'] as const
@@ -495,6 +503,9 @@ export const PIPE_MATERIALS = ['ppr', 'pex', 'copper', 'pvc', 'pp'] as const
 /** What a fixture's connections (its hoses and angle valves) and its trap are made of. */
 export const FITTING_MATERIALS = ['metal', 'plastic'] as const
 
+/** Manually adjusted derived routes, keyed by network and terminal reference (see routing.ts). */
+export const RoutesSchema = z.record(z.string(), z.array(VecSchema).max(400))
+
 /**
  * The plumbing's choices (the Plumbing tab): what each network's pipes are made of (absent: polypropylene for water,
  * PVC for drains), and per fixture (keyed "layer:id" of the furniture) what its connections and trap are made of
@@ -509,6 +520,7 @@ export const PlumbingSchema = z.strictObject({
     })
     .optional(),
   fixtures: z.record(z.string(), z.strictObject({ connection: z.enum(FITTING_MATERIALS).optional(), trap: z.enum(FITTING_MATERIALS).optional() })).optional(),
+  routes: RoutesSchema.optional(),
 })
 
 /**
@@ -517,6 +529,21 @@ export const PlumbingSchema = z.strictObject({
  */
 export const HvacSchema = z.strictObject({
   materials: z.strictObject({ heating: z.enum(['pex', 'copper', 'ppr']).optional() }).optional(),
+  routes: RoutesSchema.optional(),
+})
+
+/** Gas-pipe material choices. Actual products still require distributor and installer approval. */
+export const GAS_MATERIALS = ['pe-al-pe', 'steel', 'pe'] as const
+export const GAS_INSIDE_MATERIALS = ['pe-al-pe', 'steel'] as const
+export const GAS_ROUTING_CHOICES = ['outside', 'entry', 'direct'] as const
+
+/** Saved Gas-tab choices; the installation and its suggested sizes remain derived. */
+export const GasSchema = z.strictObject({
+  material: z.enum(GAS_INSIDE_MATERIALS).optional(),
+  outdoor: z.enum(GAS_MATERIALS).optional(),
+  routing: z.enum(GAS_ROUTING_CHOICES).optional(),
+  routes: RoutesSchema.optional(),
+  appliances: z.record(z.string(), z.strictObject({ fuel: z.literal('electric') })).optional(),
 })
 
 /** Buenos Aires, north straight up: plans from before sites start here. */
@@ -533,6 +560,8 @@ export const PlanSchema = z.strictObject({
   plumbing: PlumbingSchema.optional(),
   /** The HVAC's materials (the HVAC tab); absent: the usual ones. */
   hvac: HvacSchema.optional(),
+  /** Gas routing/material choices and cookers explicitly changed to electric. */
+  gas: GasSchema.optional(),
   image: BaseImageSchema.optional(),
   layers: z.array(LayerSchema).min(1),
 })
@@ -582,6 +611,11 @@ export type FixturePlumbing = NonNullable<PlumbingSettings['fixtures']>[string]
 export type HvacSettings = z.infer<typeof HvacSchema>
 export type HeatingMaterial = NonNullable<NonNullable<HvacSettings['materials']>['heating']>
 export type ServiceKind = (typeof SERVICE_KINDS)[number]
+export type GasSettings = z.infer<typeof GasSchema>
+export type Routes = z.infer<typeof RoutesSchema>
+export type GasMaterial = (typeof GAS_MATERIALS)[number]
+export type GasInsideMaterial = (typeof GAS_INSIDE_MATERIALS)[number]
+export type GasRoutingChoice = (typeof GAS_ROUTING_CHOICES)[number]
 
 /** Distinct, saturated colours that read on white paper and on the dark canvas alike. */
 export const LAYER_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f59e0b', '#14b8a6', '#ec4899']

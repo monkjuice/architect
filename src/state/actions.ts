@@ -5,6 +5,7 @@ import { boardAndDescendants, boardCovers, boardFeeding, boardFor, boardKey, boa
 import { CIRCUIT_RULES, circuitKindOf, type Circuit } from '../model/wiring'
 import { faceLine, finishProblem, sideOf, wallSide, type WallSide } from '../model/finishes'
 import { findMaterial } from '../model/materials'
+import { isCooker } from '../model/gas'
 import { pointInPolygon, type Region } from '../model/regions'
 import { FURNITURE_REACH_M, furnitureFor, furnitureInfo, furnitureTarget, type FurnitureTarget } from '../model/furniture'
 import { boundsOf, polygonArea, type Box, type Vec } from '../model/geometry'
@@ -35,7 +36,7 @@ import {
 } from '../model/plan'
 import { parsePlanText, serializePlan } from '../model/planFile'
 import { fitRoof, galleryRoof, GALLERY_PITCH, newRoof, offsetPolygon, unionOutlines } from '../model/roofs'
-import { serviceInfo, serviceTarget, tabOf } from '../model/services'
+import { editableOn, serviceInfo, serviceTarget } from '../model/services'
 import { isCovered } from '../model/solids'
 import { addStorey, levelOf, MAX_STOREY, storeyLevel, storeyName } from '../model/storeys'
 import { EXTERIOR_WALL, WALL_HEIGHT, wallHeight } from '../model/walls'
@@ -70,6 +71,9 @@ export const ELECTRIC_TOOLS: readonly ToolId[] = ['electric-select', 'board', 's
 export const PLUMBING_TOOLS: readonly ToolId[] = ['plumbing-select', 'service']
 /** The HVAC tab's tools, besides Measure and Pan: select, put down the equipment picked in its library, mark radiant floors. */
 export const HVAC_TOOLS: readonly ToolId[] = ['hvac-select', 'service', 'radiant']
+/** The Gas tab's tools, besides Measure and Pan. */
+export const GAS_TOOLS: readonly ToolId[] = ['gas-select', 'service']
+const SERVICE_SELECT: Partial<Record<Tab, ToolId>> = { plumbing: 'plumbing-select', hvac: 'hvac-select', gas: 'gas-select' }
 
 /** Opens a tab, choosing its plan tool and retaining only the things that tab can select. */
 export function openTab(tab: Tab) {
@@ -78,24 +82,30 @@ export function openTab(tab: Tab) {
   const patch: Partial<EditorState> = { tab }
   const kept = (t: ToolId) => t === 'measure' || t === 'pan'
   if (tab === 'roof' && !ROOF_TOOLS.includes(tool)) patch.tool = 'roof-select'
-  if (tab === 'floor' && (ROOF_TOOLS.includes(tool) || FOUNDATION_TOOLS.includes(tool) || ELECTRIC_TOOLS.includes(tool) || PLUMBING_TOOLS.includes(tool) || HVAC_TOOLS.includes(tool))) patch.tool = 'select'
+  if (tab === 'floor' && (tool === 'mep-select' || ROOF_TOOLS.includes(tool) || FOUNDATION_TOOLS.includes(tool) || ELECTRIC_TOOLS.includes(tool) || PLUMBING_TOOLS.includes(tool) || HVAC_TOOLS.includes(tool) || GAS_TOOLS.includes(tool))) patch.tool = 'select'
   if (tab === 'foundation' && !FOUNDATION_TOOLS.includes(tool) && !kept(tool)) patch.tool = 'foundation-select'
   if (tab === 'electricity' && !ELECTRIC_TOOLS.includes(tool) && !kept(tool)) patch.tool = 'electric-select'
   if (tab === 'plumbing' && !PLUMBING_TOOLS.includes(tool) && !kept(tool)) patch.tool = 'plumbing-select'
   if (tab === 'hvac' && !HVAC_TOOLS.includes(tool) && !kept(tool)) patch.tool = 'hvac-select'
+  if (tab === 'gas' && !GAS_TOOLS.includes(tool) && !kept(tool)) patch.tool = 'gas-select'
+  if (tab === 'mep' && !kept(tool)) patch.tool = 'mep-select'
   // the Place tool puts down the library's pick: moving between the two tabs that have one, it starts from Select
-  if ((tab === 'plumbing' || tab === 'hvac') && tool === 'service' && store.getState().tab !== tab) patch.tool = tab === 'hvac' ? 'hvac-select' : 'plumbing-select'
+  if (SERVICE_SELECT[tab] && tool === 'service' && store.getState().tab !== tab) patch.tool = SERVICE_SELECT[tab]
   if (store.getState().pipePick && store.getState().pipePick!.tab !== tab) patch.pipePick = undefined
-  if (['roof', 'floor', 'foundation', 'electricity', 'plumbing', 'hvac'].includes(tab)) {
+  if (['roof', 'floor', 'foundation', 'electricity', 'plumbing', 'hvac', 'gas'].includes(tab)) {
     const { plan } = store.getState()
     // each plan selects its own things: roofs on Roof, electrical points on Electricity, a tab's equipment on its
     // service tab (and rooms on HVAC), and the rest on Floor and Foundation
     const own = (r: Ref) => {
       if (r.kind === 'roof') return tab === 'roof'
       if (r.kind === 'electrical') return tab === 'electricity'
+      if (r.kind === 'furniture' && tab === 'gas') {
+        const furniture = findLayer(plan, r.layer)?.furniture[r.id]
+        return !!furniture && isCooker({ kind: furniture.kind, style: 'style' in furniture ? furniture.style : undefined })
+      }
       if (r.kind === 'service') {
         const s = findLayer(plan, r.layer)?.services[r.id]
-        return !!s && tabOf(serviceInfo(s.kind)) === tab
+        return !!s && (tab === 'plumbing' || tab === 'hvac' || tab === 'gas') && editableOn(serviceInfo(s.kind), tab)
       }
       if (r.kind === 'area') return tab === 'floor' || tab === 'foundation' || tab === 'hvac'
       return tab === 'floor' || tab === 'foundation'

@@ -1,6 +1,7 @@
 import { add, cross, dist, EPS, lerp, mul, signedArea, sub, type Vec } from './geometry'
 import { openingSpans } from './openings'
 import { segmentKind, type Layer, type Segment } from './plan'
+import type { Region } from './regions'
 
 /**
  * Walls as built. Lines are drawn and snapped on their centrelines; a wall stands its thickness around its line
@@ -22,6 +23,15 @@ export const WALL_HEIGHT = 2.7
 export const MITRE_LIMIT = 4
 
 export const wallHeight = (s: Segment): number => s.height ?? WALL_HEIGHT
+
+/** A room's height: the mean of its walls, or the usual wall height when none is available. */
+export function roomHeight(layer: Layer, region: Pick<Region, 'wallIds'>): number {
+  const heights = region.wallIds.flatMap((id) => {
+    const segment = layer.segments[id]
+    return segment && segmentKind(segment) === 'wall' ? [wallHeight(segment)] : []
+  })
+  return heights.length ? heights.reduce((sum, height) => sum + height, 0) / heights.length : WALL_HEIGHT
+}
 
 export interface LayerWalls {
   /** Filled shapes: each wall between its openings, and the bevels of sharp corners; all run the same way round. */

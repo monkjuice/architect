@@ -28,13 +28,15 @@ import { ElectricalLayer, WiringLayer } from './Electrical'
 import { FinishLayer, FinishPatterns } from './Finishes'
 import { FoundationLayer } from './Foundation'
 import { FurnitureLayer } from './Furniture'
-import { getFoundation, getHvac, getPlumbing, getWiring, storeyView } from '../../state/derived'
+import { getFoundation, getGas, getHvac, getPlumbing, getWiring, storeyView } from '../../state/derived'
 import { getPrefs, setPrefs, setSun, usePrefs } from '../../state/prefs'
 import { getStore, useEditor, type ToolId, type Viewport } from '../../state/store'
 import { Overlay } from './Overlay'
 import { OpeningLayer } from './Openings'
 import { findRun } from '../../model/routing'
 import { HvacLayer } from './Hvac'
+import { GasLayer } from './Gas'
+import { MepPlanLayers } from './Mep'
 import { PlumbingLayer } from './Plumbing'
 import { ServiceLayer } from './Services'
 import { RoofLayer } from './Roofs'
@@ -50,8 +52,10 @@ const FOUNDATION_SHORTCUTS: Record<string, ToolId> = { v: 'foundation-select', m
 const ELECTRIC_SHORTCUTS: Record<string, ToolId> = { v: 'electric-select', b: 'board', s: 'switch', l: 'light', o: 'socket', m: 'measure', h: 'pan' }
 const PLUMBING_SHORTCUTS: Record<string, ToolId> = { v: 'plumbing-select', m: 'measure', h: 'pan' }
 const HVAC_SHORTCUTS: Record<string, ToolId> = { v: 'hvac-select', m: 'measure', h: 'pan' }
+const GAS_SHORTCUTS: Record<string, ToolId> = { v: 'gas-select', m: 'measure', h: 'pan' }
+const MEP_SHORTCUTS: Record<string, ToolId> = { v: 'mep-select', m: 'measure', h: 'pan' }
 
-type Mode = 'floor' | 'roof' | 'foundation' | 'electricity' | 'plumbing' | 'hvac'
+export type Mode = 'floor' | 'roof' | 'foundation' | 'electricity' | 'plumbing' | 'hvac' | 'gas' | 'mep'
 
 /** Each mode's single-key tools, and the tool Esc goes back to. */
 const MODE_KEYS: Record<Mode, { shortcuts: Record<string, ToolId>; home: ToolId }> = {
@@ -61,6 +65,8 @@ const MODE_KEYS: Record<Mode, { shortcuts: Record<string, ToolId>; home: ToolId 
   electricity: { shortcuts: ELECTRIC_SHORTCUTS, home: 'electric-select' },
   plumbing: { shortcuts: PLUMBING_SHORTCUTS, home: 'plumbing-select' },
   hvac: { shortcuts: HVAC_SHORTCUTS, home: 'hvac-select' },
+  gas: { shortcuts: GAS_SHORTCUTS, home: 'gas-select' },
+  mep: { shortcuts: MEP_SHORTCUTS, home: 'mep-select' },
 }
 
 const isTyping = (target: EventTarget | null) => !!(target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')
@@ -452,7 +458,18 @@ export function Canvas({ mode = 'floor' }: { mode?: Mode }) {
               room={selection.length === 1 && selection[0].kind === 'area' ? `${selection[0].layer}:${selection[0].id}` : undefined}
             />
           )}
-          {(mode === 'plumbing' || mode === 'hvac') &&
+          {mode === 'gas' && (
+            <GasLayer
+              gas={getGas(plan)}
+              storey={storeyOf(floor.layers.find((layer) => layer.id === activeLayer))}
+              zoom={view.zoom}
+              show={prefs.gas}
+              picked={pipePick?.tab === 'gas' ? findRun(getGas(plan).runs, pipePick) : undefined}
+              selected={selection.length === 1 && selection[0].kind === 'furniture' ? `${selection[0].layer}:${selection[0].id}` : undefined}
+            />
+          )}
+          {mode === 'mep' && <MepPlanLayers plan={plan} floor={floor} storey={storeyOf(floor.layers.find((layer) => layer.id === activeLayer))} zoom={view.zoom} />}
+          {(mode === 'plumbing' || mode === 'hvac' || mode === 'gas') &&
             floor.layers.map(
               (layer) =>
                 layer.visible && (
@@ -460,11 +477,11 @@ export function Canvas({ mode = 'floor' }: { mode?: Mode }) {
                     key={layer.id}
                     layer={layer}
                     tab={mode}
-                    linked={mode === 'plumbing' ? prefs.pipes.linked : prefs.hvac.linked}
+                    linked={mode === 'plumbing' ? prefs.pipes.linked : mode === 'hvac' ? prefs.hvac.linked : true}
                     selected={refIds('service', layer.id)}
                     hovered={hovered('service', layer.id)}
                     zoom={view.zoom}
-                    labels={mode === 'plumbing' ? prefs.pipes.labels : prefs.hvac.labels}
+                    labels={mode === 'plumbing' ? prefs.pipes.labels : mode === 'hvac' ? prefs.hvac.labels : prefs.gas.labels}
                   />
                 ),
             )}

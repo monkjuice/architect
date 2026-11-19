@@ -3,16 +3,19 @@ import { corners, ellipse, facing, local, placement, toLocal, type Placement, ty
 import { isEditable, segmentKind, type Layer, type Plan, type Service, type ServiceKind } from './plan'
 
 /**
- * The catalogue of equipment put down on the Plumbing and HVAC tabs. The Plumbing tab's: where the water comes from
- * (a mains connection, a well), where it is kept (a cistern, tanks), what pushes it (a well pump, a pressure pump),
- * what heats it (a water heater), and where the waste goes (floor drains, a grease trap, chambers, a septic tank or
- * biodigestor with its soakaway, or the sewer). The HVAC tab's: what heats the rooms (a boiler, a heat pump,
- * radiators, underfloor manifolds), cools them (split units) and ventilates them (extractors, range hoods).
+ * The catalogue of equipment put down on the Plumbing, HVAC and Gas tabs. The Plumbing tab's: where the water comes
+ * from (a mains connection, a well), where it is kept (a cistern, tanks), what pushes it (a well pump, a pressure
+ * pump), what heats it (a water heater), and where the waste goes (floor drains, a grease trap, chambers, a septic
+ * tank or biodigestor with its soakaway, or the sewer). The HVAC tab's: what heats the rooms (a boiler, a heat pump,
+ * radiators, underfloor manifolds, gas room heaters), cools them (split units) and ventilates them (extractors, range
+ * hoods). The Gas tab's: where the gas comes from (a natural gas meter, or a cabinet of LPG cylinders) and outlets for
+ * appliances not drawn on the plan.
  *
  * Each belongs to one tab (`tabOf`), where it is listed, picked and edited. What one tab's pieces need from another
  * is in their `links`: a boiler makes the hot water and is filled from the cold, a heat pump is filled, a split's
- * condensate drains into the plumbing, and most need power (the Electricity tab). The other tab shows them faded, with
- * the pipes that join them to it, so the relationship shows when moving between the tabs.
+ * condensate drains into the plumbing, a gas water heater, a boiler and a gas heater burn the Gas tab's gas, and most
+ * need power (the Electricity tab). The other tab shows them faded, with the pipes that join them to it, so the
+ * relationship shows when moving between the tabs (`linkedTo`).
  *
  * Each piece stands where it is put, turned, with a footprint, like furniture. What it is rated at follows its
  * size: a tank twice the footprint holds about twice as much, snapped to the sizes it is sold in, and typing a
@@ -20,12 +23,12 @@ import { isEditable, segmentKind, type Layer, type Plan, type Service, type Serv
  * pipes out from what stands on the plan (see plumbing.ts).
  */
 
-/** The groups, each listed in one tab's library: the Plumbing tab's first three, the HVAC tab's last three. */
-export const SERVICE_GROUPS = ['supply', 'hot', 'waste', 'heating', 'cooling', 'ventilation'] as const
+/** The groups, each listed in one tab's library: the Plumbing tab's first three, the HVAC tab's next three, the Gas tab's last. */
+export const SERVICE_GROUPS = ['supply', 'hot', 'waste', 'heating', 'cooling', 'ventilation', 'gas'] as const
 export type ServiceGroup = (typeof SERVICE_GROUPS)[number]
-export type ServiceTab = 'plumbing' | 'hvac'
-export const TAB_GROUPS: Record<ServiceTab, readonly ServiceGroup[]> = { plumbing: ['supply', 'hot', 'waste'], hvac: ['heating', 'cooling', 'ventilation'] }
-export const TAB_TITLES: Record<ServiceTab, string> = { plumbing: 'Plumbing', hvac: 'HVAC' }
+export type ServiceTab = 'plumbing' | 'hvac' | 'gas'
+export const TAB_GROUPS: Record<ServiceTab, readonly ServiceGroup[]> = { plumbing: ['supply', 'hot', 'waste'], hvac: ['heating', 'cooling', 'ventilation'], gas: ['gas'] }
+export const TAB_TITLES: Record<ServiceTab, string> = { plumbing: 'Plumbing', hvac: 'HVAC', gas: 'Gas' }
 
 export const GROUP_TITLES: Record<ServiceGroup, string> = {
   supply: 'Water supply',
@@ -34,18 +37,37 @@ export const GROUP_TITLES: Record<ServiceGroup, string> = {
   heating: 'Heating',
   cooling: 'Cooling',
   ventilation: 'Ventilation',
+  gas: 'Gas supply & outlets',
 }
 
 /** The tab a piece belongs to: where it is listed, picked and edited. */
-export const tabOf = (info: Pick<ServiceInfo, 'group'>): ServiceTab => (TAB_GROUPS.hvac.includes(info.group) ? 'hvac' : 'plumbing')
+export const tabOf = (info: Pick<ServiceInfo, 'group'>): ServiceTab => (TAB_GROUPS.hvac.includes(info.group) ? 'hvac' : TAB_GROUPS.gas.includes(info.group) ? 'gas' : 'plumbing')
+
+/**
+ * Whether a piece is put down, picked, moved and edited on `tab`: its own tab's, and on the Gas tab every piece that
+ * burns gas as well (a gas water heater, a boiler, a gas heater), since those are what its pipe goes to. It is still
+ * listed, counted and priced by the tab that owns it.
+ */
+export const editableOn = (info: Pick<ServiceInfo, 'group' | 'links'>, tab: ServiceTab): boolean => tabOf(info) === tab || (tab === 'gas' && !!info.links?.gas)
+
+/**
+ * Whether another tab's piece shows faded (not picked) on `tab`: the Plumbing and HVAC tabs show each other's, as they
+ * always have; the Gas tab's own pieces show on no other tab, and on the Gas tab the pieces that burn gas are its
+ * own to edit (`editableOn`) and the rest do not show.
+ */
+export function linkedTo(info: Pick<ServiceInfo, 'group' | 'links'>, tab: ServiceTab): boolean {
+  if (editableOn(info, tab) || tab === 'gas') return false
+  return tabOf(info) !== 'gas'
+}
 
 /**
  * What a piece does, which is what the pipes are worked out from: the water comes from a `source`, is lifted by a
  * `well-pump`, kept in a `store` (a cistern) or a `tank` above, pushed by a `pump`, passed through an `inline`
  * piece (a filter, a manifold), heated by a `heater` (a boiler heats the rooms too), given off by an `emitter` fed
- * by a `heat-source`, blown by an `indoor-unit` paired with a `condenser`, drawn from a `tap`, taken in by a
- * `drain` (a floor drain), caught by a `grease` trap, passed through a `chamber` and ended in a `waste` (the sewer,
- * a septic tank, a biodigestor) and its `soak`away.
+ * by a `heat-source` or by a `room-heater` that burns its own gas, blown by an `indoor-unit` paired with a
+ * `condenser`, drawn from a `tap`, taken in by a `drain` (a floor drain), caught by a `grease` trap, passed through a
+ * `chamber` and ended in a `waste` (the sewer, a septic tank, a biodigestor) and its `soak`away. The gas comes from a
+ * `gas-source` (a meter, cylinders) and is burnt by the appliances and at a `gas-outlet`.
  */
 export type ServiceRole =
   | 'extract'
@@ -66,6 +88,10 @@ export type ServiceRole =
   | 'chamber'
   | 'waste'
   | 'soak'
+  | 'room-heater'
+  | 'gas-source'
+  | 'gas-outlet'
+  | 'gas-valve'
 
 /** What a piece is rated at, and how that follows its size. */
 export interface SpecInfo {
@@ -101,9 +127,9 @@ export interface ServiceInfo {
   /**
    * What it needs from the other tabs: `dhw` it heats the house's hot water (the Plumbing tab feeds it cold water and
    * takes the hot from it), `fill` it is filled from the cold water, `condensate` it drains its condensate into the
-   * plumbing, `power` it needs an electrical point (the Electricity tab).
+   * plumbing, `power` it needs an electrical point (the Electricity tab), `gas` it burns gas piped by the Gas tab.
    */
-  links?: { dhw?: true; fill?: true; condensate?: true; power?: true }
+  links?: { dhw?: true; fill?: true; condensate?: true; power?: true; gas?: true }
   /** What it is for, in the library and the Selection section. */
   note: string
 }
@@ -235,6 +261,7 @@ export const SERVICES: readonly ServiceInfo[] = [
   {
     kind: 'heater-gas',
     group: 'hot',
+    links: { gas: true },
     role: 'heater',
     title: 'Gas water heater',
     width: 0.55,
@@ -242,7 +269,7 @@ export const SERVICES: readonly ServiceInfo[] = [
     height: 1.5,
     snap: 'wall',
     spec: { measure: 'capacity', unit: 'l', value: 150, scale: 'area', steps: HEATERS },
-    note: 'A storage heater on natural gas; it needs a flue (the Gas tab, when it comes).',
+    note: 'A storage heater on gas, with an open flue: the Gas tab pipes its gas and runs its flue up past the roof. Not in a bathroom or a bedroom.',
   },
   {
     kind: 'heater-electric',
@@ -261,14 +288,14 @@ export const SERVICES: readonly ServiceInfo[] = [
     kind: 'boiler',
     group: 'heating',
     role: 'heat-source',
-    links: { dhw: true, fill: true, power: true },
+    links: { dhw: true, fill: true, power: true, gas: true },
     title: 'Boiler (combi)',
     width: 0.45,
     depth: 0.3,
     height: 0.8,
     snap: 'wall',
     spec: { measure: 'power', unit: 'kcal/h', value: 24000, scale: 'area', steps: [18000, 24000, 32000, 40000] },
-    note: 'Heats the rooms through the radiators and underfloor circuits, and the house’s hot water too: the Plumbing tab feeds it and takes its hot water.',
+    note: 'Heats the rooms through the radiators and underfloor circuits, and the house’s hot water too: the Plumbing tab feeds it and takes its hot water, the Gas tab pipes its gas. Sealed, its flue out through the wall.',
   },
   {
     kind: 'heat-pump',
@@ -306,6 +333,19 @@ export const SERVICES: readonly ServiceInfo[] = [
     snap: 'wall',
     spec: { measure: 'circuits', unit: 'circuits', value: 6, scale: 'width', grain: 1 },
     note: 'Where the radiant floor loops of the rooms near it start (mark the rooms with Radiant floor); it is fed by the boiler or the heat pump.',
+  },
+  {
+    kind: 'gas-heater',
+    group: 'heating',
+    role: 'room-heater',
+    links: { gas: true },
+    title: 'Gas heater (balanced flue)',
+    width: 0.55,
+    depth: 0.2,
+    height: 0.6,
+    snap: 'wall',
+    spec: { measure: 'power', unit: 'kcal/h', value: 3500, scale: 'width', steps: [2000, 3000, 3500, 5000, 6000] },
+    note: 'A balanced-flue heater on an outside wall: it takes its air and lets out its fumes through that wall, so it may go in any room. It heats its own room; the Gas tab pipes its gas.',
   },
   {
     kind: 'split-indoor',
@@ -455,6 +495,58 @@ export const SERVICES: readonly ServiceInfo[] = [
     outdoor: true,
     note: 'Where the main sewer is reached. With it the house needs no septic tank, biodigestor or soakaway.',
   },
+  {
+    kind: 'gas-meter',
+    ground: true,
+    group: 'gas',
+    role: 'gas-source',
+    title: 'Natural gas meter',
+    width: 0.6,
+    depth: 0.3,
+    height: 1.0,
+    snap: 'none',
+    spec: { measure: 'flow', unit: 'm³/h', value: 6, scale: 'area', steps: [6, 10, 16] },
+    outdoor: true,
+    note: 'The meter and regulator in their cabinet, where the gas main reaches the lot (usually on the front boundary). The installation starts at its valve.',
+  },
+  {
+    kind: 'gas-cylinders',
+    ground: true,
+    group: 'gas',
+    role: 'gas-source',
+    title: 'Gas cylinders (LPG)',
+    width: 1.0,
+    depth: 0.5,
+    height: 1.6,
+    snap: 'wall',
+    spec: { measure: 'capacity', unit: 'kg', value: 90, scale: 'width', steps: [90, 135, 180, 270] },
+    outdoor: true,
+    note: 'Bottled gas where there is no main: 45 kg cylinders in a ventilated cabinet outside, with their regulator. Never indoors or below ground.',
+  },
+  {
+    kind: 'gas-outlet',
+    group: 'gas',
+    role: 'gas-outlet',
+    title: 'Gas outlet',
+    width: 0.15,
+    depth: 0.15,
+    height: 0.5,
+    snap: 'wall',
+    spec: { measure: 'power', unit: 'kcal/h', value: 3000, scale: 'area', steps: [1500, 3000, 6000, 10000, 20000] },
+    note: 'A capped point with its valve, for what is not drawn on the plan: a barbecue, an outdoor cooker, a gas fire. Its rating is what will burn there.',
+  },
+  {
+    kind: 'gas-valve',
+    group: 'gas',
+    role: 'gas-valve',
+    title: 'Shut-off valve',
+    width: 0.2,
+    depth: 0.2,
+    height: 0.15,
+    snap: 'none',
+    spec: null,
+    note: 'A sectional valve that closes off a part of the installation: what stands in the building by it (or outside within a few metres) is fed through it. Give it a reserve to size the pipe now for what will hang off it later, a quincho to come.',
+  },
 ]
 
 export const serviceInfo = (kind: ServiceKind): ServiceInfo => SERVICES.find((i) => i.kind === kind)!
@@ -521,6 +613,26 @@ export const specText = (info: ServiceInfo, width: number, depth: number): strin
 
 export const placeService = (s: Service): Placement => placement(s.at, s.angle, s.width, s.depth)
 
+/** The networks a piece connects to, each at its own point (see portOf). */
+export type Port = 'cold' | 'hot' | 'heating' | 'gas'
+
+/**
+ * Where each network connects on a piece, m in its own frame: across its front (right of its middle, seen from the
+ * front) and in from its back. Hot water left and cold right as at a mixer, the heating's flow and return in the
+ * middle, the gas in the middle a little further in: far enough apart that pipes of different systems coming to one
+ * piece (a gas water heater's cold, hot and gas; a boiler's five) neither meet at one point nor run together on the
+ * way to it, whichever side they come from.
+ */
+export const PORTS: Record<Port, { x: number; y: number }> = { hot: { x: -0.1, y: 0.05 }, cold: { x: 0.1, y: 0.05 }, heating: { x: 0, y: 0.05 }, gas: { x: 0, y: 0.15 } }
+
+/** Where a network connects to a piece, on the plan: its port, kept inside a small piece's footprint. */
+export function portOf(s: Service, port: Port): Vec {
+  const pl = placeService(s)
+  const x = clamp(PORTS[port].x, -Math.max(0, pl.width / 2 - 0.02), Math.max(0, pl.width / 2 - 0.02))
+  const y = Math.min(PORTS[port].y, Math.max(0, pl.depth - 0.02))
+  return local(pl, x, -pl.depth / 2 + y)
+}
+
 /** Whether a plan point is on a piece. */
 export const onService = (pl: Placement, p: Vec): boolean => {
   const q = toLocal(pl, p)
@@ -533,8 +645,8 @@ export function serviceAt(plan: Plan, p: Vec, tab: ServiceTab, reach = 0): { lay
     if (!isEditable(layer)) continue
     let best: { id: string; area: number } | null = null
     for (const [id, s] of Object.entries(layer.services)) {
-      // the other tab's pieces show faded: they are picked and edited on their own tab
-      if (tabOf(serviceInfo(s.kind)) !== tab) continue
+      // the other tabs' pieces show faded, if at all: they are picked and edited on their own tab (a gas appliance on Gas too)
+      if (!editableOn(serviceInfo(s.kind), tab)) continue
       const pl = placeService(s)
       const grown = placement(s.at, s.angle, s.width + 2 * reach, s.depth + 2 * reach)
       if (!onService(grown, p)) continue
@@ -551,7 +663,7 @@ export function servicesInBox(plan: Plan, box: Box, tab: ServiceTab): { layer: s
   for (const layer of plan.layers) {
     if (!isEditable(layer)) continue
     for (const [id, s] of Object.entries(layer.services)) {
-      if (tabOf(serviceInfo(s.kind)) !== tab) continue
+      if (!editableOn(serviceInfo(s.kind), tab)) continue
       if (s.at.x >= box.x0 && s.at.x <= box.x1 && s.at.y >= box.y0 && s.at.y <= box.y1) out.push({ layer: layer.id, id })
     }
   }
@@ -597,7 +709,7 @@ export function serviceTarget(
 // ---- plan symbols ----------------------------------------------------------------------------------------------
 
 /** Pieces drawn as a circle (a tank, a well, a biodigestor); the rest are drawn as their footprint. */
-const DISCS: ServiceKind[] = ['well', 'well-pump', 'cistern', 'tank', 'biodigestor', 'septic', 'soakaway', 'filter', 'tap', 'pump', 'grease-trap']
+const DISCS: ServiceKind[] = ['well', 'well-pump', 'cistern', 'tank', 'biodigestor', 'septic', 'soakaway', 'filter', 'tap', 'pump', 'grease-trap', 'gas-outlet']
 
 /** Whether a piece is drawn as a circle (an ellipse when it is not square): its plan symbol and its 3-D body. */
 export const isDisc = (kind: ServiceKind): boolean => DISCS.includes(kind)
@@ -671,6 +783,34 @@ export function serviceSymbol(kind: ServiceKind, pl: Placement): SymbolPart[] {
       return [box(), box('detail', Math.min(hw, hd) * 0.3), line(-hw, hd * 0.6, hw, hd * 0.6, 'soft')]
     case 'sewer':
       return [box(), ...cross, box('soft', Math.min(hw, hd) * 0.5)]
+    case 'gas-meter':
+      // the cabinet, its meter's dial and the valve's handle across the front
+      return [box(), { pts: ellipse(pl, -hw * 0.55, -hd * 0.6, hw * 0.05, hd * 0.6), closed: true, role: 'detail' }, line(hw * 0.25, hd * 0.5, hw * 0.75, hd * 0.5, 'heavy')]
+    case 'gas-cylinders': {
+      // the cabinet with its cylinders standing in it, seen from above
+      const n = Math.max(1, Math.round(pl.width / 0.5))
+      const r = Math.min(pl.width / n, pl.depth) * 0.4
+      return [
+        box(),
+        ...Array.from({ length: n }, (_, i): SymbolPart => {
+          const x = -hw + ((i + 0.5) * pl.width) / n
+          return { pts: ellipse(pl, x - r, -r, x + r, r), closed: true, role: 'detail' }
+        }),
+      ]
+    }
+    case 'gas-outlet':
+      // a valve: a circle with its handle
+      return [disc(1, 'heavy'), line(-hw * 1.6, 0, hw * 1.6, 0, 'heavy')]
+    case 'gas-valve':
+      // a valve as drawings show one: two triangles tip to tip, its handle across
+      return [
+        box('soft'),
+        { pts: [local(pl, -hw * 0.8, -hd * 0.5), local(pl, hw * 0.8, hd * 0.5), local(pl, hw * 0.8, -hd * 0.5), local(pl, -hw * 0.8, hd * 0.5)], closed: true, role: 'heavy' },
+        line(0, 0, 0, -hd * 0.9, 'heavy'),
+      ]
+    case 'gas-heater':
+      // the heater on its wall, its grille, and the balanced flue through the wall behind
+      return [box(), line(-hw * 0.7, hd * 0.3, hw * 0.7, hd * 0.3, 'soft'), line(-hw * 0.7, hd * 0.6, hw * 0.7, hd * 0.6, 'soft'), line(0, -hd, 0, -hd * 2.2, 'heavy')]
     default:
       return [box()]
   }

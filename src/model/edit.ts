@@ -7,6 +7,7 @@ import {
   LAYER_COLORS,
   refExists,
   segmentKind,
+  storeyOf,
   type Area,
   type Board,
   type BoardCircuit,
@@ -14,10 +15,15 @@ import {
   type CircuitKind,
   type Electrical,
   type FixturePlumbing,
+  type GasMaterial,
+  type GasRoutingChoice,
+  type GasSettings,
   type HeatingMaterial,
+  type HvacSettings,
   type PipeMaterial,
   type PipeNetwork,
   type PlumbingSettings,
+  type Routes,
   type FoundationSystem,
   type Furniture,
   type Layer,
@@ -31,7 +37,10 @@ import {
   type SegmentKind,
   type Site,
 } from './plan'
+import { toGas } from './gas'
 import { isStyleOf } from './openings'
+import { layerFaces } from './regions'
+import { serviceTarget } from './services'
 import type { Snap } from './snap'
 
 /**
@@ -299,15 +308,26 @@ export function deleteItems(plan: Plan, refs: readonly Ref[]): Plan {
       pruneFurniture(d)
     })
   }
-  return pruneFixturePlumbing(next)
+  return pruneRoutes(pruneApplianceGas(pruneFixturePlumbing(next)))
 }
+
+/** Whether the furniture a "layer:id" key names still exists. */
+const furnitureKeyExists = (plan: Plan, key: string) => refExists(plan, { layer: key.slice(0, key.indexOf(':')), kind: 'furniture', id: key.slice(key.indexOf(':') + 1) })
 
 /** Drops the plumbing choices of fixtures that are gone. */
 function pruneFixturePlumbing(plan: Plan): Plan {
   const fixtures = plan.plumbing?.fixtures
   if (!fixtures) return plan
-  const kept = Object.fromEntries(Object.entries(fixtures).filter(([key]) => refExists(plan, { layer: key.slice(0, key.indexOf(':')), kind: 'furniture', id: key.slice(key.indexOf(':') + 1) })))
+  const kept = Object.fromEntries(Object.entries(fixtures).filter(([key]) => furnitureKeyExists(plan, key)))
   return Object.keys(kept).length === Object.keys(fixtures).length ? plan : withPlumbing(plan, { ...plan.plumbing, fixtures: kept })
+}
+
+/** Drops fuel choices for cookers that were deleted. */
+function pruneApplianceGas(plan: Plan): Plan {
+  const appliances = plan.gas?.appliances
+  if (!appliances) return plan
+  const kept = Object.fromEntries(Object.entries(appliances).filter(([key]) => furnitureKeyExists(plan, key)))
+  return Object.keys(kept).length === Object.keys(appliances).length ? plan : withGas(plan, { ...plan.gas, appliances: kept })
 }
 
 /** Makes segments walls, open edges or outlines; the same plan when they already are. */
@@ -942,11 +962,67 @@ export function setAreaRadiant(plan: Plan, refs: readonly Ref[], radiant: boolea
 /** Sets what the heating circuits are made of; undefined goes back to the usual (PEX). */
 export function setHeatingMaterial(plan: Plan, material: HeatingMaterial | undefined): Plan {
   if (plan.hvac?.materials?.heating === material) return plan
-  if (material === undefined) {
+  return withHvac(plan, { ...plan.hvac, materials: material ? { heating: material } : undefined })
+}
+
+function withHvac(plan: Plan, next: HvacSettings): Plan {
+  const materials = next.materials?.heating ? next.materials : undefined
+  const routes = next.routes && Object.keys(next.routes).length ? next.routes : undefined
+  if (!materials && !routes) {
+    if (!plan.hvac) return plan
     const { hvac: _, ...rest } = plan
     return rest
   }
-  return { ...plan, hvac: { ...plan.hvac, materials: { heating: material } } }
+  return { ...plan, hvac: { ...(materials ? { materials } : {}), ...(routes ? { routes } : {}) } }
+}
+
+// ---- routes set by hand
+
+export type RoutedTab = 'plumbing' | 'hvac' | 'gas'
+
+const routesOf = (plan: Plan, tab: RoutedTab): Routes => (tab === 'plumbing' ? plan.plumbing?.routes : tab === 'hvac' ? plan.hvac?.routes : plan.gas?.routes) ?? {}
+
+function withRoutes(plan: Plan, tab: RoutedTab, routes: Routes): Plan {
+  if (tab === 'plumbing') return withPlumbing(plan, { ...plan.plumbing, routes })
+  if (tab === 'hvac') return withHvac(plan, { ...plan.hvac, routes })
+  return withGas(plan, { ...plan.gas, routes })
+}
+
+export function setRoutes(plan: Plan, tab: RoutedTab, changes: ReadonlyMap<string, readonly Vec[] | null>): Plan {
+  if (!changes.size) return plan
+  const routes: Routes = { ...routesOf(plan, tab) }
+  let changed = false
+  for (const [key, way] of changes) {
+    if (way === null) {
+      if (key in routes) {
+        delete routes[key]
+        changed = true
+      }
+    } else {
+      routes[key] = way.map((p) => ({ x: Math.round(p.x * 1000) / 1000, y: Math.round(p.y * 1000) / 1000 }))
+      changed = true
+    }
+  }
+  return changed ? withRoutes(plan, tab, routes) : plan
+}
+
+export function resetRoutes(plan: Plan, tab: RoutedTab, keys?: readonly string[]): Plan {
+  const routes = routesOf(plan, tab)
+  if (!Object.keys(routes).length) return plan
+  return setRoutes(plan, tab, new Map((keys ?? Object.keys(routes)).map((key) => [key, null])))
+}
+
+function pruneRoutes(plan: Plan): Plan {
+  let next = plan
+  for (const tab of ['plumbing', 'hvac', 'gas'] as const) {
+    const routes = routesOf(next, tab)
+    const gone = Object.keys(routes).filter((key) => {
+      const [layer, kind, id] = key.slice(key.indexOf('|') + 1).split(':')
+      return !refExists(next, { layer, kind: kind as Ref['kind'], id })
+    })
+    if (gone.length) next = resetRoutes(next, tab, gone)
+  }
+  return next
 }
 
 // ---- the plumbing's choices: plan-level, dropped when nothing is chosen
@@ -954,12 +1030,13 @@ export function setHeatingMaterial(plan: Plan, material: HeatingMaterial | undef
 function withPlumbing(plan: Plan, next: PlumbingSettings): Plan {
   const materials = next.materials && Object.values(next.materials).some((m) => m !== undefined) ? next.materials : undefined
   const fixtures = next.fixtures && Object.keys(next.fixtures).length ? next.fixtures : undefined
-  if (!materials && !fixtures) {
+  const routes = next.routes && Object.keys(next.routes).length ? next.routes : undefined
+  if (!materials && !fixtures && !routes) {
     if (!plan.plumbing) return plan
     const { plumbing: _, ...rest } = plan
     return rest
   }
-  return { ...plan, plumbing: { ...(materials ? { materials } : {}), ...(fixtures ? { fixtures } : {}) } }
+  return { ...plan, plumbing: { ...(materials ? { materials } : {}), ...(fixtures ? { fixtures } : {}), ...(routes ? { routes } : {}) } }
 }
 
 /** Sets what a network's pipes are made of; undefined goes back to the usual material. The same plan when nothing changes. */
@@ -986,6 +1063,90 @@ export function setFixturePlumbing(plan: Plan, ref: Ref, patch: Partial<FixtureP
   if (next.connection === undefined && next.trap === undefined) delete fixtures[key]
   else fixtures[key] = next
   return withPlumbing(plan, { ...plan.plumbing, fixtures })
+}
+
+// ---- gas choices
+
+function withGas(plan: Plan, next: GasSettings): Plan {
+  const appliances = next.appliances && Object.keys(next.appliances).length ? next.appliances : undefined
+  const routes = next.routes && Object.keys(next.routes).length ? next.routes : undefined
+  const kept = {
+    ...(next.material ? { material: next.material } : {}),
+    ...(next.outdoor ? { outdoor: next.outdoor } : {}),
+    ...(next.routing ? { routing: next.routing } : {}),
+    ...(routes ? { routes } : {}),
+    ...(appliances ? { appliances } : {}),
+  }
+  if (!Object.keys(kept).length) {
+    if (!plan.gas) return plan
+    const { gas: _, ...rest } = plan
+    return rest
+  }
+  return { ...plan, gas: kept }
+}
+
+export function setGasMaterial(plan: Plan, where: 'inside' | 'outside', material: GasMaterial | undefined): Plan {
+  if (where === 'inside') {
+    const inside = material === 'pe' ? undefined : material
+    return plan.gas?.material === inside ? plan : withGas(plan, { ...plan.gas, material: inside })
+  }
+  return plan.gas?.outdoor === material ? plan : withGas(plan, { ...plan.gas, outdoor: material })
+}
+
+export function setGasRouting(plan: Plan, routing: GasRoutingChoice | undefined): Plan {
+  return plan.gas?.routing === routing ? plan : withGas(plan, { ...plan.gas, routing })
+}
+
+export function switchToGas(plan: Plan, refs: readonly Ref[]): Plan {
+  let next = plan
+  for (const ref of refs) {
+    const service = ref.kind === 'service' ? findLayer(next, ref.layer)?.services[ref.id] : undefined
+    if (!service) continue
+    const gas = toGas(service)
+    const inside = service.kind === 'heat-pump' ? acrossTheWall(next, ref.layer, gas) : null
+    next = updateService(next, ref.layer, ref.id, inside ?? gas)
+  }
+  return next
+}
+
+function acrossTheWall(plan: Plan, layerId: string, service: Service): Service | null {
+  const layer = findLayer(plan, layerId)
+  if (!layer) return null
+  const floor = plan.layers.filter((candidate) => candidate.visible && storeyOf(candidate) === storeyOf(layer))
+  let best: { d: number; at: Vec; layer: Layer; id: string } | null = null
+  for (const candidate of floor) {
+    for (const [id, segment] of Object.entries(candidate.segments)) {
+      if (segmentKind(segment) !== 'wall') continue
+      const closest = closestOnSegment(service.at, candidate.vertices[segment.a], candidate.vertices[segment.b])
+      if (closest.dist <= 2 && (!best || closest.dist < best.d)) best = { d: closest.dist, at: closest.point, layer: candidate, id }
+    }
+  }
+  if (!best) return null
+  const half = (layerFaces(best.layer).thickness.get(best.id) ?? 0.15) / 2
+  const away = { x: best.at.x - service.at.x, y: best.at.y - service.at.y }
+  const length = Math.hypot(away.x, away.y) || 1
+  const at = { x: best.at.x + (away.x / length) * (half + service.depth / 2 + 0.05), y: best.at.y + (away.y / length) * (half + service.depth / 2 + 0.05) }
+  const target = serviceTarget({ ...plan, layers: floor }, at, {
+    kind: service.kind,
+    width: service.width,
+    depth: service.depth,
+    angle: service.angle,
+    layer: layerId,
+    reach: 0.3,
+    snap: true,
+    thickness: (targetLayer, id) => layerFaces(targetLayer).thickness.get(id) ?? 0.15,
+  })
+  return target ? { ...service, at: target.at, angle: target.angle } : { ...service, at }
+}
+
+export function setApplianceFuel(plan: Plan, ref: Ref, fuel: 'gas' | 'electric'): Plan {
+  const key = `${ref.layer}:${ref.id}`
+  const was = plan.gas?.appliances?.[key]?.fuel === 'electric' ? 'electric' : 'gas'
+  if (was === fuel) return plan
+  const appliances = { ...plan.gas?.appliances }
+  if (fuel === 'electric') appliances[key] = { fuel: 'electric' }
+  else delete appliances[key]
+  return withGas(plan, { ...plan.gas, appliances })
 }
 
 // ---- service equipment: it only touches a layer's service map

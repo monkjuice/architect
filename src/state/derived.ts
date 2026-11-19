@@ -3,11 +3,15 @@ import { findLayer, storeyOf, type Area, type Layer, type Plan } from '../model/
 import { labelPoint, layerFaces, regionAt, regionLabel, type LayerFaces, type Region } from '../model/regions'
 import { foundationPlan, type FoundationPlan } from '../model/foundations'
 import { hvacPlan, type HvacPlan } from '../model/hvac'
+import { gasPlan, type GasPlan } from '../model/gas'
+import { mepPlan, type MepPlan } from '../model/mep'
 import { plumbingPlan, type PlumbingPlan } from '../model/plumbing'
+import { inTheScreed, router } from '../model/routing'
 import { houseSolids, type Solid } from '../model/solids'
 import { materialsList, type TakeoffRow } from '../model/takeoff'
 import { INTERIOR_WALL, layerWalls, type LayerWalls } from '../model/walls'
 import { wallGraph, wiringPlan, type WallGraph, type Wiring } from '../model/wiring'
+import { storeyLevel } from '../model/storeys'
 import { getPrefs } from './prefs'
 
 /**
@@ -213,6 +217,44 @@ const hvacCache = new WeakMap<Plan, HvacPlan>()
 /** The HVAC plan for the HVAC tab, from the visible layers. */
 export function getHvac(plan: Plan): HvacPlan {
   let h = hvacCache.get(plan)
-  if (!h) hvacCache.set(plan, (h = hvacPlan(plan, { faces: getFaces, walls: getWalls })))
+  if (!h) hvacCache.set(plan, (h = hvacPlan(plan, { faces: getFaces, walls: getWalls }, inTheScreed(getPlumbing(plan).runs))))
   return h
+}
+
+const gasCache = new WeakMap<Plan, GasPlan>()
+
+/** The preliminary gas installation, kept clear of wet and HVAC routes in the screed. */
+export function getGas(plan: Plan): GasPlan {
+  let gas = gasCache.get(plan)
+  if (!gas) {
+    const avoid = [...inTheScreed(getPlumbing(plan).runs), ...inTheScreed(getHvac(plan).runs)]
+    gasCache.set(plan, (gas = gasPlan(plan, { faces: getFaces, walls: getWalls }, avoid)))
+  }
+  return gas
+}
+
+const mepCache = new WeakMap<Plan, MepPlan>()
+
+/** Every derived service together, with crossings, trenches and coordination clashes. */
+export function getMep(plan: Plan): MepPlan {
+  let mep = mepCache.get(plan)
+  if (!mep) {
+    const source = { faces: getFaces, walls: getWalls }
+    const levelAt = (point: Vec, storey: number) => {
+      const layers = plan.layers.filter((layer) => layer.visible && storeyOf(layer) === storey && regionAt(getFaces(layer).regions, point))
+      return layers.length ? Math.max(...layers.map((layer) => layer.level ?? 0)) : storeyLevel(plan, storey)
+    }
+    mepCache.set(
+      plan,
+      (mep = mepPlan(plan, {
+        wiring: getWiring(plan),
+        plumbing: getPlumbing(plan),
+        hvac: getHvac(plan),
+        gas: getGas(plan),
+        router: router(plan, source),
+        levelAt,
+      })),
+    )
+  }
+  return mep
 }

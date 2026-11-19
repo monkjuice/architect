@@ -14,8 +14,8 @@ import {
 } from './plan'
 import { layerFaces, regionAt, type Region } from './regions'
 import { offsetPolygon } from './roofs'
-import { downstream, fromRoot, pathLength, router } from './routing'
-import { placeService, serviceInfo, specOf, specText, tabOf, type ServiceInfo, type ServiceRole } from './services'
+import { clearPath, downstream, fromRoot, obstaclesOf, pathLength, routeKey, router } from './routing'
+import { placeService, portOf, serviceInfo, specOf, specText, tabOf, type ServiceInfo, type ServiceRole } from './services'
 import type { SolidsSource } from './solids'
 import { levelOf } from './storeys'
 import { layerWalls, WALL_HEIGHT } from './walls'
@@ -105,6 +105,8 @@ export interface Run {
   rise: number
   /** How much of its length runs outside the buildings, buried, m. */
   outdoor: number
+  /** On a main, the fixtures and pieces it leads to (downstream of it), for moving it by hand (see movedRoutes). */
+  ends?: Ref[]
 }
 
 /** What a fixture, or a tap put down by hand, takes: its water points and its drain. */
@@ -280,13 +282,16 @@ const nearestTo = <T extends { at: Vec }>(list: readonly T[], p: Vec): T | undef
 const direct: SolidsSource = { faces: layerFaces, walls: (layer) => layerWalls(layer, layerFaces(layer).thickness) }
 
 export function plumbingPlan(plan: Plan, source: SolidsSource = direct): PlumbingPlan {
-  const { frame, buildings, buildingAt, route, outdoorLength, square, outside } = router(plan, source)
+  const { frame, buildings, buildingAt, route, outdoorLength, square, outside, guided } = router(plan, source)
+  // the routes set by hand on this tab, by run kind and what the run leads to (routing.ts, routeKey)
+  const routes = plan.plumbing?.routes ?? {}
+  const guide = (kind: RunKind, ref?: Ref) => (ref ? routes[routeKey(kind, ref)] : undefined)
   const materials: Record<PipeNetwork, PipeMaterial> = { ...USUAL_PIPE, ...plan.plumbing?.materials }
   const runs: Run[] = []
-  const addRun = (kind: RunKind, size: number, path: Vec[], storey: number, rise = 0, to?: Ref) => {
+  const addRun = (kind: RunKind, size: number, path: Vec[], storey: number, rise = 0, to?: Ref, ends?: Ref[]) => {
     const length = pathLength(path)
     if (length < 1e-6 && rise < 1e-6) return
-    runs.push({ kind, size, material: materials[networkOf(kind)], ...(to ? { to } : {}), path, storey, length, rise, outdoor: outdoorLength(path) })
+    runs.push({ kind, size, material: materials[networkOf(kind)], ...(to ? { to } : {}), ...(ends?.length ? { ends } : {}), path, storey, length, rise, outdoor: outdoorLength(path) })
   }
 
   // ---- what stands on the plan: the fixtures' points and the equipment put down
@@ -338,6 +343,8 @@ export function plumbingPlan(plan: Plan, source: SolidsSource = direct): Plumbin
     }
     for (const [id, s] of Object.entries(layer.services)) {
       const info = serviceInfo(s.kind)
+      // the Gas tab's pieces (a meter, cylinders, outlets) have nothing to do with the water
+      if (tabOf(info) === 'gas') continue
       const where = roomAt(s.at)
       const ref: Ref = { layer: layer.id, kind: 'service', id }
       // the HVAC tab's pieces: kept apart, joined to the plumbing only where they need it
@@ -382,7 +389,7 @@ export function plumbingPlan(plan: Plan, source: SolidsSource = direct): Plumbin
     if (!linked) {
       for (const item of stage) {
         const from = nearestTo(chain[i - 1], item.at)
-        if (from) addRun('feed', SUPPLY.feed, square(from.at, item.at, true), 0, Math.abs(item.level - from.level), item.ref)
+        if (from) addRun('feed', SUPPLY.feed, guided(from.at, item.at, guide('feed', item.ref), true), 0, Math.abs(item.level - from.level), item.ref)
       }
       continue
     }
@@ -391,7 +398,7 @@ export function plumbingPlan(plan: Plan, source: SolidsSource = direct): Plumbin
     const done: Equipment[] = []
     for (const item of left) {
       const from = done.length ? nearestTo(done, item.at)! : nearestTo(chain[i - 1], item.at)!
-      addRun('feed', SUPPLY.feed, square(from.at, item.at, true), 0, Math.abs(item.level - from.level), item.ref)
+      addRun('feed', SUPPLY.feed, guided(from.at, item.at, guide('feed', item.ref), true), 0, Math.abs(item.level - from.level), item.ref)
       done.push(item)
     }
   }
@@ -408,14 +415,19 @@ export function plumbingPlan(plan: Plan, source: SolidsSource = direct): Plumbin
     // the heaters are fed like any other cold point
     const targets = [
       ...cold.map((p) => ({ at: p.cold!, storey: p.storey, level: p.level, ref: p.ref })),
-      ...[...heaters, ...fill].map((h) => ({ at: h.at, storey: h.storey, level: h.level, ref: h.ref })),
+      // each at its cold connection (portOf), apart from its hot water, its gas and its heating
+      ...[...heaters, ...fill].map((h) => ({ at: portOf(h.service, 'cold'), storey: h.storey, level: h.level, ref: h.ref })),
     ]
-    const tree = route(roots.map((r) => r.at), targets.map((t) => t.at))
+    const tree = route(
+      roots.map((r) => r.at),
+      targets.map((t) => t.at),
+      targets.map((t) => guide('cold', t.ref)),
+    )
     const below = downstream(tree)
     tree.edges.forEach((e, i) => {
       const n = tree.nodes[e.to]
       const t = n.target >= 0 ? targets[n.target] : null
-      addRun('cold', below[i].length >= SUPPLY.mainPoints ? SUPPLY.main : SUPPLY.branch, e.path, 0, t ? rise(t.storey, t.level, 0) : 0, t?.ref)
+      addRun('cold', below[i].length >= SUPPLY.mainPoints ? SUPPLY.main : SUPPLY.branch, e.path, 0, t ? rise(t.storey, t.level, 0) : 0, t?.ref, below[i].map((k) => targets[k].ref))
       fittings += (e.path.length - 2) * FITTINGS.bend
     })
     fittings += tree.nodes.filter((n) => n.target < 0 && n.parent >= 0).length + targets.length * FITTINGS.point
@@ -423,12 +435,16 @@ export function plumbingPlan(plan: Plan, source: SolidsSource = direct): Plumbin
     valves += new Set(cold.filter((p) => p.room).map((p) => p.roomKey)).size
   }
   if (hot.length && heaters.length) {
-    const tree = route(heaters.map((h) => h.at), hot.map((p) => p.hot!))
+    const tree = route(
+      heaters.map((h) => portOf(h.service, 'hot')),
+      hot.map((p) => p.hot!),
+      hot.map((p) => guide('hot', p.ref)),
+    )
     const below = downstream(tree)
     tree.edges.forEach((e, i) => {
       const n = tree.nodes[e.to]
       const p = n.target >= 0 ? hot[n.target] : null
-      addRun('hot', below[i].length >= SUPPLY.mainPoints ? SUPPLY.main : SUPPLY.branch, e.path, 0, p ? rise(p.storey, p.level, 0) : 0, p?.ref)
+      addRun('hot', below[i].length >= SUPPLY.mainPoints ? SUPPLY.main : SUPPLY.branch, e.path, 0, p ? rise(p.storey, p.level, 0) : 0, p?.ref, below[i].map((k) => hot[k].ref))
       fittings += (e.path.length - 2) * FITTINGS.bend
     })
     fittings += tree.nodes.filter((n) => n.target < 0 && n.parent >= 0).length + hot.length * FITTINGS.point
@@ -446,7 +462,7 @@ export function plumbingPlan(plan: Plan, source: SolidsSource = direct): Plumbin
     const fatty = (p.fixture === 'sink' && p.style === 'kitchen') || (p.fixture === 'appliance' && p.style === 'dishwasher')
     const grease = fatty && greaseTraps.length ? nearestTo(greaseTraps, p.drain!) : undefined
     if (grease) {
-      addRun('drain', DRAIN.fixture, square(p.drain!, grease.at), p.storey, 0, p.ref)
+      addRun('drain', DRAIN.fixture, guided(p.drain!, grease.at, guide('drain', p.ref)), p.storey, 0, p.ref)
       continue
     }
     const key = fatty ? `${p.roomKey}:kitchen` : p.roomKey
@@ -457,21 +473,31 @@ export function plumbingPlan(plan: Plan, source: SolidsSource = direct): Plumbin
     const kitchen = key.endsWith(':kitchen')
     const trap: Trap = { layer: first.ref.layer, storey: first.storey, level: first.level, at: centroid(list.map((p) => p.front)), room: first.room, fixtures: list.length, ...(kitchen ? { kitchen } : {}) }
     traps.push(trap)
-    for (const p of list) addRun('drain', DRAIN.fixture, square(p.drain!, trap.at), p.storey, 0, p.ref)
+    for (const p of list) addRun('drain', DRAIN.fixture, guided(p.drain!, trap.at, guide('drain', p.ref)), p.storey, 0, p.ref)
   }
   // the HVAC's condensate: to the nearest trap on its floor, or out through the nearest wall when none is near
   const condensate = linked.filter((e) => e.info.links?.condensate)
+  // kept clear of the water pipes where it would run along one (routing.ts, clearPath)
+  const water = obstaclesOf(
+    runs.filter((r) => r.kind !== 'drain'),
+    (p) => buildingAt(p) >= 0,
+  )
+  // a condensate line routed by hand stays where it was put
+  const clear = (unit: Equipment, to: Vec) => {
+    const own = guide('condensate', unit.ref)
+    return own ? guided(unit.at, to, own) : clearPath(square(unit.at, to), CONDENSATE.pipe / 2000, unit.storey, water, frame, (p) => buildingAt(p) >= 0)
+  }
   for (const unit of condensate) {
     const trap = nearestTo(
       traps.filter((t) => t.storey === unit.storey),
       unit.at,
     )
     if (trap && dist(trap.at, unit.at) <= CONDENSATE.reach) {
-      addRun('condensate', CONDENSATE.pipe, square(unit.at, trap.at), unit.storey, 0, unit.ref)
+      addRun('condensate', CONDENSATE.pipe, clear(unit, trap.at), unit.storey, 0, unit.ref)
       continue
     }
     const out = outside(unit.at)
-    if (out) addRun('condensate', CONDENSATE.pipe, square(unit.at, out), unit.storey, 0, unit.ref)
+    if (out) addRun('condensate', CONDENSATE.pipe, clear(unit, out), unit.storey, 0, unit.ref)
   }
   // each fixture's own connections and trap, as chosen for it
   const fixtures: FixtureWork[] = points
@@ -620,6 +646,7 @@ export function plumbingPlan(plan: Plan, source: SolidsSource = direct): Plumbin
     say(problems, `The longest drain runs ${fall.run.toFixed(1)} m: falling ${DRAIN.slope * 100} %, it arrives ${fall.depth.toFixed(2)} m deep. Moving the waste nearer the house keeps the dig shallower.`)
   }
   if (greaseTraps.length) say(notes, 'The kitchen sinks drain through the grease trap; the other fixtures keep their rooms’ floor traps.')
+  if (ofKind('heater-gas').length) say(notes, 'The gas water heater’s gas, and its flue up past the roof, are the Gas tab’s.')
   if (!points.length) say(notes, 'No fixtures yet: put sinks, toilets, showers and the washer down on the Floor tab, and they get their water and drains here.')
 
   return { frame, occupants, equipment, linked, points, fixtures, traps, chambers, runs, risers, vents, summary, materials, valves, fittings, fall, problems, notes }

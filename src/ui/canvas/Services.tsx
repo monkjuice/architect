@@ -1,7 +1,7 @@
 import { memo, type CSSProperties } from 'react'
 import { placement, type Placement } from '../../model/furniture'
 import type { Layer, ServiceKind } from '../../model/plan'
-import { placeService, serviceInfo, serviceSymbol, specText, tabOf, type ServiceTab } from '../../model/services'
+import { editableOn, linkedTo, placeService, serviceInfo, serviceSymbol, specText, type ServiceTab } from '../../model/services'
 
 /**
  * The Plumbing and HVAC tabs' equipment on the plan: each piece drawn at its real size from `serviceSymbol` (a round
@@ -43,7 +43,7 @@ export const ServiceLayer = memo(function ServiceLayer({
 }: {
   layer: Layer
   /** The tab drawing it: its pieces in full, the other tab's faded. */
-  tab: ServiceTab
+  tab: ServiceTab | 'all'
   /** Whether the other tab's pieces are drawn at all (faded). */
   linked: boolean
   selected: string
@@ -57,8 +57,8 @@ export const ServiceLayer = memo(function ServiceLayer({
     <g className={layer.locked ? 'services locked' : 'services'} style={{ '--layer': layer.color } as CSSProperties} fontSize={10 * px}>
       {Object.entries(layer.services).map(([id, s]) => {
         const info = serviceInfo(s.kind)
-        const own = tabOf(info) === tab
-        if (!own && !linked) return null
+        const own = tab === 'all' || editableOn(info, tab)
+        if (!own && (!linked || !linkedTo(info, tab))) return null
         const placed = placeService(s)
         const className = [!own && 'linked', own && ids.has(id) && 'selected', own && hovered === id && 'hovered', s.hot && 'hot'].filter(Boolean).join(' ')
         const rating = specText(info, s.width, s.depth)
